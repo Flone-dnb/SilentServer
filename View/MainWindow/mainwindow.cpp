@@ -90,7 +90,7 @@ void MainWindow::typeSomeOnOutputLog(QString text)
 
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(nullptr,"FChat","FChat (server). Version: 1.0 (12.04.2019)");
+    QMessageBox::about(nullptr,"FChat","FChat (server). Version: 1.05 (09.05.2019)");
 }
 
 void MainWindow::on_actionStart_triggered()

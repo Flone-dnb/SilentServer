@@ -176,6 +176,7 @@ void ServerService::listenForNewConnections()
                         // Prepared data format (amount of bytes in '()'):
 
                         // (1) Is user name free (if not then all other stuff is not included)
+                        // (2) Packet size minus "free name" byte (and excluding packet size)
                         // (4) Amount of users in main lobby (online)
                         // [
                         //      (1) Size in bytes of user name online
@@ -184,10 +185,14 @@ void ServerService::listenForNewConnections()
 
                         int iBytesWillSend = 0;
                         char command = 1;
-                        std::memcpy(pTempData,&command,1);
+                        std::memcpy(pTempData, &command, 1);
                         iBytesWillSend++;
-                        std::memcpy(pTempData+iBytesWillSend,&iUsersConnectedCount,4);
-                        iBytesWillSend+=4;
+
+                        // We will put here packet size
+                        iBytesWillSend += 2;
+
+                        std::memcpy(pTempData + iBytesWillSend, &iUsersConnectedCount, 4);
+                        iBytesWillSend += 4;
                         for (unsigned int j = 0; j < users.size(); j++)
                         {
                             unsigned char nameSize = static_cast<unsigned char>(users[j]->userName.size()) + 1;
@@ -198,6 +203,9 @@ void ServerService::listenForNewConnections()
                             iBytesWillSend+=nameSize;
                         }
 
+                        // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes))
+                        unsigned short int iPacketSize = static_cast<unsigned short>(iBytesWillSend - 3);
+                        std::memcpy(pTempData + 1, &iPacketSize, 2);
 
                         // SEND
                         int iBytesWereSent = send(newConnectedSocket,pTempData,iBytesWillSend,0);
@@ -245,20 +253,36 @@ void ServerService::listenForNewConnections()
                                     // Tell other users about new user
 
                                     char* pNewUserInfo = new char[30];
-                                    memset(pNewUserInfo,0,30);
-                                    // 0 - means 'there is new user, update your OnlineCount and add him to list'
-                                    unsigned char commandType = 0;
-                                    std::memcpy(pNewUserInfo,&commandType,1);
-                                    std::memcpy(pNewUserInfo+1,&iUsersConnectedCount,4);
+                                    memset(pNewUserInfo, 0, 30);
+
                                     unsigned char sizeOfUserName = static_cast<unsigned char>(std::string(pNameBuffer).size());
-                                    std::memcpy(pNewUserInfo+5,&sizeOfUserName,1);
-                                    std::memcpy(pNewUserInfo+6,pNameBuffer,sizeOfUserName);
+
+                                    unsigned char iSendSize = 0;
+
+                                    // 0 - means 'there is new user, update your OnlineCount and add him to list
+                                    unsigned char commandType = 0;
+                                    std::memcpy(pNewUserInfo, &commandType, 1);
+                                    iSendSize++;
+
+                                    // Put packet size
+                                    unsigned char iPacketSize = 4 + 1 + sizeOfUserName;
+                                    std::memcpy(pNewUserInfo + 1, &iPacketSize, 1);
+                                    iSendSize++;
+
+                                    std::memcpy(pNewUserInfo + 2, &iUsersConnectedCount, 4);
+                                    iSendSize += 4;
+
+                                    std::memcpy(pNewUserInfo + 6, &sizeOfUserName, 1);
+                                    iSendSize++;
+                                    std::memcpy(pNewUserInfo + 7, pNameBuffer, sizeOfUserName);
+                                    iSendSize += sizeOfUserName;
 
                                     // Send this data
                                     for (unsigned int i = 0; i < users.size(); i++)
                                     {
-                                        send(users[i]->userSocket,pNewUserInfo,30,0);
+                                        send(users[i]->userSocket, pNewUserInfo, iSendSize, 0);
                                     }
+
                                     delete[] pNewUserInfo;
                                 }
 
@@ -302,10 +326,13 @@ void ServerService::listenForMessage(UserStruct* userToListen, std::mutex& mtxUs
         {
             // There are some data to read
 
-            // Clear buffer
-            memset(userToListen->pDataFromUser,0,1500);
-
-            int receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser,1500,0);
+            // We want to receive only 1 byte of data that contains packet ID (what packet it is: message or something else).
+            // After that, if it's a message then we will receive another 2 bytes (size of the message) and receive another "size of the message" bytes.
+            // We do that because TCP is a stream. All data that users sent to us is written in one stream and we read from it, we don't read separate packets, like in UDP.
+            // Example: if we would set "len" param in recv() to 400 bytes and user simultaneously will send to us 2 messages with size < 200 those 2 messages will be written in our TCP stream
+            // and because we set "len" to 400 we will read 2 messages in one buffer in one recv() call. We don't want that.
+            // Because of that first, we read packet ID, second - packet size, third - message.
+            int receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser,1,0);
             if (receivedAmount == 0)
             {
                 // Client sent FIN
@@ -317,19 +344,23 @@ void ServerService::listenForMessage(UserStruct* userToListen, std::mutex& mtxUs
                 {
                     // Tell other users that one is disconnected
                     char* pSendInfo = new char[30];
-                    memset(pSendInfo,0,30);
+                    memset(pSendInfo, 0, 30);
 
                     // 1 means that someone is disconnected
                     unsigned char commandType = 1;
-                    std::memcpy(pSendInfo,&commandType,1);
+                    std::memcpy(pSendInfo, &commandType, 1);
 
-                    std::memcpy(pSendInfo+1,&iUsersConnectedCount,4);
+                    // Put size
+                    unsigned char iPacketSize = static_cast<unsigned char>(4 + userToListen->userName.size());
+                    std::memcpy(pSendInfo + 1, &iPacketSize, 1);
 
-                    std::memcpy(pSendInfo+5,userToListen->userName.c_str(),userToListen->userName.size());
+                    std::memcpy(pSendInfo + 2, &iUsersConnectedCount, 4);
+
+                    std::memcpy(pSendInfo + 6, userToListen->userName.c_str(), userToListen->userName.size());
 
                     for (unsigned int j = 0; j < users.size(); j++)
                     {
-                        send(users[j]->userSocket,pSendInfo,30,0);
+                        send(users[j]->userSocket, pSendInfo, 1 + 1 + 4 + userToListen->userName.size(), 0);
                     }
 
                     delete[] pSendInfo;
@@ -357,13 +388,28 @@ void ServerService::listenForMessage(UserStruct* userToListen, std::mutex& mtxUs
                 if (userToListen->pDataFromUser[0] == 10)
                 {
                     // This is a message (in main lobby), send it to all in main lobby
+                    // Get message size
+                    receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser, 2, 0);
+                    unsigned short int iPacketSize = 0;
+                    std::memcpy(&iPacketSize, userToListen->pDataFromUser, 2);
+
+                    // Resend it
+                    char* pResendToAll = new char[1 + 2 + iPacketSize];
+                    receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser, iPacketSize, 0);
+
+                    pResendToAll[0] = 10;
+                    std::memcpy(pResendToAll + 1, &iPacketSize, 2);
+                    std::memcpy(pResendToAll + 3, userToListen->pDataFromUser, iPacketSize);
+
                     for (unsigned int j = 0; j < users.size(); j++)
                     {
                         if (users[j]->userName != userToListen->userName)
                         {
-                          send(users[j]->userSocket,userToListen->pDataFromUser,receivedAmount,0);
+                          send(users[j]->userSocket, pResendToAll, 1 + 2 + iPacketSize, 0);
                         }
                     }
+
+                    delete[] pResendToAll;
                 }
             }
         }
