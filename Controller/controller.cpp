@@ -6,16 +6,27 @@
 Controller::Controller(MainWindow* pMainWindow)
 {
     pServerService = new ServerService(pMainWindow);
+    bServerStarted = false;
+}
+
+std::string Controller::getServerVersion()
+{
+    return pServerService->getServerVersion();
 }
 
 void Controller::start()
 {
-    pServerService->startWinSock();
+    if (bServerStarted) stop();
+    else bServerStarted = pServerService->startWinSock();
 }
 
 void Controller::stop()
 {
-    pServerService->shutdownAllUsers();
+    if (bServerStarted)
+    {
+        pServerService->shutdownAllUsers();
+        bServerStarted = false;
+    }
 }
 
 Controller::~Controller()

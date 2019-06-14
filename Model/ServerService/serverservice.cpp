@@ -4,12 +4,14 @@
 #include "View/MainWindow/mainwindow.h"
 
 //C++
-#include <string>
 #include <thread>
+#include <ctime>
 
 
 ServerService::ServerService(MainWindow* pMainWindow)
 {
+    serverVersion = "1.15";
+
     this->pMainWindow = pMainWindow;
 
     bWinSockStarted = false;
@@ -18,8 +20,20 @@ ServerService::ServerService(MainWindow* pMainWindow)
     iUsersConnectedCount = 0;
 }
 
-void ServerService::startWinSock()
+
+
+
+
+std::string ServerService::getServerVersion()
 {
+    return serverVersion;
+}
+
+bool ServerService::startWinSock()
+{
+    pMainWindow->clearChatWindow();
+    pMainWindow->printOutput( std::string("Starting...") );
+
     // Start Winsock2
 
     WSADATA WSAData;
@@ -35,10 +49,16 @@ void ServerService::startWinSock()
         startToListenForConnection();
         if (bListening)
         {
-            std::thread listenThread(&ServerService::listenForNewConnections,this);
+            pMainWindow->changeStartStopActionText(true);
+
+            std::thread listenThread(&ServerService::listenForNewConnections, this);
             listenThread.detach();
+
+            return true;
         }
     }
+
+    return false;
 }
 
 void ServerService::startToListenForConnection()
@@ -75,7 +95,7 @@ void ServerService::startToListenForConnection()
 
             // Get my IP
             char myIP[16];
-            inet_ntop(AF_INET,&myBindedAddr.sin_addr,myIP,sizeof(myIP));
+            inet_ntop(AF_INET, &myBindedAddr.sin_addr, myIP, sizeof(myIP));
 
             pMainWindow->printOutput(std::string("Success. Waiting for a connection requests on port: " + std::to_string(ntohs(myBindedAddr.sin_port)) + "."));
 
@@ -118,7 +138,7 @@ void ServerService::listenForNewConnections()
         newConnectedSocket = accept(listenSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
         if (newConnectedSocket != INVALID_SOCKET)
         {
-            pMainWindow->printOutput(std::string("\nSomeone is connecting..."),true);
+            pMainWindow->printOutput(std::string("\nSomeone is connecting..."), true);
             // Disable Nagle algorithm for Connected Socket
             BOOL bOptVal = true;
             int bOptLen = sizeof(BOOL);
@@ -126,20 +146,46 @@ void ServerService::listenForNewConnections()
             {
                 pMainWindow->printOutput(std::string("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: " + std::to_string(WSAGetLastError()) + ".\nSending FIN to this new user.\n"),true);
 
-                std::thread closethread(&ServerService::sendFINtoSocket,this,std::ref(newConnectedSocket));
+                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                 closethread.detach();
             }
             else
             {
-                // Receive user name
-                char* pNameBuffer = new char[21];
-                memset(pNameBuffer,0,21);
-                if (recv(newConnectedSocket,pNameBuffer,20,0) > 1)
+                // Receive version and user name
+                char nameBuffer[41];
+                memset(nameBuffer, 0, 41);
+                if (recv(newConnectedSocket, nameBuffer, 41, 0) > 1)
                 {
-                    // Received user name
+                    // Received version & user name
+
+                    // Check if client version is the same with the server version
+                    char clientVersionSize = nameBuffer[0];
+                    char* pVersion = new char[ static_cast<unsigned long long>(clientVersionSize + 1) ];
+                    memset( pVersion, 0, static_cast<unsigned long long>(clientVersionSize + 1) );
+
+                    std::memcpy(pVersion, nameBuffer + 1, static_cast<unsigned long long>(clientVersionSize));
+
+                    std::string clientVersion(pVersion);
+                    delete[] pVersion;
+                    if ( clientVersion != serverVersion )
+                    {
+                        pMainWindow->printOutput(std::string("Client version " + clientVersion + " does not match with the server version " + serverVersion + "."), true);
+                        char answerBuffer[21];
+                        memset(answerBuffer, 0, 21);
+
+                        answerBuffer[0] = 3;
+                        answerBuffer[1] = static_cast<char>(serverVersion.size());
+                        std::memcpy(answerBuffer + 2, serverVersion.c_str(), serverVersion.size());
+
+                        send(newConnectedSocket, answerBuffer, 2 + serverVersion.size(), 0);
+                        std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+                        closethread.detach();
+
+                        continue;
+                    }
 
                     // Check if this user name is free
-                    std::string userNameStr(pNameBuffer);
+                    std::string userNameStr(nameBuffer + 1 + clientVersionSize);
                     bool bUserNameFree = true;
                     for (unsigned int i = 0; i<users.size(); i++)
                     {
@@ -152,10 +198,10 @@ void ServerService::listenForNewConnections()
 
                     if (bUserNameFree == false)
                     {
-                        pMainWindow->printOutput(std::string("New user name collision."),true);
+                        pMainWindow->printOutput(std::string("User name " + userNameStr + " is already taken."),true);
                         char command = 0;
-                        send(newConnectedSocket,reinterpret_cast<char*>(&command),1,0);
-                        std::thread closethread(&ServerService::sendFINtoSocket,this,std::ref(newConnectedSocket));
+                        send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
+                        std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                         closethread.detach();
                     }
                     else
@@ -165,8 +211,8 @@ void ServerService::listenForNewConnections()
                         memset(&connectedWithIP,0,16);
                         inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
 
-                        char* pTempData = new char[1500];
-                        memset(pTempData,0,1500);
+                        char tempData[1400];
+                        memset(tempData, 0, 1400);
 
                         // we ++ new user (if something will go wrong later we will -- this user
                         iUsersConnectedCount++;
@@ -176,7 +222,7 @@ void ServerService::listenForNewConnections()
                         // Prepared data format (amount of bytes in '()'):
 
                         // (1) Is user name free (if not then all other stuff is not included)
-                        // (2) Packet size minus "free name" byte (and excluding packet size)
+                        // (2) Packet size minus "free name" byte
                         // (4) Amount of users in main lobby (online)
                         // [
                         //      (1) Size in bytes of user name online
@@ -185,52 +231,64 @@ void ServerService::listenForNewConnections()
 
                         int iBytesWillSend = 0;
                         char command = 1;
-                        std::memcpy(pTempData, &command, 1);
+                        std::memcpy(tempData, &command, 1);
                         iBytesWillSend++;
 
                         // We will put here packet size
                         iBytesWillSend += 2;
 
-                        std::memcpy(pTempData + iBytesWillSend, &iUsersConnectedCount, 4);
+                        std::memcpy(tempData + iBytesWillSend, &iUsersConnectedCount, 4);
                         iBytesWillSend += 4;
                         for (unsigned int j = 0; j < users.size(); j++)
                         {
                             unsigned char nameSize = static_cast<unsigned char>(users[j]->userName.size()) + 1;
-                            std::memcpy(pTempData+iBytesWillSend,&nameSize,1);
+                            std::memcpy(tempData + iBytesWillSend, &nameSize, 1);
                             iBytesWillSend++;
 
-                            std::memcpy(pTempData+iBytesWillSend,users[j]->userName.c_str(),nameSize);
-                            iBytesWillSend+=nameSize;
+                            std::memcpy(tempData + iBytesWillSend, users[j]->userName.c_str(), nameSize);
+                            iBytesWillSend += nameSize;
                         }
 
                         // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes))
                         unsigned short int iPacketSize = static_cast<unsigned short>(iBytesWillSend - 3);
-                        std::memcpy(pTempData + 1, &iPacketSize, 2);
+                        std::memcpy(tempData + 1, &iPacketSize, 2);
+
+                        if (iBytesWillSend > 1350)
+                        {
+                            // This should happen when you got like >50 users online (when all users have name long 20 chars) if my calculations are correct.
+                            // Not the main problem right now, tell me if you are suffering from this lol.
+
+                            pMainWindow->printOutput(std::string("Server is full.\n"), true);
+
+                            char serverIsFullCommand = 2;
+                            send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
+                            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+                            closethread.detach();
+
+                            continue;
+                        }
 
                         // SEND
-                        int iBytesWereSent = send(newConnectedSocket,pTempData,iBytesWillSend,0);
-                        if (iBytesWillSend > 1200)
+                        int iBytesWereSent = send(newConnectedSocket, tempData, iBytesWillSend, 0);
+
+                        if (iBytesWereSent != iBytesWillSend)
                         {
-                            pMainWindow->printOutput(std::string("\nWARNING:\n"+std::to_string(iBytesWillSend)+" bytes were sent to new user. Think about increasing read buffers or compressing data before it's sent, because current buffers size is 1500 bytes.\n"),true);
+                            pMainWindow->printOutput(std::string("\nWARNING:\n" + std::to_string(iBytesWereSent)+" bytes were sent of total " + std::to_string(iBytesWillSend) + " to new user.\n"), true);
                         }
-                        if (iBytesWillSend != iBytesWereSent)
+                        if (iBytesWereSent == -1)
                         {
-                            pMainWindow->printOutput(std::string("\nWARNING:\n"+std::to_string(iBytesWereSent)+" bytes were sent of total "+std::to_string(iBytesWillSend)+" to new user.\n"),true);
-                        }
-                        if (iBytesWillSend == -1)
-                        {
-                            pMainWindow->printOutput(std::string("ServerService::listenForNewConnections()::send()) (online info) failed and returned: "+std::to_string(WSAGetLastError())+"."),true);
-                            if (recv(newConnectedSocket,pTempData,1500,0) == 0)
+                            pMainWindow->printOutput(std::string("ServerService::listenForNewConnections()::send()) (online info) failed and returned: " + std::to_string(WSAGetLastError())+"."), true);
+                            if (recv(newConnectedSocket, tempData, 1500, 0) == 0)
                             {
-                                pMainWindow->printOutput(std::string("received FIN from this new user who didn't receive online info."),true);
-                                shutdown(newConnectedSocket,SD_SEND);
+                                pMainWindow->printOutput(std::string("received FIN from this new user who didn't receive online info."), true);
+                                shutdown(newConnectedSocket, SD_SEND);
                                 if (closesocket(newConnectedSocket) != SOCKET_ERROR)
                                 {
-                                    pMainWindow->printOutput(std::string("closed this socket with success."),true);
+                                    pMainWindow->printOutput(std::string("closed this socket with success."), true);
                                 }
                                 else
                                 {
-                                    pMainWindow->printOutput(std::string("can't close this socket... meh. You better reboot the server..."),true);
+                                    pMainWindow->printOutput(std::string("can't close this socket... meh. You better reboot the server..."), true);
                                 }
                             }
                             iUsersConnectedCount--;
@@ -239,11 +297,11 @@ void ServerService::listenForNewConnections()
                         {
                             // Translate new connected socket to non-blocking mode
                             u_long arg = true;
-                            if (ioctlsocket(newConnectedSocket,FIONBIO,&arg) == SOCKET_ERROR)
+                            if (ioctlsocket(newConnectedSocket, FIONBIO, &arg) == SOCKET_ERROR)
                             {
-                                pMainWindow->printOutput(std::string("ServerService::listenForNewConnections()::ioctsocket() (non-blocking mode) failed and returned: " + std::to_string(WSAGetLastError()) + "."),true);
+                                pMainWindow->printOutput(std::string("ServerService::listenForNewConnections()::ioctsocket() (non-blocking mode) failed and returned: " + std::to_string(WSAGetLastError()) + "."), true);
 
-                                std::thread closethread(&ServerService::sendFINtoSocket,this,std::ref(newConnectedSocket));
+                                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                                 closethread.detach();
                             }
                             else
@@ -252,134 +310,83 @@ void ServerService::listenForNewConnections()
                                 {
                                     // Tell other users about new user
 
-                                    char* pNewUserInfo = new char[30];
-                                    memset(pNewUserInfo, 0, 30);
+                                    char newUserInfo[31];
+                                    memset(newUserInfo, 0, 31);
 
-                                    unsigned char sizeOfUserName = static_cast<unsigned char>(std::string(pNameBuffer).size());
+                                    unsigned char sizeOfUserName = static_cast<unsigned char>(userNameStr.size());
 
                                     unsigned char iSendSize = 0;
 
                                     // 0 - means 'there is new user, update your OnlineCount and add him to list
                                     unsigned char commandType = 0;
-                                    std::memcpy(pNewUserInfo, &commandType, 1);
+                                    std::memcpy(newUserInfo, &commandType, 1);
                                     iSendSize++;
 
                                     // Put packet size
                                     unsigned char iPacketSize = 4 + 1 + sizeOfUserName;
-                                    std::memcpy(pNewUserInfo + 1, &iPacketSize, 1);
+                                    std::memcpy(newUserInfo + 1, &iPacketSize, 1);
                                     iSendSize++;
 
-                                    std::memcpy(pNewUserInfo + 2, &iUsersConnectedCount, 4);
+                                    std::memcpy(newUserInfo + 2, &iUsersConnectedCount, 4);
                                     iSendSize += 4;
 
-                                    std::memcpy(pNewUserInfo + 6, &sizeOfUserName, 1);
+                                    std::memcpy(newUserInfo + 6, &sizeOfUserName, 1);
                                     iSendSize++;
-                                    std::memcpy(pNewUserInfo + 7, pNameBuffer, sizeOfUserName);
+                                    std::memcpy(newUserInfo + 7, userNameStr.c_str(), sizeOfUserName);
                                     iSendSize += sizeOfUserName;
 
                                     // Send this data
                                     for (unsigned int i = 0; i < users.size(); i++)
                                     {
-                                        send(users[i]->userSocket, pNewUserInfo, iSendSize, 0);
+                                        send(users[i]->userSocket, newUserInfo, iSendSize, 0);
                                     }
-
-                                    delete[] pNewUserInfo;
                                 }
 
 
                                 // Fill UserStruct for new user
 
                                 users.push_back(new UserStruct());
-                                users[ users.size() - 1 ]->userName      = std::string(pNameBuffer);
-                                users[ users.size() - 1 ]->userSocket    = newConnectedSocket;
-                                users[ users.size() - 1 ]->pDataFromUser = new char[1500];
-                                users[ users.size() - 1 ]->userIP        = std::string(connectedWithIP);
-                                users[ users.size() - 1 ]->userPort      = ntohs(connectedWith.sin_port);
+                                users.back()->userName       = userNameStr;
+                                users.back()->userSocket     = newConnectedSocket;
+                                users.back()->pDataFromUser  = new char[1500];
+                                users.back()->userIP         = std::string(connectedWithIP);
+                                users.back()->userPort       = ntohs(connectedWith.sin_port);
+                                users.back()->keepAliveTimer = clock();
 
                                 // Ready to send and receive data
 
                                 pMainWindow->printOutput(std::string("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + users[ users.size() - 1 ]->userName + "."),true);
                                 pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
-                                users[ users.size() - 1 ]->pListItem = pMainWindow->addNewUserToList(users[ users.size() - 1 ]->userName);
+                                users.back()->pListItem = pMainWindow->addNewUserToList(users[ users.size() - 1 ]->userName);
 
-                                std::thread listenThread(&ServerService::listenForMessage, this, users[ users.size() - 1], std::ref(mtxUsersWrite));
+                                std::thread listenThread(&ServerService::listenForMessage, this, users[ users.size() - 1]);
                                 listenThread.detach();
                             }
                         }
-                        delete[] pTempData;
                     }
                 }
-                delete[] pNameBuffer;
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
     }
 }
 
-void ServerService::listenForMessage(UserStruct* userToListen, std::mutex& mtxUsersWrite)
+void ServerService::listenForMessage(UserStruct* userToListen)
 {
     while(bListening)
     {
-        // We will check if there is a message every 10 ms (look end of this function)
-        if (recv(userToListen->userSocket, userToListen->pDataFromUser,0,0) == 0)
+        while (recv(userToListen->userSocket, userToListen->pDataFromUser, 0, 0) == 0)
         {
             // There are some data to read
 
-            // We want to receive only 1 byte of data that contains packet ID (what packet it is: message or something else).
-            // After that, if it's a message then we will receive another 2 bytes (size of the message) and receive another "size of the message" bytes.
-            // We do that because TCP is a stream. All data that users sent to us is written in one stream and we read from it, we don't read separate packets, like in UDP.
-            // Example: if we would set "len" param in recv() to 400 bytes and user simultaneously will send to us 2 messages with size < 200 those 2 messages will be written in our TCP stream
-            // and because we set "len" to 400 we will read 2 messages in one buffer in one recv() call. We don't want that.
-            // Because of that first, we read packet ID, second - packet size, third - message.
-            int receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser,1,0);
+            int receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser, 1, 0);
             if (receivedAmount == 0)
             {
                 // Client sent FIN
-                mtxUsersWrite.lock();
 
                 responseToFIN(userToListen);
 
-                if (users.size() - 1 != 0)
-                {
-                    // Tell other users that one is disconnected
-                    char* pSendInfo = new char[30];
-                    memset(pSendInfo, 0, 30);
-
-                    // 1 means that someone is disconnected
-                    unsigned char commandType = 1;
-                    std::memcpy(pSendInfo, &commandType, 1);
-
-                    // Put size
-                    unsigned char iPacketSize = static_cast<unsigned char>(4 + userToListen->userName.size());
-                    std::memcpy(pSendInfo + 1, &iPacketSize, 1);
-
-                    std::memcpy(pSendInfo + 2, &iUsersConnectedCount, 4);
-
-                    std::memcpy(pSendInfo + 6, userToListen->userName.c_str(), userToListen->userName.size());
-
-                    for (unsigned int j = 0; j < users.size(); j++)
-                    {
-                        send(users[j]->userSocket, pSendInfo, 1 + 1 + 4 + userToListen->userName.size(), 0);
-                    }
-
-                    delete[] pSendInfo;
-                }
-
-                // Erase user from massive
-                for (unsigned int i = 0; i < users.size(); i++)
-                {
-                    if (users[i]->userName == userToListen->userName)
-                    {
-                        delete[] userToListen->pDataFromUser;
-                        pMainWindow->deleteUserFromList(userToListen->pListItem);
-                        delete users[i];
-                        users.erase(users.begin() + i);
-                        break;
-                    }
-                }
-
-                mtxUsersWrite.unlock();
                 // Stop thread
                 return;
             }
@@ -388,29 +395,52 @@ void ServerService::listenForMessage(UserStruct* userToListen, std::mutex& mtxUs
                 if (userToListen->pDataFromUser[0] == 10)
                 {
                     // This is a message (in main lobby), send it to all in main lobby
-                    // Get message size
-                    receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser, 2, 0);
-                    unsigned short int iPacketSize = 0;
-                    std::memcpy(&iPacketSize, userToListen->pDataFromUser, 2);
 
-                    // Resend it
-                    char* pResendToAll = new char[1 + 2 + iPacketSize];
-                    receivedAmount = recv(userToListen->userSocket, userToListen->pDataFromUser, iPacketSize, 0);
+                    userToListen->keepAliveTimer = clock();
 
-                    pResendToAll[0] = 10;
-                    std::memcpy(pResendToAll + 1, &iPacketSize, 2);
-                    std::memcpy(pResendToAll + 3, userToListen->pDataFromUser, iPacketSize);
-
-                    for (unsigned int j = 0; j < users.size(); j++)
-                    {
-                        if (users[j]->userName != userToListen->userName)
-                        {
-                          send(users[j]->userSocket, pResendToAll, 1 + 2 + iPacketSize, 0);
-                        }
-                    }
-
-                    delete[] pResendToAll;
+                    getMessage(userToListen);
                 }
+            }
+        };
+
+        clock_t timePassed = clock() - userToListen->keepAliveTimer;
+        float timePassedInSeconds = static_cast<float>(timePassed)/CLOCKS_PER_SEC;
+        if (timePassedInSeconds > 30)
+        {
+            // User was inactive for 30 seconds
+            // Check if he's alive
+
+            char keepAliveChar = 9;
+            send(userToListen->userSocket, &keepAliveChar, 1, 0);
+
+            // Translate user socket to blocking mode
+            u_long arg = false;
+            ioctlsocket(userToListen->userSocket, FIONBIO, &arg);
+
+            // Set recv() time out time to 10 seconds
+            DWORD time = 10000;
+            setsockopt(userToListen->userSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&time), sizeof(time));
+
+            keepAliveChar = 0;
+            int returnCode = recv(userToListen->userSocket, &keepAliveChar, 1, 0);
+            if (returnCode >= 0)
+            {
+                userToListen->keepAliveTimer = clock();
+
+                // Translate user socket to non-blocking mode
+                arg = true;
+                ioctlsocket(userToListen->userSocket, FIONBIO, &arg);
+
+                if (keepAliveChar == 10) getMessage(userToListen);
+                else if (keepAliveChar == 0) responseToFIN(userToListen);
+            }
+            else
+            {
+                // We lost connection with this user
+                responseToFIN(userToListen, true);
+
+                // Stop thread
+                return;
             }
         }
 
@@ -418,30 +448,100 @@ void ServerService::listenForMessage(UserStruct* userToListen, std::mutex& mtxUs
     }
 }
 
-
-
-void ServerService::sendFINtoSocket(SOCKET& socketToClose)
+void ServerService::getMessage(UserStruct *userToListen)
 {
-    int returnCode = shutdown(socketToClose,SD_SEND);
-    if (returnCode == SOCKET_ERROR)
+    // Get message size
+    unsigned short int iMessageSize = 0;
+    recv(userToListen->userSocket, reinterpret_cast<char*>(&iMessageSize), 2, 0);
+
+
+    // Get local time
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+    localtime_s(&timeinfo, &now);
+
+    // Create string to send in format: "Hour:Minute. UserName: Message".
+    std::string timeString = "";
+    if (std::to_string(timeinfo.tm_hour).size() == 1)
     {
-        pMainWindow->printOutput(std::string("ServerService::sendFINtoSocket()::shutdown() function failed and returned: " + std::to_string(WSAGetLastError()) + "."),true);
+        timeString += "0";
+    }
+    timeString += std::to_string(timeinfo.tm_hour);
+    timeString += ":";
+    if (std::to_string(timeinfo.tm_min).size() == 1)
+    {
+        timeString += "0";
+    }
+    timeString += std::to_string(timeinfo.tm_min);
+    timeString += ". ";
+    timeString += userToListen->userName;
+    timeString += ": ";
+
+
+    // Add 'timeString' size and 'iMessageSize' to 'iPacketSize'
+    unsigned short int iPacketSize = static_cast<unsigned short int>(timeString.size() + iMessageSize);
+
+    // Prepare buffer to send
+    char* pSendToAllBuffer = new char[3 + iPacketSize + 1];
+    memset(pSendToAllBuffer, 0, 3 + iPacketSize + 1);
+
+    // Set packet ID (message) to buffer
+    pSendToAllBuffer[0] = 10;
+    // Set packet size to buffer
+    std::memcpy(pSendToAllBuffer + 1, &iPacketSize, 2);
+    // Copy time and name to buffer
+    std::memcpy(pSendToAllBuffer + 3, timeString.c_str(), timeString.size());
+
+
+    // Receive user message to send
+    recv(userToListen->userSocket, pSendToAllBuffer + 3 + timeString.size(), iMessageSize, 0);
+
+    int returnCode = 0;
+
+    // Send message to all but not the sender
+    for (unsigned int j = 0; j < users.size(); j++)
+    {
+        returnCode = send(users[j]->userSocket, pSendToAllBuffer, 3 + iPacketSize, 0);
+        if ( returnCode != (3 + iPacketSize) )
+        {
+            if (returnCode == SOCKET_ERROR)
+            {
+                pMainWindow->printOutput( std::string( "ServerService::getMessage::send() function failed and returned: " + std::to_string(WSAGetLastError()) ), true);
+            }
+            else
+            {
+                pMainWindow->printOutput( std::string( userToListen->userName + "'s message wasn't fully sent. send() returned: " + std::to_string(returnCode) ), true);
+            }
+        }
+    }
+
+    delete[] pSendToAllBuffer;
+}
+
+
+
+void ServerService::sendFINtoSocket(SOCKET socketToClose)
+{
+    // Translate socket to blocking mode
+    u_long arg = true;
+    if (ioctlsocket(socketToClose, FIONBIO, &arg) == SOCKET_ERROR)
+    {
+        pMainWindow->printOutput(std::string("ServerService::sendFINtoSocket()::ioctlsocket() (Set blocking mode) function failed and returned: "
+                                             + std::to_string(WSAGetLastError()) + ".\nJust closing this socket.\n"),true);
         closesocket(socketToClose);
     }
     else
     {
-        // Translate socket to blocking mode
-        u_long arg = true;
-        if (ioctlsocket(socketToClose,FIONBIO,&arg) == SOCKET_ERROR)
+        int returnCode = shutdown(socketToClose, SD_SEND);
+        if (returnCode == SOCKET_ERROR)
         {
-            pMainWindow->printOutput(std::string("ServerService::sendFINtoSocket()::ioctlsocket() (Set blocking mode) function failed and returned: "
-                                                 + std::to_string(WSAGetLastError()) + ".\nJust closing this socket.\n"),true);
+            pMainWindow->printOutput(std::string("ServerService::sendFINtoSocket()::shutdown() function failed and returned: " + std::to_string(WSAGetLastError()) + "."),true);
             closesocket(socketToClose);
         }
         else
         {
-            char* pTempBuffer = new char[1500];
-            returnCode = recv(socketToClose,pTempBuffer,1500,0);
+            char tempBuffer[5];
+            returnCode = recv(socketToClose, tempBuffer, 5, 0);
             if (returnCode == 0)
             {
                 returnCode = closesocket(socketToClose);
@@ -456,7 +556,7 @@ void ServerService::sendFINtoSocket(SOCKET& socketToClose)
             }
             else
             {
-                returnCode = recv(socketToClose,pTempBuffer,1500,0);
+                returnCode = recv(socketToClose, tempBuffer, 5, 0);
                 if (returnCode == 0)
                 {
                     returnCode = closesocket(socketToClose);
@@ -471,34 +571,51 @@ void ServerService::sendFINtoSocket(SOCKET& socketToClose)
                     }
                 }
             }
-            delete[] pTempBuffer;
         }
     }
 }
 
-void ServerService::responseToFIN(UserStruct* userToClose)
+void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
-    // Client sent FIN
-    // We are responding:
-    pMainWindow->printOutput(std::string(userToClose->userName + " has sent FIN."),true);
+    mtxUsersWrite.lock();
 
-    int returnCode = shutdown(userToClose->userSocket,SD_SEND);
-    if (returnCode == SOCKET_ERROR)
+
+    if (!bUserLost)
     {
-        pMainWindow->printOutput(std::string("ServerService::responseToFIN()::shutdown() function failed and returned: " + std::to_string(WSAGetLastError()) + "."),true);
-        returnCode = shutdown(userToClose->userSocket,SD_SEND);
+        // Client sent FIN
+        // We are responding:
+        pMainWindow->printOutput(std::string("\n" + userToClose->userName + " has sent FIN."),true);
+
+        int returnCode = shutdown(userToClose->userSocket, SD_SEND);
         if (returnCode == SOCKET_ERROR)
         {
-            pMainWindow->printOutput(std::string("Try #2. Can't shutdown socket. Closing socket..."),true);
-            returnCode = closesocket(userToClose->userSocket);
+            pMainWindow->printOutput(std::string("ServerService::responseToFIN()::shutdown() function failed and returned: " + std::to_string(WSAGetLastError()) + "."),true);
+            returnCode = shutdown(userToClose->userSocket, SD_SEND);
             if (returnCode == SOCKET_ERROR)
             {
-                pMainWindow->printOutput(std::string("ServerService::responseToFIN()::closesocket() function failed and returned: " + std::to_string(WSAGetLastError()) + ".\n Can't even close this socket... meh. You better reboot server...\n"),true);
+                pMainWindow->printOutput(std::string("Try #2. Can't shutdown socket. Closing socket..."),true);
+                returnCode = closesocket(userToClose->userSocket);
+                if (returnCode == SOCKET_ERROR)
+                {
+                    pMainWindow->printOutput(std::string("ServerService::responseToFIN()::closesocket() function failed and returned: " + std::to_string(WSAGetLastError()) + ".\n Can't even close this socket... meh. You better reboot server...\n"),true);
+                }
+            }
+            else
+            {
+                pMainWindow->printOutput(std::string("Try #2. Shutdown success."),true);
+                returnCode = closesocket(userToClose->userSocket);
+                if (returnCode == SOCKET_ERROR)
+                {
+                    pMainWindow->printOutput(std::string("ServerService::responseToFIN()::closesocket() function failed and returned: " + std::to_string(WSAGetLastError()) + ".\n Can't even close this socket... meh. You better reboot server...\n"),true);
+                }
+                else
+                {
+                    pMainWindow->printOutput(std::string("Successfully closed a socket."),true);
+                }
             }
         }
         else
         {
-            pMainWindow->printOutput(std::string("Try #2. Shutdown success."),true);
             returnCode = closesocket(userToClose->userSocket);
             if (returnCode == SOCKET_ERROR)
             {
@@ -506,32 +623,68 @@ void ServerService::responseToFIN(UserStruct* userToClose)
             }
             else
             {
-                pMainWindow->printOutput(std::string("Successfully closed a socket."),true);
+                pMainWindow->printOutput(std::string("Successfully closed connection with " + userToClose->userName + "."),true);
             }
         }
     }
     else
     {
-        returnCode = closesocket(userToClose->userSocket);
-        if (returnCode == SOCKET_ERROR)
-        {
-            pMainWindow->printOutput(std::string("ServerService::responseToFIN()::closesocket() function failed and returned: " + std::to_string(WSAGetLastError()) + ".\n Can't even close this socket... meh. You better reboot server...\n"),true);
-        }
-        else
-        {
-            pMainWindow->printOutput(std::string("Successfully closed connection with " + userToClose->userName + "."),true);
-        }
+        pMainWindow->printOutput(std::string("\nLost connection with " + userToClose->userName + ". Closing socket..."), true);
+        closesocket(userToClose->userSocket);
     }
 
     iUsersConnectedCount--;
     pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
+
+
+    // Clear 'users' massive
+
+    if (users.size() - 1 != 0)
+    {
+        // Tell other users that one is disconnected
+        char sendBuffer[31];
+        memset(sendBuffer, 0, 31);
+
+        // 1 means that someone is disconnected
+        unsigned char commandType = 1;
+        std::memcpy(sendBuffer, &commandType, 1);
+
+        // Put size
+        unsigned char iPacketSize = static_cast<unsigned char>(4 + userToClose->userName.size());
+        std::memcpy(sendBuffer + 1, &iPacketSize, 1);
+
+        std::memcpy(sendBuffer + 2, &iUsersConnectedCount, 4);
+
+        std::memcpy(sendBuffer + 6, userToClose->userName.c_str(), userToClose->userName.size());
+
+        for (unsigned int j = 0; j < users.size(); j++)
+        {
+            send(users[j]->userSocket, sendBuffer, 1 + 1 + 4 + userToClose->userName.size(), 0);
+        }
+    }
+
+    // Erase user from massive
+    for (unsigned int i = 0; i < users.size(); i++)
+    {
+        if (users[i]->userName == userToClose->userName)
+        {
+            delete[] userToClose->pDataFromUser;
+            pMainWindow->deleteUserFromList(userToClose->pListItem);
+            delete users[i];
+            users.erase(users.begin() + i);
+            break;
+        }
+    }
+
+
+    mtxUsersWrite.unlock();
 }
 
 void ServerService::shutdownAllUsers()
 {
     if (users.size() != 0)
     {
-        pMainWindow->printOutput(std::string("Stating to close all sockets.\nPlease don't close programm until all sockets will be closed.\n"
+        pMainWindow->printOutput(std::string("\nShutting down...\nStating to close all sockets.\nPlease don't close programm until all sockets will be closed.\n"
                                              "The delay may be caused by the fact that some user does not send the FIN packet."));
         // Now we will not listen for new sockets and we also
         // will not listen connected users (because in listenForNewMessage function while cycle will fail)
@@ -686,4 +839,12 @@ void ServerService::shutdownAllUsers()
             }
         }
     }
+    else
+    {
+        bListening = false;
+        closesocket(listenSocket);
+    }
+
+    pMainWindow->printOutput( std::string("\nServer stopped."));
+    pMainWindow->changeStartStopActionText(false);
 }

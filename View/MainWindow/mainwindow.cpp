@@ -22,28 +22,26 @@ MainWindow::MainWindow(QWidget *parent) :
 
     pController = new Controller(this);
 
-    connect(this,&MainWindow::signalTypeOnOutput,this,&MainWindow::typeSomeOnOutputLog);
+    connect(this, &MainWindow::signalTypeOnOutput,    this, &MainWindow::typeSomeOnOutputLog);
+    connect(this, &MainWindow::signalClearChatWindow, this, &MainWindow::slotClearChatWindow);
 }
 
-MainWindow::~MainWindow()
-{
-    delete pController;
 
-    delete ui;
-}
+
+
 
 void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
 {
     if (bEmitSignal == false)
     {
-      ui->plainTextEdit->appendPlainText(QString::fromStdString(errorText));
+      ui->plainTextEdit->appendPlainText( QString::fromStdString(errorText) );
     }
     else
     {
         // This function (printOutput) was called from another thread (not main thread)
-        // so if we will append text to 'plaintTextEdit' we will have errors because you
-        // cannot append info from another thread.
-        // Because of that we will emit signal to main thread to append text
+        // so if we will append text to 'plaintTextEdit' crash can occur because you
+        // cannot change GDI from another thread (it's something with how Windows and GDI works with threads)
+        // Because of that we will emit signal to main thread to append text.
         // Right? I dunno "it just works". :p
         emit signalTypeOnOutput(QString::fromStdString(errorText));
     }
@@ -51,13 +49,13 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
 
 void MainWindow::updateOnlineUsersCount(int iNewAmount)
 {
-    ui->label_2->setText("Main lobby: "+QString::number(iNewAmount));
+    ui->label_2->setText("Connected: " + QString::number(iNewAmount));
 }
 
 QListWidgetItem* MainWindow::addNewUserToList(std::string userName)
 {
-    ui->listWidget->addItem(QString::fromStdString(userName));
-    return ui->listWidget->item(ui->listWidget->model()->rowCount()-1);
+    ui->listWidget->addItem( QString::fromStdString(userName) );
+    return ui->listWidget->item( ui->listWidget->model()->rowCount()-1 );
 }
 
 void MainWindow::deleteUserFromList(QListWidgetItem *pListItem)
@@ -65,16 +63,31 @@ void MainWindow::deleteUserFromList(QListWidgetItem *pListItem)
     delete pListItem;
 }
 
+void MainWindow::changeStartStopActionText(bool bStop)
+{
+    if (bStop)
+    {
+        ui->actionStart->setText("Stop Server");
+    }
+    else
+    {
+        ui->actionStart->setText("Start Server");
+    }
+}
+
+void MainWindow::clearChatWindow()
+{
+    emit signalClearChatWindow();
+}
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (bAlreadyClosing == false)
     {
         // First time pressed exit button
-        ui->plainTextEdit->appendPlainText("\nShutting down...");
-
         pController->stop();
 
-        ui->label_2->setText("Main lobby: 0");
+        ui->label_2->setText("Connected: 0");
 
         event->ignore();
         bAlreadyClosing = true;
@@ -90,15 +103,27 @@ void MainWindow::typeSomeOnOutputLog(QString text)
 
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(nullptr,"FChat","FChat (server). Version: 1.05 (09.05.2019)");
+    QMessageBox::about(nullptr,"FChat","FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + ".");
+}
+
+void MainWindow::slotClearChatWindow()
+{
+    ui->plainTextEdit->clear();
 }
 
 void MainWindow::on_actionStart_triggered()
 {
     // Start Winsock2
 
-    ui->plainTextEdit->clear();
-    ui->plainTextEdit->appendPlainText("Starting...");
-
     pController->start();
+}
+
+
+
+
+MainWindow::~MainWindow()
+{
+    delete pController;
+
+    delete ui;
 }

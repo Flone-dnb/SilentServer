@@ -45,10 +45,14 @@ public:
         void updateOnlineUsersCount(int iNewAmount);
         QListWidgetItem* addNewUserToList(std::string userName);
         void deleteUserFromList(QListWidgetItem* pListItem);
+        void changeStartStopActionText(bool bStop);
+        void clearChatWindow();
 
 signals:
 
     void signalTypeOnOutput(QString text);
+
+    void signalClearChatWindow();
 
 protected:
 
@@ -58,15 +62,16 @@ private slots:
 
     void on_actionAbout_triggered();
 
+    void slotClearChatWindow();
+
     void on_actionStart_triggered();
 
     void typeSomeOnOutputLog(QString text);
 
 private:
 
-    Ui::MainWindow   *ui;
-
-    Controller *pController;
+    Ui::MainWindow* ui;
+    Controller*     pController;
 
     bool bAlreadyClosing;
 };

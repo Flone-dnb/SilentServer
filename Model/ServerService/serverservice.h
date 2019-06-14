@@ -6,6 +6,7 @@
 // C++
 #include <vector>
 #include <mutex>
+#include <string>
 
 // ============== Network ==============
 // Sockets and stuff
@@ -29,17 +30,20 @@ public:
 
     ServerService(MainWindow* pMainWindow);
 
+    std::string getServerVersion();
+
     // Functions related to starting
-        void startWinSock();
+        bool startWinSock();
         void startToListenForConnection();
 
     // Functions related to listening
         void listenForNewConnections();
-        void listenForMessage(UserStruct* userToListen, std::mutex& mtxUsersWrite);
+        void listenForMessage(UserStruct* userToListen);
+        void getMessage(UserStruct* userToListen);
 
     // Functions related to closing something
-        void sendFINtoSocket(SOCKET& socketToClose);
-        void responseToFIN(UserStruct* userToClose);
+        void sendFINtoSocket(SOCKET socketToClose);
+        void responseToFIN(UserStruct* userToClose, bool bUserLost = false);
         void shutdownAllUsers();
 
 private:
@@ -55,4 +59,7 @@ private:
 
     bool bWinSockStarted;
     bool bListening;
+
+
+    std::string serverVersion;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 
 class MainWindow;
 class ServerService;
@@ -12,6 +13,8 @@ public:
 
     Controller(MainWindow* pMainWindow);
 
+    std::string getServerVersion();
+
     void start();
 
     void stop();
@@ -21,4 +24,6 @@ public:
 private:
 
     ServerService* pServerService;
+
+    bool bServerStarted;
 };

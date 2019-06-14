@@ -41,7 +41,9 @@ color: rgb(212, 212, 212);</string>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));</string>
+           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
+
+border: 1px solid red;</string>
           </property>
           <property name="locale">
            <locale language="English" country="UnitedStates"/>
@@ -63,13 +65,15 @@ color: rgb(212, 212, 212);</string>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));</string>
+           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
+
+border: 1px solid red;</string>
           </property>
           <property name="locale">
            <locale language="English" country="UnitedStates"/>
           </property>
           <property name="text">
-           <string>Main lobby</string>
+           <string>Connected: 0</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -89,7 +93,9 @@ color: rgb(212, 212, 212);</string>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));</string>
+           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
+
+border: 1px solid red;</string>
           </property>
           <property name="locale">
            <locale language="English" country="UnitedStates"/>
@@ -112,7 +118,9 @@ color: rgb(212, 212, 212);</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));</string>
+             <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
+
+border: 1px solid red;</string>
             </property>
             <property name="locale">
              <locale language="English" country="UnitedStates"/>
@@ -175,7 +183,7 @@ QMenu::item:selected
   </action>
   <action name="actionStart">
    <property name="text">
-    <string>Start</string>
+    <string>Start Server</string>
    </property>
   </action>
  </widget>
