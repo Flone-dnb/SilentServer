@@ -114,7 +114,7 @@ border: 1px solid red;</string>
            <widget class="QListWidget" name="listWidget">
             <property name="font">
              <font>
-              <pointsize>12</pointsize>
+              <pointsize>10</pointsize>
              </font>
             </property>
             <property name="styleSheet">

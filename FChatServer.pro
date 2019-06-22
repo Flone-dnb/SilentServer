@@ -28,13 +28,13 @@ SOURCES += \
         main.cpp \
         View/MainWindow/mainwindow.cpp \
         Controller/controller.cpp \
-        Model/ServerService/serverservice.cpp
+        Model/ServerService/serverservice.cpp \
 
 HEADERS += \
         View/MainWindow/mainwindow.h \
         Model/userstruct.h \
         Controller/controller.h \
-        Model/ServerService/serverservice.h
+        Model/ServerService/serverservice.h \
 
 FORMS += \
         View/MainWindow/mainwindow.ui

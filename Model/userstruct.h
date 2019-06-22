@@ -9,12 +9,16 @@ class QListWidgetItem;
 
 struct UserStruct
 {
-    SOCKET userSocket;
+    SOCKET userTCPSocket;
+    sockaddr_in userAddr;
+
     clock_t keepAliveTimer;
 
     std::string userName;
     std::string userIP;
     unsigned short userPort;
+
+    bool bConnectedToVOIP;
 
     char* pDataFromUser;
 

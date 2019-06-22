@@ -44,6 +44,7 @@ public:
         void printOutput(std::string errorText, bool bEmitSignal = false);
         void updateOnlineUsersCount(int iNewAmount);
         QListWidgetItem* addNewUserToList(std::string userName);
+        void setPingToUser(QListWidgetItem* pListItem, int ping);
         void deleteUserFromList(QListWidgetItem* pListItem);
         void changeStartStopActionText(bool bStop);
         void clearChatWindow();
@@ -51,6 +52,8 @@ public:
 signals:
 
     void signalTypeOnOutput(QString text);
+
+    void signalSetPingToUser(QListWidgetItem* pListItem, int ping);
 
     void signalClearChatWindow();
 
@@ -61,6 +64,8 @@ protected:
 private slots:
 
     void on_actionAbout_triggered();
+
+    void slotSetPingToUser(QListWidgetItem* pListItem, int ping);
 
     void slotClearChatWindow();
 

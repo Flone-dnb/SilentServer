@@ -7,6 +7,7 @@
 #include <vector>
 #include <mutex>
 #include <string>
+#include <ctime>
 
 // ============== Network ==============
 // Sockets and stuff
@@ -35,11 +36,16 @@ public:
     // Functions related to starting
         bool startWinSock();
         void startToListenForConnection();
+        void prepareForVoiceConnection();
 
     // Functions related to listening
         void listenForNewConnections();
         void listenForMessage(UserStruct* userToListen);
+        void listenForVoiceMessage(UserStruct* userToListen);
         void getMessage(UserStruct* userToListen);
+
+    void checkPing();
+    void sendPingToAll(std::string userName, int ping);
 
     // Functions related to closing something
         void sendFINtoSocket(SOCKET socketToClose);
@@ -51,14 +57,17 @@ private:
     MainWindow* pMainWindow;
 
     SOCKET listenSocket;
+    SOCKET UDPsocket;
     std::vector<UserStruct*> users;
 
-    std::mutex mtxUsersWrite;
+    std::mutex mtxUsers;
 
     int iUsersConnectedCount;
+    int iUsersConnectedToVOIP;
 
     bool bWinSockStarted;
-    bool bListening;
+    bool bTextListen;
+    bool bVoiceListen;
 
 
     std::string serverVersion;

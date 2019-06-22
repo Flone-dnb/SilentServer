@@ -24,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::signalTypeOnOutput,    this, &MainWindow::typeSomeOnOutputLog);
     connect(this, &MainWindow::signalClearChatWindow, this, &MainWindow::slotClearChatWindow);
+    connect(this, &MainWindow::signalSetPingToUser,   this, &MainWindow::slotSetPingToUser);
 }
 
 
@@ -54,8 +55,15 @@ void MainWindow::updateOnlineUsersCount(int iNewAmount)
 
 QListWidgetItem* MainWindow::addNewUserToList(std::string userName)
 {
+    userName += " [-- ms]";
+
     ui->listWidget->addItem( QString::fromStdString(userName) );
     return ui->listWidget->item( ui->listWidget->model()->rowCount()-1 );
+}
+
+void MainWindow::setPingToUser(QListWidgetItem *pListItem, int ping)
+{
+    emit signalSetPingToUser(pListItem, ping);
 }
 
 void MainWindow::deleteUserFromList(QListWidgetItem *pListItem)
@@ -104,6 +112,25 @@ void MainWindow::typeSomeOnOutputLog(QString text)
 void MainWindow::on_actionAbout_triggered()
 {
     QMessageBox::about(nullptr,"FChat","FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + ".");
+}
+
+void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
+{
+    QString userNameWithOldPing = pListItem->text();
+
+    QString userNameWithNewPing = "";
+    for (int i = 0; i < userNameWithOldPing.size(); i++)
+    {
+        if (userNameWithOldPing[i] != " ")
+        {
+            userNameWithNewPing += userNameWithOldPing[i];
+        }
+        else break;
+    }
+
+    userNameWithNewPing += (" [" + QString::number(ping) + " ms]");
+
+    pListItem->setText(userNameWithNewPing);
 }
 
 void MainWindow::slotClearChatWindow()
