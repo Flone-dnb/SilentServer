@@ -116,21 +116,24 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
 {
-    QString userNameWithOldPing = pListItem->text();
-
-    QString userNameWithNewPing = "";
-    for (int i = 0; i < userNameWithOldPing.size(); i++)
+    if (pListItem != nullptr)
     {
-        if (userNameWithOldPing[i] != " ")
+        QString userNameWithOldPing = pListItem->text();
+
+        QString userNameWithNewPing = "";
+        for (int i = 0; i < userNameWithOldPing.size(); i++)
         {
-            userNameWithNewPing += userNameWithOldPing[i];
+            if (userNameWithOldPing[i] != " ")
+            {
+                userNameWithNewPing += userNameWithOldPing[i];
+            }
+            else break;
         }
-        else break;
+
+        userNameWithNewPing += (" [" + QString::number(ping) + " ms]");
+
+        pListItem->setText(userNameWithNewPing);
     }
-
-    userNameWithNewPing += (" [" + QString::number(ping) + " ms]");
-
-    pListItem->setText(userNameWithNewPing);
 }
 
 void MainWindow::slotClearChatWindow()
