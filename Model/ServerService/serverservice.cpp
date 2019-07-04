@@ -9,7 +9,7 @@
 
 ServerService::ServerService(MainWindow* pMainWindow)
 {
-    serverVersion = "2.05";
+    serverVersion = "2.10";
 
     this->pMainWindow = pMainWindow;
 
@@ -71,8 +71,6 @@ void ServerService::startToListenForConnection()
     }
     else
     {
-        pMainWindow->printOutput(std::string("Created listen socket..."));
-
         // Create and fill the "sockaddr_in" structure containing the IPv4 socket
         sockaddr_in myAddr;
         memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
@@ -105,7 +103,7 @@ void ServerService::startToListenForConnection()
             }
             else
             {
-                pMainWindow->printOutput(std::string("\n!!!!!!!!WARNING!!!!!!!!\nThe data transmitted over the network is not encrypted.\n"));
+                pMainWindow->printOutput(std::string("\nWARNING:\nThe data transmitted over the network is not encrypted.\n"));
 
                 // Translate listen socket to non-blocking mode
                 u_long arg = true;
@@ -346,19 +344,22 @@ void ServerService::listenForNewConnections()
 
                                 // Fill UserStruct for new user
 
-                                users.push_back(new UserStruct());
-                                users.back()->userName       = userNameStr;
-                                users.back()->userTCPSocket  = newConnectedSocket;
-                                users.back()->pDataFromUser  = new char[1500];
-                                users.back()->userIP         = std::string(connectedWithIP);
-                                users.back()->userPort       = ntohs(connectedWith.sin_port);
-                                users.back()->keepAliveTimer = clock();
-                                users.back()->bConnectedToVOIP = true;
+                                UserStruct* pNewUser = new UserStruct();
+                                pNewUser->userTCPSocket  = newConnectedSocket;
+                                pNewUser->userName       = userNameStr;
+                                pNewUser->pDataFromUser  = new char[1500];
+                                pNewUser->userIP         = std::string(connectedWithIP);
+                                pNewUser->userPort       = ntohs(connectedWith.sin_port);
+                                pNewUser->keepAliveTimer = clock();
 
-                                memset(users.back()->userAddr.sin_zero, 0, sizeof(users.back()->userAddr.sin_zero));
-                                users.back()->userAddr.sin_family = AF_INET;
-                                users.back()->userAddr.sin_addr = connectedWith.sin_addr;
-                                users.back()->userAddr.sin_port = 0;
+                                memset(pNewUser->userAddr.sin_zero, 0, sizeof(pNewUser->userAddr.sin_zero));
+                                pNewUser->userAddr.sin_family = AF_INET;
+                                pNewUser->userAddr.sin_addr = connectedWith.sin_addr;
+                                pNewUser->userAddr.sin_port = 0;
+
+                                pNewUser->bConnectedToVOIP = true;
+
+                                users.push_back(pNewUser);
 
                                 std::thread voiceListenThread(&ServerService::listenForVoiceMessage, this, users.back());
                                 voiceListenThread.detach();
@@ -564,11 +565,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                     int ping = static_cast<int>(timePassedInMs);
 
-                    mtxUsers.lock();
-
                     pMainWindow->setPingToUser(userToListen->pListItem, ping);
-
-                    mtxUsers.unlock();
 
                     std::thread sendPingToAllThread(&ServerService::sendPingToAll, this, userToListen->userName, ping);
                     sendPingToAllThread.detach();
@@ -582,13 +579,11 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                     iSize += 1 + userToListen->userName.size();
 
-                    mtxUsers.lock();
-
                     int iSentSize = 0;
 
                     for (unsigned int i = 0; i < users.size(); i++)
                     {
-                        if (users[i]->userName != userToListen->userName)
+                        if ( users[i]->userName != userToListen->userName )
                         {
                             iSentSize = sendto(UDPsocket, readBuffer, iSize, 0, reinterpret_cast<sockaddr*>(&users[i]->userAddr), sizeof(users[i]->userAddr));
                             if (iSentSize != iSize)
@@ -605,8 +600,6 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                             }
                         }
                     }
-
-                    mtxUsers.unlock();
                 }
             }
 
@@ -667,8 +660,6 @@ void ServerService::getMessage(UserStruct *userToListen)
 
     int returnCode = 0;
 
-    mtxUsers.lock();
-
     // Send message to all but not the sender
     for (unsigned int j = 0; j < users.size(); j++)
     {
@@ -686,8 +677,6 @@ void ServerService::getMessage(UserStruct *userToListen)
         }
     }
 
-    mtxUsers.unlock();
-
     delete[] pSendToAllBuffer;
 }
 
@@ -695,8 +684,6 @@ void ServerService::checkPing()
 {
     while (users.size() > 0)
     {
-        mtxUsers.lock();
-
         int iSentSize = 0;
 
         clock_t currentTime = clock();
@@ -724,16 +711,12 @@ void ServerService::checkPing()
 
         }
 
-        mtxUsers.unlock();
-
         std::this_thread::sleep_for(std::chrono::seconds(3));
     }
 }
 
 void ServerService::sendPingToAll(std::string userName, int ping)
 {
-    mtxUsers.lock();
-
     char sendBuffer[30];
     memset(sendBuffer, 0, 30);
     sendBuffer[0] = 8;
@@ -758,8 +741,6 @@ void ServerService::sendPingToAll(std::string userName, int ping)
             }
         }
     }
-
-    mtxUsers.unlock();
 }
 
 
@@ -821,16 +802,12 @@ void ServerService::sendFINtoSocket(SOCKET socketToClose)
 
 void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
-    mtxUsers.lock();
-
     if (userToClose->bConnectedToVOIP)
     {
         userToClose->bConnectedToVOIP = false;
         iUsersConnectedToVOIP--;
 
-        mtxUsers.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(15));
-        mtxUsers.lock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     if (!bUserLost)
@@ -928,28 +905,22 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
             break;
         }
     }
-
-
-    mtxUsers.unlock();
 }
 
 void ServerService::shutdownAllUsers()
 {
     if (users.size() != 0)
     {
-        pMainWindow->printOutput(std::string("\nShutting down...\nStating to close all sockets.\nPlease don't close programm until all sockets will be closed.\n"
-                                             "The delay may be caused by the fact that some user does not send the FIN packet."));
+        pMainWindow->printOutput(std::string("\nShutting down..."));
 
-        mtxUsers.lock();
+        pMainWindow->updateOnlineUsersCount(0);
 
         for (unsigned int i = 0; i < users.size(); i++)
         {
             users[i]->bConnectedToVOIP = false;
         }
 
-        mtxUsers.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(15));
-        mtxUsers.lock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
         iUsersConnectedToVOIP = 0;
 
@@ -1106,8 +1077,6 @@ void ServerService::shutdownAllUsers()
                 bWinSockStarted = false;
             }
         }
-
-        mtxUsers.unlock();
     }
     else
     {

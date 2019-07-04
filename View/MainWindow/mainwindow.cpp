@@ -90,6 +90,11 @@ void MainWindow::clearChatWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    if (pController->isServerRunning() == false)
+    {
+        return;
+    }
+
     if (bAlreadyClosing == false)
     {
         // First time pressed exit button

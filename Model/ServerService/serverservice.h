@@ -5,7 +5,6 @@
 
 // C++
 #include <vector>
-#include <mutex>
 #include <string>
 #include <ctime>
 
@@ -59,8 +58,6 @@ private:
     SOCKET listenSocket;
     SOCKET UDPsocket;
     std::vector<UserStruct*> users;
-
-    std::mutex mtxUsers;
 
     int iUsersConnectedCount;
     int iUsersConnectedToVOIP;

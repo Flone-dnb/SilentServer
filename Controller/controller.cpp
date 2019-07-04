@@ -14,6 +14,11 @@ std::string Controller::getServerVersion()
     return pServerService->getServerVersion();
 }
 
+bool Controller::isServerRunning()
+{
+    return bServerStarted;
+}
+
 void Controller::start()
 {
     if (bServerStarted) stop();

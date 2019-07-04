@@ -14,6 +14,7 @@ public:
     Controller(MainWindow* pMainWindow);
 
     std::string getServerVersion();
+    bool isServerRunning();
 
     void start();
 

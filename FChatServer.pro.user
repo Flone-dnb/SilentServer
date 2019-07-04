@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.8.2, 2019-06-28T15:57:27. -->
+<!-- Written by QtCreator 4.8.2, 2019-07-04T16:48:17. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -296,7 +296,7 @@
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">FChatServer</value>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">FChatServer2</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">FChatServer</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:C:/Home/Programming and computers/C/c++/Qt_projects/FChat/FChatServer/FChatServer.pro</value>
     <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">FChatServer.pro</value>
     <value type="QString" key="RunConfiguration.Arguments"></value>
