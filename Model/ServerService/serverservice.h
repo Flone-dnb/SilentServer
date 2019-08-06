@@ -11,8 +11,6 @@
 // ============== Network ==============
 // Sockets and stuff
 #include <winsock2.h>
-
-// Adress translation
 #include <ws2tcpip.h>
 
 // Winsock 2 Library
@@ -38,13 +36,13 @@ public:
         void prepareForVoiceConnection();
 
     // Functions related to listening
-        void listenForNewConnections();
+        void listenForNewTCPConnections();
         void listenForMessage(UserStruct* userToListen);
         void listenForVoiceMessage(UserStruct* userToListen);
         void getMessage(UserStruct* userToListen);
 
     void checkPing();
-    void sendPingToAll(std::string userName, int ping);
+    void sendPingToAll();
 
     // Functions related to closing something
         void sendFINtoSocket(SOCKET socketToClose);
@@ -53,10 +51,12 @@ public:
 
 private:
 
+
     MainWindow* pMainWindow;
 
-    SOCKET listenSocket;
+    SOCKET listenTCPSocket;
     SOCKET UDPsocket;
+    SOCKET udpPingCheckSocket;
     std::vector<UserStruct*> users;
 
     int iUsersConnectedCount;

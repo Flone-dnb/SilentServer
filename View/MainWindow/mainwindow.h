@@ -22,7 +22,6 @@
 
 
 class QMouseEvent;
-class UserStruct;
 class Controller;
 class QListWidgetItem;
 

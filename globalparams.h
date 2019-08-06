@@ -1,0 +1,17 @@
+#pragma once
+
+#define MAX_NAME_LENGTH 20
+#define SERVER_PORT 51337
+#define MAX_BUFFER_SIZE 1420
+#define MAX_VERSION_STRING_LENGTH 20
+
+// tcp/udp
+#define INTERVAL_TCP_ACCEPT_MS 400
+#define INTERVAL_TCP_MESSAGE_MS 150
+#define INTERVAL_UDP_MESSAGE_MS 4
+
+// ping/keepalive
+#define PING_CHECK_INTERVAL_SEC 3
+// when changing change client's INTERVAL_KEEPALIVE_SEC macro too
+#define INTERVAL_KEEPALIVE_SEC 15
+#define MAX_TIMEOUT_TIME_MS 10000

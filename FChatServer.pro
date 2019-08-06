@@ -34,7 +34,8 @@ HEADERS += \
         View/MainWindow/mainwindow.h \
         Model/userstruct.h \
         Controller/controller.h \
-        Model/ServerService/serverservice.h \
+        Model/ServerService/serverservice.h \ \
+    globalparams.h
 
 FORMS += \
         View/MainWindow/mainwindow.ui

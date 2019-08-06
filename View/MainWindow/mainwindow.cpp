@@ -135,7 +135,14 @@ void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
             else break;
         }
 
-        userNameWithNewPing += (" [" + QString::number(ping) + " ms]");
+        if (ping != 0)
+        {
+            userNameWithNewPing += " [" + QString::number(ping) + " ms]";
+        }
+        else
+        {
+            userNameWithNewPing += " [-- ms]";
+        }
 
         pListItem->setText(userNameWithNewPing);
     }
