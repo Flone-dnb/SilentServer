@@ -11,7 +11,8 @@
 ServerService::ServerService(MainWindow* pMainWindow)
 {
     // should be shorter than MAX_VERSION_STRING_LENGTH
-    serverVersion = "2.15";
+    serverVersion = "2.15.1";
+    clientLastSupportedVersion = "2.16";
 
     this->pMainWindow = pMainWindow;
 
@@ -168,9 +169,10 @@ void ServerService::listenForNewTCPConnections()
 
                     std::string clientVersion(pVersion);
                     delete[] pVersion;
-                    if ( clientVersion != serverVersion )
+                    if ( clientVersion != clientLastSupportedVersion )
                     {
-                        pMainWindow->printOutput(std::string("Client version " + clientVersion + " does not match with the server version " + serverVersion + "."), true);
+                        pMainWindow->printOutput(std::string("Client version " + clientVersion + " does not match with the last supported client version " + clientLastSupportedVersion + ".\n"
+                                                             "Server version: " + serverVersion + "."), true);
                         char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
                         memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
 
@@ -744,7 +746,7 @@ void ServerService::getMessage(UserStruct *userToListen)
 
 void ServerService::checkPing()
 {
-    while (users.size() > 0)
+    while ( bVoiceListen && users.size() > 0 )
     {
         int iSentSize = 0;
 
@@ -775,7 +777,7 @@ void ServerService::checkPing()
 
         std::this_thread::sleep_for(std::chrono::seconds(PING_CHECK_INTERVAL_SEC));
 
-        sendPingToAll();
+        if (bVoiceListen) sendPingToAll();
     }
 }
 
@@ -1023,6 +1025,8 @@ void ServerService::shutdownAllUsers()
         // will not listen connected users (because in listenForNewMessage function while cycle will fail)
         bTextListen = false;
         bVoiceListen = false;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_TCP_ACCEPT_MS));
 
         closesocket(listenTCPSocket);
         closesocket(UDPsocket);

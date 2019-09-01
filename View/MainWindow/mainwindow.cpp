@@ -116,7 +116,7 @@ void MainWindow::typeSomeOnOutputLog(QString text)
 
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(nullptr,"FChat","FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + ".");
+    QMessageBox::about(nullptr,"FChat","FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + ".\nCopyright (c) 2019 Flone.");
 }
 
 void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)

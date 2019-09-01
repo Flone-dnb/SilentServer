@@ -68,4 +68,5 @@ private:
 
 
     std::string serverVersion;
+    std::string clientLastSupportedVersion;
 };
