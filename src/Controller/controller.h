@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
@@ -14,6 +14,7 @@ public:
     Controller(MainWindow* pMainWindow);
 
     std::string getServerVersion();
+    std::string getLastClientVersion();
     bool isServerRunning();
 
     void start();

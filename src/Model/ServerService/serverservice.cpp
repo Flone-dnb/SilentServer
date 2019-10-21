@@ -1,8 +1,8 @@
-#include "serverservice.h"
+﻿#include "serverservice.h"
 
 //Custom
-#include "View/MainWindow/mainwindow.h"
-#include "globalparams.h"
+#include "../src/View/MainWindow/mainwindow.h"
+#include "../src/globalparams.h"
 
 //C++
 #include <thread>
@@ -12,7 +12,7 @@ ServerService::ServerService(MainWindow* pMainWindow)
 {
     // should be shorter than MAX_VERSION_STRING_LENGTH
     serverVersion = "2.15.1";
-    clientLastSupportedVersion = "2.16";
+    clientLastSupportedVersion = "2.16.1";
 
     this->pMainWindow = pMainWindow;
 
@@ -30,6 +30,11 @@ ServerService::ServerService(MainWindow* pMainWindow)
 std::string ServerService::getServerVersion()
 {
     return serverVersion;
+}
+
+std::string ServerService::getLastClientVersion()
+{
+    return clientLastSupportedVersion;
 }
 
 bool ServerService::startWinSock()

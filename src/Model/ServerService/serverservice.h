@@ -1,7 +1,7 @@
-#pragma once
+﻿#pragma once
 
 // Custom
-#include "Model/userstruct.h"
+#include "../src/Model/userstruct.h"
 
 // C++
 #include <vector>
@@ -29,6 +29,7 @@ public:
     ServerService(MainWindow* pMainWindow);
 
     std::string getServerVersion();
+    std::string getLastClientVersion();
 
     // Functions related to starting
         bool startWinSock();

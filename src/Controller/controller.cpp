@@ -1,7 +1,7 @@
-#include "controller.h"
+﻿#include "controller.h"
 
 // Custom
-#include "Model/ServerService/serverservice.h"
+#include "../src/Model/ServerService/serverservice.h"
 
 Controller::Controller(MainWindow* pMainWindow)
 {
@@ -12,6 +12,11 @@ Controller::Controller(MainWindow* pMainWindow)
 std::string Controller::getServerVersion()
 {
     return pServerService->getServerVersion();
+}
+
+std::string Controller::getLastClientVersion()
+{
+    return pServerService->getLastClientVersion();
 }
 
 bool Controller::isServerRunning()

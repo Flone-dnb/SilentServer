@@ -25,25 +25,25 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        main.cpp \
-        View/MainWindow/mainwindow.cpp \
-        Controller/controller.cpp \
-        Model/ServerService/serverservice.cpp \
+        ../src/main.cpp \
+        ../src/View/MainWindow/mainwindow.cpp \
+        ../src/Controller/controller.cpp \
+        ../src/Model/ServerService/serverservice.cpp \
 
 HEADERS += \
-        View/MainWindow/mainwindow.h \
-        Model/userstruct.h \
-        Controller/controller.h \
-        Model/ServerService/serverservice.h \ \
-    globalparams.h
+        ../src/View/MainWindow/mainwindow.h \
+        ../src/Model/userstruct.h \
+        ../src/Controller/controller.h \
+        ../src/Model/ServerService/serverservice.h \
+        ../src/globalparams.h
 
 FORMS += \
-        View/MainWindow/mainwindow.ui
+        ../src/View/MainWindow/mainwindow.ui
 
 win32
 {
-        RC_FILE += res/file.rc
-        OTHER_FILES += res/file.rc
+        RC_FILE += ../res/file.rc
+        OTHER_FILES += ../res/file.rc
 }
 
 

@@ -118,9 +118,23 @@ border: 1px solid red;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
+             <string notr="true">QListWidget
+{
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
+	border: 1px solid red;
+}
 
-border: 1px solid red;</string>
+QListWidget::item:hover
+{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(115, 15, 15, 130), stop:1 rgba(100, 16, 16, 130));
+	color: white;
+}
+
+QListWidget::item:selected
+{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(130, 3, 3, 230), stop:1 rgba(115, 13, 13, 230));
+	color: white;
+}</string>
             </property>
             <property name="locale">
              <locale language="English" country="UnitedStates"/>
@@ -141,7 +155,7 @@ border: 1px solid red;</string>
      <x>0</x>
      <y>0</y>
      <width>1111</width>
-     <height>25</height>
+     <height>30</height>
     </rect>
    </property>
    <property name="styleSheet">

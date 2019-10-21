@@ -1,8 +1,8 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 
 // Custom
-#include "Controller/controller.h"
+#include "../src/Controller/controller.h"
 
 // Qt
 #include <QMouseEvent>
@@ -116,7 +116,9 @@ void MainWindow::typeSomeOnOutputLog(QString text)
 
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(nullptr,"FChat","FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + ".\nCopyright (c) 2019 Flone.");
+    QMessageBox::about(this, "FChat", "FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + "."
+                                      "\nLast supported client version: " + QString::fromStdString(pController->getLastClientVersion()) + "."
+                                      "\n\nCopyright (c) 2019 Aleksandr \"Flone\" Tretyakov (github.com/Flone-dnb).");
 }
 
 void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
