@@ -1024,6 +1024,7 @@ void ServerService::shutdownAllUsers()
             {
                 users[i]->bConnectedToVOIP = false;
             }
+            users[i]->bConnectedToTextChat = false;
         }
 
         // Now we will not listen for new sockets and we also
@@ -1041,13 +1042,13 @@ void ServerService::shutdownAllUsers()
 
 
 
-        std::vector<bool> closedSockets(users.size());
         int correctlyClosedSocketsCount = 0;
+        int socketsCount                = static_cast<int>(users.size());
 
         int returnCode;
 
         // We send FIN to all
-        for (unsigned int i = 0; i < users.size(); i++)
+        for (int i = 0; i < static_cast<int>(users.size()); i++)
         {
             returnCode = shutdown(users[i]->userTCPSocket,SD_SEND);
             if (returnCode == SOCKET_ERROR)
@@ -1055,39 +1056,36 @@ void ServerService::shutdownAllUsers()
                 pMainWindow->printOutput(std::string("ServerService::shutdownAllUsers()::shutdown() function failed and returned: " + std::to_string(WSAGetLastError()) + ". Just closing it...."));
                 closesocket(users[i]->userTCPSocket);
 
-                // There was an error. We emergency shut it down.
-                closedSockets[i] = true;
+                // Delete user's read buffer & delete him from the list
+                delete[] users[i]->pDataFromUser;
+
+                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                delete users[i];
+
+                users.erase(users.begin() + i);
+                i--;
+            }
+        }
+
+
+        // Translate all sockets to blocking mode
+        for (int i = 0; i < static_cast<int>(users.size()); i++)
+        {
+            // Socket isn't closed
+            u_long arg = false;
+            if (ioctlsocket(users[i]->userTCPSocket, static_cast<long>(FIONBIO), &arg) == SOCKET_ERROR)
+            {
+                pMainWindow->printOutput(std::string("ServerService::shutdownAllUsers()::ioctsocket() (set blocking mode) failed and returned: " + std::to_string(WSAGetLastError()) + ". Just closing it..."));
+                closesocket(users[i]->userTCPSocket);
 
                 // Delete user's read buffer & delete him from list
                 delete[] users[i]->pDataFromUser;
 
                 pMainWindow->deleteUserFromList(users[i]->pListItem);
                 delete users[i];
-            }
-        }
 
-
-        // Translate all sockets to blocking mode
-        for (unsigned int i = 0; i < users.size(); i++)
-        {
-            if (closedSockets[i] == false)
-            {
-                // Socket isn't closed
-                u_long arg = false;
-                if (ioctlsocket(users[i]->userTCPSocket, static_cast<long>(FIONBIO), &arg) == SOCKET_ERROR)
-                {
-                    pMainWindow->printOutput(std::string("ServerService::shutdownAllUsers()::ioctsocket() (set blocking mode) failed and returned: " + std::to_string(WSAGetLastError()) + ". Just closing it..."));
-                    closesocket(users[i]->userTCPSocket);
-
-                    // There was an error. We emergency shut it down.
-                    closedSockets[i] = true;
-
-                    // Delete user's read buffer & delete him from list
-                    delete[] users[i]->pDataFromUser;
-
-                    pMainWindow->deleteUserFromList(users[i]->pListItem);
-                    delete users[i];
-                }
+                users.erase(users.begin() + i);
+                i--;
             }
         }
 
@@ -1095,12 +1093,45 @@ void ServerService::shutdownAllUsers()
         pMainWindow->printOutput(std::string("Sent FIN packets to all users. Waiting for a response..."));
 
         // We are waiting for a response
-        for (unsigned int i = 0; i < users.size(); i++)
+        for (int i = 0; i < static_cast<int>(users.size()); i++)
         {
-            if (closedSockets[i] == false)
+            // Socket isn't closed
+            returnCode = recv(users[i]->userTCPSocket, users[i]->pDataFromUser, 1500, 0);
+            if (returnCode == 0)
+            {
+                // FIN received
+                returnCode = closesocket(users[i]->userTCPSocket);
+                if (returnCode == SOCKET_ERROR)
+                {
+                    pMainWindow->printOutput(std::string("ServerService::shutdownAllUsers()::closesocket() function failed and returned: " + std::to_string(WSAGetLastError()) + "."));
+                }
+                else
+                {
+                    correctlyClosedSocketsCount++;
+                }
+
+                // Delete user's read buffer & delete him from list
+                delete[] users[i]->pDataFromUser;
+
+                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                delete users[i];
+
+                users.erase(users.begin() + i);
+                i--;
+            }
+            else
+            {
+                tryAgainToClose = true;
+            }
+        }
+
+        if (tryAgainToClose)
+        {
+            // Try again to close the sockets that does not returned FIN
+            for (int i = 0; i < static_cast<int>(users.size()); i++)
             {
                 // Socket isn't closed
-                returnCode = recv(users[i]->userTCPSocket, users[i]->pDataFromUser, 1500, 0);
+                returnCode = recv(users[i]->userTCPSocket,users[i]->pDataFromUser,1500,0);
                 if (returnCode == 0)
                 {
                     // FIN received
@@ -1113,68 +1144,39 @@ void ServerService::shutdownAllUsers()
                     {
                         correctlyClosedSocketsCount++;
                     }
-
-                    // There was an error. We emergency shut it down.
-                    closedSockets[i] = true;
-
-                    // Delete user's read buffer & delete him from list
-                    delete[] users[i]->pDataFromUser;
-
-                    pMainWindow->deleteUserFromList(users[i]->pListItem);
-                    delete users[i];
                 }
                 else
                 {
-                    tryAgainToClose = true;
+                    pMainWindow->printOutput(std::string("FIN wasn't received from client for the second time... Closing socket..."));
                 }
+
+                // Delete user's read buffer & delete him from list
+                delete[] users[i]->pDataFromUser;
+
+                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                delete users[i];
+
+                users.erase(users.begin() + i);
+                i--;
             }
         }
 
-        if (tryAgainToClose)
+        pMainWindow->printOutput(std::string("Correctly closed sockets: " + std::to_string(correctlyClosedSocketsCount) + "/" + std::to_string(socketsCount) + "."));
+
+        // Clear users massive if someone is still there
+        for (size_t i = 0; i < users.size(); i++)
         {
-            // Try again to close the sockets that does not returned FIN
-            for (unsigned int i = 0; i < users.size(); i++)
-            {
-                if (closedSockets[i] == false)
-                {
-                    // Socket isn't closed
-                    returnCode = recv(users[i]->userTCPSocket,users[i]->pDataFromUser,1500,0);
-                    if (returnCode == 0)
-                    {
-                        // FIN received
-                        returnCode = closesocket(users[i]->userTCPSocket);
-                        if (returnCode == SOCKET_ERROR)
-                        {
-                            pMainWindow->printOutput(std::string("ServerService::shutdownAllUsers()::closesocket() function failed and returned: " + std::to_string(WSAGetLastError()) + "."));
-                        }
-                        else
-                        {
-                            correctlyClosedSocketsCount++;
-                        }
-                    }
-                    else
-                    {
-                        pMainWindow->printOutput(std::string("FIN wasn't received from client for the second time... Closing socket..."));
-                    }
+            delete[] users[i]->pDataFromUser;
 
-                    // There was an error. We emergency shut it down.
-                    closedSockets[i] = true;
-
-                    // Delete user's read buffer & delete him from list
-                    delete[] users[i]->pDataFromUser;
-
-                    pMainWindow->deleteUserFromList(users[i]->pListItem);
-                    delete users[i];
-                }
-            }
+            pMainWindow->deleteUserFromList(users[i]->pListItem);
+            delete users[i];
         }
 
-        pMainWindow->printOutput(std::string("Correctly closed sockets: " + std::to_string(correctlyClosedSocketsCount) + "/" + std::to_string(users.size()) + "."));
-
-        // Clear users massive
         users.clear();
 
+
         iUsersConnectedCount = 0;
+
 
         if (bWinSockStarted)
         {
