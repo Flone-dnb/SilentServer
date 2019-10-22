@@ -8,9 +8,6 @@
 #include <QMouseEvent>
 #include <QMessageBox>
 
-// C++
-#include <string>
-
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -35,15 +32,14 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
 {
     if (bEmitSignal == false)
     {
-      ui->plainTextEdit->appendPlainText( QString::fromStdString(errorText) );
+        mtxPrintOutput .lock   ();
+
+        ui ->plainTextEdit ->appendPlainText( QString::fromStdString(errorText) );
+
+        mtxPrintOutput .unlock ();
     }
     else
     {
-        // This function (printOutput) was called from another thread (not main thread)
-        // so if we will append text to 'plaintTextEdit' crash can occur because you
-        // cannot change GDI from another thread (it's something with how Windows and GDI works with threads)
-        // Because of that we will emit signal to main thread to append text.
-        // Right? I dunno "it just works". :p
         emit signalTypeOnOutput(QString::fromStdString(errorText));
     }
 }
@@ -111,7 +107,11 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::typeSomeOnOutputLog(QString text)
 {
-    ui->plainTextEdit->appendPlainText(text);
+    mtxPrintOutput .lock   ();
+
+    ui ->plainTextEdit ->appendPlainText (text);
+
+    mtxPrintOutput .unlock ();
 }
 
 void MainWindow::on_actionAbout_triggered()

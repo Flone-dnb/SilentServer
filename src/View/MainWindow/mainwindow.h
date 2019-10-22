@@ -4,10 +4,11 @@
 #include <QMainWindow>
 #include <QTimer>
 
-// C++
+// STL
 #include <thread>
 #include <vector>
 #include <string>
+#include <mutex>
 
 // ============== Network ==============
 // Sockets and stuff
@@ -51,9 +52,7 @@ public:
 signals:
 
     void signalTypeOnOutput(QString text);
-
     void signalSetPingToUser(QListWidgetItem* pListItem, int ping);
-
     void signalClearChatWindow();
 
 protected:
@@ -63,19 +62,19 @@ protected:
 private slots:
 
     void on_actionAbout_triggered();
-
     void slotSetPingToUser(QListWidgetItem* pListItem, int ping);
-
     void slotClearChatWindow();
-
     void on_actionStart_triggered();
-
     void typeSomeOnOutputLog(QString text);
 
 private:
 
-    Ui::MainWindow* ui;
-    Controller*     pController;
+    Ui::MainWindow*  ui;
+    Controller*      pController;
 
-    bool bAlreadyClosing;
+
+    std::mutex       mtxPrintOutput;
+
+
+    bool             bAlreadyClosing;
 };
