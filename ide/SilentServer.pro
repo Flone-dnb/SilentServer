@@ -8,7 +8,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = FChatServer
+TARGET = "SilentServer"
 TEMPLATE = app
 
 # The following define makes your compiler emit warnings if you use
@@ -45,6 +45,8 @@ win32
         RC_FILE += ../res/file.rc
         OTHER_FILES += ../res/file.rc
 }
+
+RESOURCES += ../res/qt_rec_file.qrc
 
 
 # Default rules for deployment.

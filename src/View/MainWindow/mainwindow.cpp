@@ -7,6 +7,9 @@
 // Qt
 #include <QMouseEvent>
 #include <QMessageBox>
+#include <QCloseEvent>
+#include <QHideEvent>
+#include <QSystemTrayIcon>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -14,6 +17,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // Tray icon
+    pTrayIcon      = new QSystemTrayIcon(this);
+    QIcon icon     = QIcon(":/appMainIcon.png");
+    pTrayIcon->setIcon(icon);
+    connect(pTrayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slotTrayIconActivated);
 
     bAlreadyClosing = false;
 
@@ -84,6 +93,12 @@ void MainWindow::clearChatWindow()
     emit signalClearChatWindow();
 }
 
+void MainWindow::hideEvent(QHideEvent *event)
+{
+    hide();
+    pTrayIcon->show();
+}
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (pController->isServerRunning() == false)
@@ -114,9 +129,17 @@ void MainWindow::typeSomeOnOutputLog(QString text)
     mtxPrintOutput .unlock ();
 }
 
+void MainWindow::slotTrayIconActivated()
+{
+    pTrayIcon->hide();
+    raise();
+    activateWindow();
+    showNormal();
+}
+
 void MainWindow::on_actionAbout_triggered()
 {
-    QMessageBox::about(this, "FChat", "FChat Server. Version: " + QString::fromStdString(pController->getServerVersion()) + "."
+    QMessageBox::about(this, "Silent", "Silent Server. Version: " + QString::fromStdString(pController->getServerVersion()) + "."
                                       "\nLast supported client version: " + QString::fromStdString(pController->getLastClientVersion()) + "."
                                       "\n\nCopyright (c) 2019 Aleksandr \"Flone\" Tretyakov (github.com/Flone-dnb).");
 }

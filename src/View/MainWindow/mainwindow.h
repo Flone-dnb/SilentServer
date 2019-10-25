@@ -25,6 +25,9 @@
 class QMouseEvent;
 class Controller;
 class QListWidgetItem;
+class QCloseEvent;
+class QHideEvent;
+class QSystemTrayIcon;
 
 namespace Ui {
 class MainWindow;
@@ -57,6 +60,7 @@ signals:
 
 protected:
 
+    void hideEvent(QHideEvent* event);
     void closeEvent(QCloseEvent *event);
 
 private slots:
@@ -66,11 +70,15 @@ private slots:
     void slotClearChatWindow();
     void on_actionStart_triggered();
     void typeSomeOnOutputLog(QString text);
+    void slotTrayIconActivated();
 
 private:
 
     Ui::MainWindow*  ui;
     Controller*      pController;
+
+
+    QSystemTrayIcon* pTrayIcon;
 
 
     std::mutex       mtxPrintOutput;

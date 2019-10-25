@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>FChat</string>
+   <string>Silent Server</string>
   </property>
   <property name="styleSheet">
    <string notr="true">background-color: qlineargradient(spread:pad, x1:0.480769, y1:1, x2:0.476, y2:0, stop:0 rgba(17, 17, 17, 255), stop:1 rgba(19, 19, 19, 255));
