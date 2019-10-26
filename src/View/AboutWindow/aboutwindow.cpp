@@ -29,7 +29,7 @@ void AboutWindow::closeEvent(QCloseEvent *pEvent)
 
 void AboutWindow::on_pushButton_clicked()
 {
-    QDesktopServices::openUrl (QUrl("https://github.com/Flone-dnb/FChat-server"));
+    QDesktopServices::openUrl (QUrl("https://github.com/Flone-dnb/SilentServer"));
 }
 
 

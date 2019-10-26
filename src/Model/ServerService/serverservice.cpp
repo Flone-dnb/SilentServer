@@ -11,8 +11,8 @@
 ServerService::ServerService(MainWindow* pMainWindow)
 {
     // should be shorter than MAX_VERSION_STRING_LENGTH
-    serverVersion = "2.15.1";
-    clientLastSupportedVersion = "2.16.1";
+    serverVersion = "2.16.0";
+    clientLastSupportedVersion = "2.18.0";
 
     this->pMainWindow = pMainWindow;
 
