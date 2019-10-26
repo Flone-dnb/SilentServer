@@ -3,6 +3,7 @@
 
 // Custom
 #include "../src/Controller/controller.h"
+#include "../src/View/AboutWindow/aboutwindow.h"
 
 // Qt
 #include <QMouseEvent>
@@ -137,13 +138,6 @@ void MainWindow::slotTrayIconActivated()
     showNormal();
 }
 
-void MainWindow::on_actionAbout_triggered()
-{
-    QMessageBox::about(this, "Silent", "Silent Server. Version: " + QString::fromStdString(pController->getServerVersion()) + "."
-                                      "\nLast supported client version: " + QString::fromStdString(pController->getLastClientVersion()) + "."
-                                      "\n\nCopyright (c) 2019 Aleksandr \"Flone\" Tretyakov (github.com/Flone-dnb).");
-}
-
 void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
 {
     if (pListItem != nullptr)
@@ -184,6 +178,18 @@ void MainWindow::on_actionStart_triggered()
 
     pController->start();
 }
+
+void MainWindow::on_actionAbout_2_triggered()
+{
+    AboutWindow* pAboutWindow = new AboutWindow (
+                                                    QString::fromStdString(pController->getServerVersion()),
+                                                    QString::fromStdString(pController->getLastClientVersion()),
+                                                    this
+                                                );
+    pAboutWindow ->setWindowModality (Qt::WindowModality::WindowModal);
+    pAboutWindow ->show ();
+}
+
 
 
 

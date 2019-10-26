@@ -966,6 +966,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         closesocket(userToClose->userTCPSocket);
     }
 
+
     iUsersConnectedCount--;
     pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
 
@@ -975,24 +976,36 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     if (users.size() - 1 != 0)
     {
         // Tell other users that one is disconnected
-        char sendBuffer[MAX_NAME_LENGTH + 3 + 4];
-        memset(sendBuffer, 0, MAX_NAME_LENGTH + 3 + 4);
+        char sendBuffer[MAX_NAME_LENGTH + 3 + 5];
+        memset(sendBuffer, 0, MAX_NAME_LENGTH + 3 + 5);
 
         // 1 means that someone is disconnected
-        unsigned char commandType = 1;
-        std::memcpy(sendBuffer, &commandType, 1);
+        sendBuffer[0] = 1;
 
-        // Put size
-        unsigned char iPacketSize = static_cast<unsigned char>(4 + userToClose->userName.size());
-        std::memcpy(sendBuffer + 1, &iPacketSize, 1);
-
-        std::memcpy(sendBuffer + 2, &iUsersConnectedCount, 4);
-
-        std::memcpy(sendBuffer + 6, userToClose->userName.c_str(), userToClose->userName.size());
-
-        for (unsigned int j = 0; j < users.size(); j++)
+        if (bUserLost)
         {
-            send(users[j]->userTCPSocket, sendBuffer, static_cast<int>(6 + userToClose->userName.size()), 0);
+            sendBuffer[1] = 1;
+        }
+        else
+        {
+            sendBuffer[1] = 0;
+        }
+
+
+        unsigned char iPacketSize = static_cast <unsigned char> (7 + userToClose->userName.size());
+
+        std::memcpy(sendBuffer + 2, &iPacketSize, 1);
+
+        std::memcpy(sendBuffer + 3, &iUsersConnectedCount, 4);
+
+        std::memcpy(sendBuffer + 7, userToClose->userName.c_str(), userToClose->userName.size());
+
+        for (size_t j = 0; j < users.size(); j++)
+        {
+            if ( users[j] ->userName != userToClose ->userName )
+            {
+               send(users[j]->userTCPSocket, sendBuffer, iPacketSize, 0);
+            }
         }
     }
 

@@ -1,5 +1,7 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
 	<file>appMainIcon.png</file>
+	<file>GitHub-Mark-Light.png</file>
+	<file>GitHub-Mark-Light-Hover.png</file>
 </qresource>
 </RCC>

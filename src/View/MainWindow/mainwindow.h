@@ -65,12 +65,12 @@ protected:
 
 private slots:
 
-    void on_actionAbout_triggered();
     void slotSetPingToUser(QListWidgetItem* pListItem, int ping);
     void slotClearChatWindow();
     void on_actionStart_triggered();
     void typeSomeOnOutputLog(QString text);
     void slotTrayIconActivated();
+    void on_actionAbout_2_triggered();
 
 private:
 

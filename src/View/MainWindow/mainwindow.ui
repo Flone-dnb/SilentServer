@@ -14,8 +14,8 @@
    <string>Silent Server</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: qlineargradient(spread:pad, x1:0.480769, y1:1, x2:0.476, y2:0, stop:0 rgba(17, 17, 17, 255), stop:1 rgba(19, 19, 19, 255));
-color: rgb(212, 212, 212);</string>
+   <string notr="true">background-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgba(7, 7, 7, 255), stop:1 rgba(25, 25, 25, 255));
+color: white;</string>
   </property>
   <property name="locale">
    <locale language="English" country="UnitedStates"/>
@@ -43,13 +43,14 @@ color: rgb(212, 212, 212);</string>
           <property name="styleSheet">
            <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
 
-border: 1px solid red;</string>
+border: 1px solid rgb(240, 0, 0);
+border-radius: 6px;</string>
           </property>
           <property name="locale">
            <locale language="English" country="UnitedStates"/>
           </property>
           <property name="text">
-           <string>Output log:</string>
+           <string>Output log</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -67,7 +68,8 @@ border: 1px solid red;</string>
           <property name="styleSheet">
            <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
 
-border: 1px solid red;</string>
+border: 1px solid rgb(240, 0, 0);
+border-radius: 6px;</string>
           </property>
           <property name="locale">
            <locale language="English" country="UnitedStates"/>
@@ -93,9 +95,10 @@ border: 1px solid red;</string>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
-
-border: 1px solid red;</string>
+           <string notr="true">background-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgba(10, 10, 10, 255), stop:1 rgba(27, 27, 27, 255));
+selection-background-color: rgb(140, 0, 0);
+border: 1px solid rgb(240, 0, 0);
+border-radius: 6px;</string>
           </property>
           <property name="locale">
            <locale language="English" country="UnitedStates"/>
@@ -120,9 +123,12 @@ border: 1px solid red;</string>
             <property name="styleSheet">
              <string notr="true">QListWidget
 {
-	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0.461538 rgba(255, 255, 255, 0));
-	border: 1px solid red;
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgba(10, 10, 10, 255), stop:1 rgba(27, 27, 27, 255));
+	color: white;
+	border: 1px solid rgb(240, 0, 0);
+	border-radius: 6px;
 }
+
 
 QListWidget::item:hover
 {
@@ -166,13 +172,13 @@ QListWidget::item:selected
    <property name="styleSheet">
     <string notr="true">QMenuBar
 {
-	background-color: rgb(11, 11, 11);
+	background-color: rgba(17, 17, 17, 0);
 	color: white;
 }
 
 QMenuBar::item
 {
-	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(1, 1, 1, 255), stop:0.605809 rgba(5, 5, 5, 255), stop:1 rgba(21, 21, 21, 255));
+	background-color: rgba(255, 255, 255, 0);
 }
 
 QMenuBar::item::selected
@@ -189,37 +195,90 @@ QMenuBar::item::selected
     <property name="styleSheet">
      <string notr="true">QMenu
 {
-	background-color: rgb(11, 11, 11);
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100));
 	color: white;
-}
-
-QMenu::item
-{
-	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(1, 1, 1, 255), stop:0.605809 rgba(5, 5, 5, 255), stop:1 rgba(21, 21, 21, 255));
 }
 
 QMenu::item::selected
 {
 	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255));
+}
+
+QMenu::separator
+{
+	background-color: rgb(50, 0, 0);
+	height: 2px;
+    margin-left: 10px; 
+    margin-right: 5px;
 }</string>
     </property>
     <property name="title">
      <string>Chat</string>
     </property>
     <addaction name="actionStart"/>
-    <addaction name="separator"/>
-    <addaction name="actionAbout"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QMenu
+{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100));
+	color: white;
+}
+
+QMenu::item::selected
+{
+	background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255));
+}
+
+QMenu::separator
+{
+	background-color: rgb(50, 0, 0);
+	height: 2px;
+    margin-left: 10px; 
+    margin-right: 5px;
+}</string>
+    </property>
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout_2"/>
    </widget>
    <addaction name="menu"/>
+   <addaction name="menuHelp"/>
   </widget>
-  <action name="actionAbout">
-   <property name="text">
-    <string>About</string>
-   </property>
-  </action>
   <action name="actionStart">
    <property name="text">
     <string>Start Server</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Segoe UI</family>
+    </font>
+   </property>
+  </action>
+  <action name="actionAbout_2">
+   <property name="text">
+    <string>About</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Segoe UI</family>
+    </font>
+   </property>
+  </action>
+  <action name="actionCheck_for_Updates">
+   <property name="text">
+    <string>Check for Updates</string>
+   </property>
+   <property name="font">
+    <font>
+     <family>Segoe UI</family>
+    </font>
    </property>
   </action>
  </widget>
