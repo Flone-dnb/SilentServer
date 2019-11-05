@@ -70,6 +70,8 @@ public:
         std::string    getServerVersion          ();
         std::string    getLastClientVersion      ();
         unsigned short getServerPortFromSettings ();
+        unsigned short getPingNormalBelow        ();
+        unsigned short getPingWarningBelow       ();
 
 private:
 
@@ -82,6 +84,11 @@ private:
     SOCKET                   UDPsocket;
     SOCKET                   udpPingCheckSocket;
     std::vector<UserStruct*> users;
+
+
+    // Ping
+    unsigned short           iPingNormalBelow;
+    unsigned short           iPingWarningBelow;
 
 
     std::string              serverVersion;

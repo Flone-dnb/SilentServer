@@ -12,6 +12,7 @@
 #include "../src/Controller/controller.h"
 #include "../src/View/AboutWindow/aboutwindow.h"
 #include "../src/View/SettingsWindow/settingswindow.h"
+#include "../src/View/PingColorParams.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -216,6 +217,23 @@ void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
         }
 
         pListItem->setText(userNameWithNewPing);
+
+
+
+        // Set color
+
+        if      (ping <= pController->getPingNormalBelow())
+        {
+            pListItem->setForeground(QColor(PING_NORMAL_R, PING_NORMAL_G, PING_NORMAL_B));
+        }
+        else if (ping <= pController->getPingWarningBelow())
+        {
+            pListItem->setForeground(QColor(PING_WARNING_R, PING_WARNING_G, PING_WARNING_B));
+        }
+        else
+        {
+            pListItem->setForeground(QColor(PING_BAD_R, PING_BAD_G, PING_BAD_B));
+        }
     }
 }
 

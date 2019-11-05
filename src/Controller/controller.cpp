@@ -19,6 +19,16 @@ std::string Controller::getLastClientVersion()
     return pServerService->getLastClientVersion();
 }
 
+unsigned short Controller::getPingNormalBelow()
+{
+    return pServerService->getPingNormalBelow();
+}
+
+unsigned short Controller::getPingWarningBelow()
+{
+    return pServerService->getPingWarningBelow();
+}
+
 bool Controller::isServerRunning()
 {
     return bServerStarted;

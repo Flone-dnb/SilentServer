@@ -7,26 +7,30 @@
 
 //Custom
 #include "../src/View/MainWindow/mainwindow.h"
-#include "../src/globalparams.h"
+#include "../src/Model/net_params.h"
 
 
 ServerService::ServerService(MainWindow* pMainWindow)
 {
+    this->pMainWindow          = pMainWindow;
+
+
     // should be shorter than MAX_VERSION_STRING_LENGTH
     serverVersion              = "2.16.0";
     clientLastSupportedVersion = "2.18.0";
     sSettingsFileName          = L"SilentServerSettings.data";
 
 
-    this->pMainWindow     = pMainWindow;
+    iPingNormalBelow           = 130;
+    iPingWarningBelow          = 200;
 
 
-    bWinSockStarted       = false;
-    bTextListen           = false;
+    iUsersConnectedCount       = 0;
+    iUsersConnectedToVOIP      = 0;
 
 
-    iUsersConnectedCount  = 0;
-    iUsersConnectedToVOIP = 0;
+    bWinSockStarted            = false;
+    bTextListen                = false;
 }
 
 
@@ -101,6 +105,16 @@ unsigned short ServerService::getServerPortFromSettings()
 
 
     return iServerPort;
+}
+
+unsigned short ServerService::getPingNormalBelow()
+{
+    return iPingNormalBelow;
+}
+
+unsigned short ServerService::getPingWarningBelow()
+{
+    return iPingWarningBelow;
 }
 
 void ServerService::showSettings()

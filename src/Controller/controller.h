@@ -17,21 +17,23 @@ public:
 
     // Start / Stop
 
-        void         start                 ();
-        void         stop                  ();
+        void            start                 ();
+        void            stop                  ();
 
 
     // Settings
 
-        void         saveNewSettings       (unsigned short iServerPort);
-        void         openSettings          ();
+        void            saveNewSettings       (unsigned short iServerPort);
+        void            openSettings          ();
 
 
     // GET functions
 
-        std::string  getServerVersion      ();
-        std::string  getLastClientVersion  ();
-        bool         isServerRunning       ();
+        std::string     getServerVersion      ();
+        std::string     getLastClientVersion  ();
+        unsigned short  getPingNormalBelow    ();
+        unsigned short  getPingWarningBelow   ();
+        bool            isServerRunning       ();
 
 
 

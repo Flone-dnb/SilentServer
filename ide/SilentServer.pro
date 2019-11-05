@@ -25,21 +25,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-    ../src/View/AboutWindow/aboutwindow.cpp \
-    ../src/View/SettingsWindow/settingswindow.cpp \
+        ../src/View/AboutWindow/aboutwindow.cpp \
+        ../src/View/SettingsWindow/settingswindow.cpp \
         ../src/main.cpp \
         ../src/View/MainWindow/mainwindow.cpp \
         ../src/Controller/controller.cpp \
         ../src/Model/ServerService/serverservice.cpp \
 
 HEADERS += \
+        ../src/View/PingColorParams.h \
         ../src/View/AboutWindow/aboutwindow.h \
         ../src/View/MainWindow/mainwindow.h \
         ../src/Model/userstruct.h \
         ../src/Controller/controller.h \
         ../src/Model/ServerService/serverservice.h \
         ../src/View/SettingsWindow/settingswindow.h \
-        ../src/globalparams.h
+        ../src/net_params.h
 
 FORMS += \
         ../src/View/AboutWindow/aboutwindow.ui \
