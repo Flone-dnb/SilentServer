@@ -13,13 +13,27 @@ public:
 
     Controller(MainWindow* pMainWindow);
 
-    std::string getServerVersion();
-    std::string getLastClientVersion();
-    bool isServerRunning();
 
-    void start();
 
-    void stop();
+    // Start / Stop
+
+        void         start                 ();
+        void         stop                  ();
+
+
+    // Settings
+
+        void         saveNewSettings       (unsigned short iServerPort);
+        void         openSettings          ();
+
+
+    // GET functions
+
+        std::string  getServerVersion      ();
+        std::string  getLastClientVersion  ();
+        bool         isServerRunning       ();
+
+
 
     ~Controller();
 

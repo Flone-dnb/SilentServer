@@ -28,46 +28,72 @@ public:
 
     ServerService(MainWindow* pMainWindow);
 
-    std::string getServerVersion();
-    std::string getLastClientVersion();
 
-    // Functions related to starting
-        bool startWinSock();
-        void startToListenForConnection();
-        void prepareForVoiceConnection();
 
-    // Functions related to listening
-        void listenForNewTCPConnections();
-        void listenForMessage(UserStruct* userToListen);
-        void listenForVoiceMessage(UserStruct* userToListen);
-        void getMessage(UserStruct* userToListen);
 
-    void checkPing();
-    void sendPingToAll();
+    // Starting
 
-    // Functions related to closing something
-        void sendFINtoSocket(SOCKET socketToClose);
-        void responseToFIN(UserStruct* userToClose, bool bUserLost = false);
-        void shutdownAllUsers();
+        bool  startWinSock                ();
+        void  startToListenForConnection  ();
+        void  prepareForVoiceConnection   ();
+
+
+    // Listen
+
+        void  listenForMessage            (UserStruct* userToListen);
+        void  listenForVoiceMessage       (UserStruct* userToListen);
+        void  processMessage              (UserStruct* userToListen);
+        void  listenForNewTCPConnections  ();
+
+
+    // Ping
+
+        void  checkPing                   ();
+        void  sendPingToAll               ();
+
+
+    // Settings
+
+        void  saveNewSettings             (unsigned short iServerPort);
+        void  showSettings                ();
+
+
+    // Closing
+
+        void  sendFINtoSocket             (SOCKET socketToClose);
+        void  responseToFIN               (UserStruct* userToClose, bool bUserLost = false);
+        void  shutdownAllUsers            ();
+
+
+    // GET functions
+
+        std::string    getServerVersion          ();
+        std::string    getLastClientVersion      ();
+        unsigned short getServerPortFromSettings ();
 
 private:
 
 
-    MainWindow* pMainWindow;
+    MainWindow*              pMainWindow;
 
-    SOCKET listenTCPSocket;
-    SOCKET UDPsocket;
-    SOCKET udpPingCheckSocket;
+
+    // Users
+    SOCKET                   listenTCPSocket;
+    SOCKET                   UDPsocket;
+    SOCKET                   udpPingCheckSocket;
     std::vector<UserStruct*> users;
 
-    int iUsersConnectedCount;
-    int iUsersConnectedToVOIP;
 
-    bool bWinSockStarted;
-    bool bTextListen;
-    bool bVoiceListen;
+    std::string              serverVersion;
+    std::string              clientLastSupportedVersion;
+    std::wstring             sSettingsFileName;
 
 
-    std::string serverVersion;
-    std::string clientLastSupportedVersion;
+    int                      iUsersConnectedCount;
+    int                      iUsersConnectedToVOIP;
+
+
+    bool                     bWinSockStarted;
+    bool                     bTextListen;
+    bool                     bVoiceListen;
 };

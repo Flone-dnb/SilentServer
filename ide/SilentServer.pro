@@ -26,6 +26,7 @@ CONFIG += c++11
 
 SOURCES += \
     ../src/View/AboutWindow/aboutwindow.cpp \
+    ../src/View/SettingsWindow/settingswindow.cpp \
         ../src/main.cpp \
         ../src/View/MainWindow/mainwindow.cpp \
         ../src/Controller/controller.cpp \
@@ -37,11 +38,13 @@ HEADERS += \
         ../src/Model/userstruct.h \
         ../src/Controller/controller.h \
         ../src/Model/ServerService/serverservice.h \
+        ../src/View/SettingsWindow/settingswindow.h \
         ../src/globalparams.h
 
 FORMS += \
         ../src/View/AboutWindow/aboutwindow.ui \
-        ../src/View/MainWindow/mainwindow.ui
+        ../src/View/MainWindow/mainwindow.ui \
+        ../src/View/SettingsWindow/settingswindow.ui
 
 win32
 {

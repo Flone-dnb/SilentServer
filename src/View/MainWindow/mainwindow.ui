@@ -216,6 +216,8 @@ QMenu::separator
      <string>Chat</string>
     </property>
     <addaction name="actionStart"/>
+    <addaction name="separator"/>
+    <addaction name="actionSettings"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="font">
@@ -271,14 +273,9 @@ QMenu::separator
     </font>
    </property>
   </action>
-  <action name="actionCheck_for_Updates">
+  <action name="actionSettings">
    <property name="text">
-    <string>Check for Updates</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Segoe UI</family>
-    </font>
+    <string>Settings</string>
    </property>
   </action>
  </widget>

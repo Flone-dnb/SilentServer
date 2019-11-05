@@ -1,16 +1,17 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-// Custom
-#include "../src/Controller/controller.h"
-#include "../src/View/AboutWindow/aboutwindow.h"
-
 // Qt
 #include <QMouseEvent>
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QHideEvent>
 #include <QSystemTrayIcon>
+
+// Custom
+#include "../src/Controller/controller.h"
+#include "../src/View/AboutWindow/aboutwindow.h"
+#include "../src/View/SettingsWindow/settingswindow.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -29,9 +30,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     pController = new Controller(this);
 
+
+    // This to This
     connect(this, &MainWindow::signalTypeOnOutput,    this, &MainWindow::typeSomeOnOutputLog);
     connect(this, &MainWindow::signalClearChatWindow, this, &MainWindow::slotClearChatWindow);
     connect(this, &MainWindow::signalSetPingToUser,   this, &MainWindow::slotSetPingToUser);
+    connect(this, &MainWindow::signalShowMessageBox,  this, &MainWindow::slotShowMessageBox);
 }
 
 
@@ -51,6 +55,37 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
     else
     {
         emit signalTypeOnOutput(QString::fromStdString(errorText));
+    }
+}
+
+void MainWindow::showSettingsWindow(unsigned short iServerPort)
+{
+    SettingsWindow* pSettingsWindow = new SettingsWindow (this);
+    pSettingsWindow ->setWindowModality( Qt::WindowModality::WindowModal );
+
+    pSettingsWindow ->setSettings( QString::number(iServerPort) );
+
+    connect(pSettingsWindow, &SettingsWindow::signalApply, this, &MainWindow::slotApplyNewSettings);
+
+    pSettingsWindow ->show();
+}
+
+void MainWindow::showMessageBox(bool bErrorBox, const std::wstring &sMessage, bool bEmitSignal)
+{
+    if (bEmitSignal)
+    {
+        emit signalShowMessageBox( bErrorBox, QString::fromStdWString(sMessage) );
+    }
+    else
+    {
+        if (bErrorBox)
+        {
+            QMessageBox::warning( this, "Error", QString::fromStdWString( sMessage ) );
+        }
+        else
+        {
+            QMessageBox::information( this, "Information", QString::fromStdWString( sMessage ) );
+        }
     }
 }
 
@@ -121,6 +156,18 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 }
 
+void MainWindow::slotShowMessageBox(bool bErrorBox, const QString &sMessage)
+{
+    if (bErrorBox)
+    {
+        QMessageBox::warning( this, "Error", sMessage );
+    }
+    else
+    {
+        QMessageBox::information( this, "Information", sMessage );
+    }
+}
+
 void MainWindow::typeSomeOnOutputLog(QString text)
 {
     mtxPrintOutput .lock   ();
@@ -136,6 +183,11 @@ void MainWindow::slotTrayIconActivated()
     raise();
     activateWindow();
     showNormal();
+}
+
+void MainWindow::slotApplyNewSettings(unsigned short iServerPort)
+{
+    pController ->saveNewSettings(iServerPort);
 }
 
 void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
@@ -187,10 +239,14 @@ void MainWindow::on_actionAbout_2_triggered()
                                                     this
                                                 );
     pAboutWindow ->setWindowModality (Qt::WindowModality::WindowModal);
-    pAboutWindow ->show ();
+    pAboutWindow ->show();
 }
 
 
+void MainWindow::on_actionSettings_triggered()
+{
+    pController ->openSettings();
+}
 
 
 

@@ -39,6 +39,16 @@ void Controller::stop()
     }
 }
 
+void Controller::saveNewSettings(unsigned short iServerPort)
+{
+    pServerService ->saveNewSettings(iServerPort);
+}
+
+void Controller::openSettings()
+{
+    pServerService ->showSettings();
+}
+
 Controller::~Controller()
 {
     delete pServerService;
