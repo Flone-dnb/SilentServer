@@ -16,13 +16,13 @@ ServerService::ServerService(MainWindow* pMainWindow)
 
 
     // should be shorter than MAX_VERSION_STRING_LENGTH
-    serverVersion              = "2.16.0";
-    clientLastSupportedVersion = "2.18.0";
+    serverVersion              = "2.16.1";
+    clientLastSupportedVersion = "2.18.1";
     sSettingsFileName          = L"SilentServerSettings.data";
 
 
-    iPingNormalBelow           = 130;
-    iPingWarningBelow          = 200;
+    iPingNormalBelow           = 160;
+    iPingWarningBelow          = 260;
 
 
     iUsersConnectedCount       = 0;
@@ -325,10 +325,10 @@ void ServerService::listenForNewTCPConnections()
                         memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
 
                         answerBuffer[0] = 3;
-                        answerBuffer[1] = static_cast<char>(serverVersion.size());
-                        std::memcpy(answerBuffer + 2, serverVersion.c_str(), serverVersion.size());
+                        answerBuffer[1] = static_cast<char>(clientLastSupportedVersion.size());
+                        std::memcpy(answerBuffer + 2, clientLastSupportedVersion.c_str(), clientLastSupportedVersion.size());
 
-                        send(newConnectedSocket, answerBuffer, static_cast<int>(2 + serverVersion.size()), 0);
+                        send(newConnectedSocket, answerBuffer, static_cast<int>(2 + clientLastSupportedVersion.size()), 0);
                         std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                         closethread.detach();
 
