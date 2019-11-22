@@ -13,6 +13,7 @@
 #include "../src/View/AboutWindow/aboutwindow.h"
 #include "../src/View/SettingsWindow/settingswindow.h"
 #include "../src/View/PingColorParams.h"
+#include "../src/Model/SettingsManager/SettingsFile.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -27,7 +28,13 @@ MainWindow::MainWindow(QWidget *parent) :
     pTrayIcon->setIcon(icon);
     connect(pTrayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slotTrayIconActivated);
 
+
+    qRegisterMetaType<SettingsFile>("SettingsFile");
+
+
     bAlreadyClosing = false;
+
+
 
     pController = new Controller(this);
 
@@ -58,19 +65,6 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
         emit signalTypeOnOutput(QString::fromStdString(errorText));
     }
 }
-
-void MainWindow::showSettingsWindow(unsigned short iServerPort)
-{
-    SettingsWindow* pSettingsWindow = new SettingsWindow (this);
-    pSettingsWindow ->setWindowModality( Qt::WindowModality::WindowModal );
-
-    pSettingsWindow ->setSettings( QString::number(iServerPort) );
-
-    connect(pSettingsWindow, &SettingsWindow::signalApply, this, &MainWindow::slotApplyNewSettings);
-
-    pSettingsWindow ->show();
-}
-
 void MainWindow::showMessageBox(bool bErrorBox, const std::wstring &sMessage, bool bEmitSignal)
 {
     if (bEmitSignal)
@@ -132,6 +126,8 @@ void MainWindow::clearChatWindow()
 
 void MainWindow::hideEvent(QHideEvent *event)
 {
+    Q_UNUSED(event)
+
     hide();
     pTrayIcon->show();
 }
@@ -186,9 +182,9 @@ void MainWindow::slotTrayIconActivated()
     showNormal();
 }
 
-void MainWindow::slotApplyNewSettings(unsigned short iServerPort)
+void MainWindow::slotApplyNewSettings(SettingsFile* pSettingsFile)
 {
-    pController ->saveNewSettings(iServerPort);
+    pController ->saveNewSettings(pSettingsFile);
 }
 
 void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
@@ -244,9 +240,10 @@ void MainWindow::slotClearChatWindow()
 
 void MainWindow::on_actionStart_triggered()
 {
-    // Start Winsock2
-
-    pController->start();
+    if ( pController->start() )
+    {
+        ui ->plainTextEdit ->appendPlainText("Could not start the server.");
+    }
 }
 
 void MainWindow::on_actionAbout_2_triggered()
@@ -263,7 +260,12 @@ void MainWindow::on_actionAbout_2_triggered()
 
 void MainWindow::on_actionSettings_triggered()
 {
-    pController ->openSettings();
+    SettingsWindow* pSettingsWindow = new SettingsWindow (pController ->getSettingsFile(), this);
+    pSettingsWindow ->setWindowModality( Qt::WindowModality::WindowModal );
+
+    connect(pSettingsWindow, &SettingsWindow::signalApply, this, &MainWindow::slotApplyNewSettings);
+
+    pSettingsWindow ->show();
 }
 
 

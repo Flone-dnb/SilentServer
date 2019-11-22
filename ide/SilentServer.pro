@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+    ../src/Model/SettingsManager/settingsmanager.cpp \
         ../src/View/AboutWindow/aboutwindow.cpp \
         ../src/View/SettingsWindow/settingswindow.cpp \
         ../src/main.cpp \
@@ -33,6 +34,8 @@ SOURCES += \
         ../src/Model/ServerService/serverservice.cpp \
 
 HEADERS += \
+        ../src/Model/SettingsManager/SettingsFile.h \
+        ../src/Model/SettingsManager/settingsmanager.h \
         ../src/View/PingColorParams.h \
         ../src/View/AboutWindow/aboutwindow.h \
         ../src/View/MainWindow/mainwindow.h \
@@ -40,7 +43,7 @@ HEADERS += \
         ../src/Controller/controller.h \
         ../src/Model/ServerService/serverservice.h \
         ../src/View/SettingsWindow/settingswindow.h \
-        ../src/net_params.h
+        ../src/Model/net_params.h
 
 FORMS += \
         ../src/View/AboutWindow/aboutwindow.ui \

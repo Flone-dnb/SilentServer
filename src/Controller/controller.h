@@ -4,6 +4,8 @@
 
 class MainWindow;
 class ServerService;
+class SettingsManager;
+class SettingsFile;
 
 
 class Controller
@@ -17,18 +19,18 @@ public:
 
     // Start / Stop
 
-        void            start                 ();
+        bool            start                 ();
         void            stop                  ();
 
 
     // Settings
 
-        void            saveNewSettings       (unsigned short iServerPort);
-        void            openSettings          ();
+        void            saveNewSettings       (SettingsFile* pSettingsFile);
 
 
     // GET functions
 
+        SettingsFile*   getSettingsFile       ();
         std::string     getServerVersion      ();
         std::string     getLastClientVersion  ();
         unsigned short  getPingNormalBelow    ();
@@ -41,7 +43,8 @@ public:
 
 private:
 
-    ServerService* pServerService;
+    ServerService*   pServerService;
+    SettingsManager* pSettingsManager;
 
     bool bServerStarted;
 };

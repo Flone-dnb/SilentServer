@@ -1,12 +1,22 @@
 ﻿#include "controller.h"
 
+
+
 // Custom
 #include "../src/Model/ServerService/serverservice.h"
+#include "../src/Model/SettingsManager/settingsmanager.h"
+
 
 Controller::Controller(MainWindow* pMainWindow)
 {
-    pServerService = new ServerService(pMainWindow);
-    bServerStarted = false;
+    pSettingsManager = new SettingsManager(pMainWindow);
+    if (pSettingsManager ->getCurrentSettings())
+    {
+        pServerService   = new ServerService(pMainWindow, pSettingsManager);
+    }
+
+
+    bServerStarted   = false;
 }
 
 std::string Controller::getServerVersion()
@@ -34,10 +44,19 @@ bool Controller::isServerRunning()
     return bServerStarted;
 }
 
-void Controller::start()
+bool Controller::start()
 {
-    if (bServerStarted) stop();
-    else bServerStarted = pServerService->startWinSock();
+    if (pSettingsManager ->getCurrentSettings())
+    {
+        if (bServerStarted) stop();
+        else bServerStarted = pServerService->startWinSock();
+
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 void Controller::stop()
@@ -49,14 +68,14 @@ void Controller::stop()
     }
 }
 
-void Controller::saveNewSettings(unsigned short iServerPort)
+void Controller::saveNewSettings(SettingsFile* pSettingsFile)
 {
-    pServerService ->saveNewSettings(iServerPort);
+    pSettingsManager ->saveSettings(pSettingsFile);
 }
 
-void Controller::openSettings()
+SettingsFile *Controller::getSettingsFile()
 {
-    pServerService ->showSettings();
+    return pSettingsManager ->getCurrentSettings();
 }
 
 Controller::~Controller()

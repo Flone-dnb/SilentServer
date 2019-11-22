@@ -2,27 +2,27 @@
 
 //STL
 #include <thread>
-#include <fstream>
-#include <shlobj.h>
 
 //Custom
 #include "../src/View/MainWindow/mainwindow.h"
 #include "../src/Model/net_params.h"
+#include "../src/Model/SettingsManager/settingsmanager.h"
+#include "../src/Model/SettingsManager/SettingsFile.h"
 
 
-ServerService::ServerService(MainWindow* pMainWindow)
+ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager)
 {
-    this->pMainWindow          = pMainWindow;
+    this ->pMainWindow         = pMainWindow;
+    this ->pSettingsManager    = pSettingsManager;
 
 
     // should be shorter than MAX_VERSION_STRING_LENGTH
-    serverVersion              = "2.16.1";
-    clientLastSupportedVersion = "2.18.1";
-    sSettingsFileName          = L"SilentServerSettings.data";
+    serverVersion              = SERVER_VERSION;
+    clientLastSupportedVersion = CLIENT_SUPPORTED_VERSION;
 
 
-    iPingNormalBelow           = 160;
-    iPingWarningBelow          = 260;
+    iPingNormalBelow           = PING_NORMAL_BELOW;
+    iPingWarningBelow          = PING_WARNING_BELOW;
 
 
     iUsersConnectedCount       = 0;
@@ -47,66 +47,6 @@ std::string ServerService::getLastClientVersion()
     return clientLastSupportedVersion;
 }
 
-unsigned short ServerService::getServerPortFromSettings()
-{
-    // Get path to "my documents"
-
-    TCHAR my_documents[MAX_PATH];
-    HRESULT result = SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
-
-
-
-
-    // Check if we got the path
-
-    if (result != S_OK)
-    {
-        pMainWindow ->showMessageBox(true, L"ServerService::getServerPortFromSettings::SHGetFolderPathW() failed. "
-                                           "Can't open the settings file.");
-        return SERVER_PORT;
-    }
-
-
-
-
-    // Open the settings file
-
-    std::wstring adressToSettings = std::wstring(my_documents);
-    adressToSettings += L"\\" + sSettingsFileName;
-
-    std::ifstream settingsFile (adressToSettings, std::ios::binary);
-
-
-
-
-    // Read settings
-
-    unsigned short iServerPort = 0;
-
-
-    if ( settingsFile .is_open() )
-    {
-        settingsFile .read( reinterpret_cast <char*> (&iServerPort), sizeof (iServerPort) );
-
-        settingsFile .close();
-    }
-    else
-    {
-        // Create settings file
-
-        std::ofstream createdSettingsFile (adressToSettings, std::ios::binary);
-
-        iServerPort = SERVER_PORT;
-        createdSettingsFile .write( reinterpret_cast <char*> (&iServerPort), sizeof (iServerPort) );
-
-        createdSettingsFile .close();
-    }
-
-
-
-    return iServerPort;
-}
-
 unsigned short ServerService::getPingNormalBelow()
 {
     return iPingNormalBelow;
@@ -115,69 +55,6 @@ unsigned short ServerService::getPingNormalBelow()
 unsigned short ServerService::getPingWarningBelow()
 {
     return iPingWarningBelow;
-}
-
-void ServerService::showSettings()
-{
-    // Get path to "my documents"
-
-    TCHAR my_documents[MAX_PATH];
-    HRESULT result = SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
-
-
-
-
-    // Check if we got the path
-
-    if (result != S_OK)
-    {
-        pMainWindow ->showMessageBox(true, L"ServerService::showSettings::SHGetFolderPathW() failed. "
-                                           "Can't open the settings file.");
-        return;
-    }
-
-
-
-
-    // Open the settings file
-
-    std::wstring adressToSettings = std::wstring(my_documents);
-    adressToSettings += L"\\" + sSettingsFileName;
-
-    std::ifstream settingsFile (adressToSettings, std::ios::binary);
-
-
-
-
-    // Read settings
-
-    unsigned short iServerPort = 0;
-
-
-    if ( settingsFile .is_open() )
-    {
-        settingsFile .read( reinterpret_cast <char*> (&iServerPort), sizeof (iServerPort) );
-
-        settingsFile .close();
-    }
-    else
-    {
-        // Create settings file
-
-        std::ofstream createdSettingsFile (adressToSettings, std::ios::binary);
-
-        iServerPort = SERVER_PORT;
-        createdSettingsFile .write( reinterpret_cast <char*> (&iServerPort), sizeof (iServerPort) );
-
-        createdSettingsFile .close();
-    }
-
-
-
-
-    // Pass settings to View
-
-    pMainWindow ->showSettingsWindow( iServerPort );
 }
 
 bool ServerService::startWinSock()
@@ -225,9 +102,9 @@ void ServerService::startToListenForConnection()
         // Create and fill the "sockaddr_in" structure containing the IPv4 socket
         sockaddr_in myAddr;
         memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
-        myAddr.sin_family = AF_INET;
-        myAddr.sin_port = htons( getServerPortFromSettings() );
-        myAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        myAddr .sin_family      = AF_INET;
+        myAddr .sin_port        = htons( pSettingsManager ->getCurrentSettings() ->iPort );
+        myAddr .sin_addr.s_addr = htonl(INADDR_ANY);
 
         if (bind(listenTCPSocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
         {
@@ -990,60 +867,6 @@ void ServerService::sendPingToAll()
         }
     }
 }
-
-void ServerService::saveNewSettings(unsigned short iServerPort)
-{
-    // Get path to "my documents"
-
-    TCHAR my_documents[MAX_PATH];
-    HRESULT result = SHGetFolderPathW(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
-
-
-
-
-    // Check if we got the path
-
-    if (result != S_OK)
-    {
-        pMainWindow ->showMessageBox(true, L"ServerService::showSettings::SHGetFolderPathW() failed. "
-                                           "Can't open the settings file.");
-        return;
-    }
-
-
-
-
-    // Open the settings file
-
-    std::wstring adressToSettings = std::wstring(my_documents);
-    adressToSettings += L"\\" + sSettingsFileName;
-
-    std::ifstream settingsFile (adressToSettings, std::ios::binary);
-
-
-
-
-    // Delete settings if they are exists
-
-    if ( settingsFile .is_open() )
-    {
-        settingsFile .close();
-
-        _wremove(adressToSettings.c_str());
-    }
-
-
-
-
-    // Create new settings file
-
-    std::ofstream createdSettingsFile (adressToSettings, std::ios::binary);
-
-    createdSettingsFile .write( reinterpret_cast <char*> (&iServerPort), sizeof (iServerPort) );
-
-    createdSettingsFile .close();
-}
-
 
 
 void ServerService::sendFINtoSocket(SOCKET socketToClose)

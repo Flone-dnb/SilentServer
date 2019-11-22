@@ -19,6 +19,19 @@
 
 
 class MainWindow;
+class SettingsManager;
+
+
+
+// should be shorter than MAX_VERSION_STRING_LENGTH
+#define SERVER_VERSION           "2.16.1"
+#define CLIENT_SUPPORTED_VERSION "2.18.1"
+
+
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+
 
 
 class ServerService
@@ -26,7 +39,7 @@ class ServerService
 
 public:
 
-    ServerService(MainWindow* pMainWindow);
+    ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager);
 
 
 
@@ -52,12 +65,6 @@ public:
         void  sendPingToAll               ();
 
 
-    // Settings
-
-        void  saveNewSettings             (unsigned short iServerPort);
-        void  showSettings                ();
-
-
     // Closing
 
         void  sendFINtoSocket             (SOCKET socketToClose);
@@ -69,7 +76,6 @@ public:
 
         std::string    getServerVersion          ();
         std::string    getLastClientVersion      ();
-        unsigned short getServerPortFromSettings ();
         unsigned short getPingNormalBelow        ();
         unsigned short getPingWarningBelow       ();
 
@@ -77,6 +83,7 @@ private:
 
 
     MainWindow*              pMainWindow;
+    SettingsManager*         pSettingsManager;
 
 
     // Users
@@ -93,7 +100,6 @@ private:
 
     std::string              serverVersion;
     std::string              clientLastSupportedVersion;
-    std::wstring             sSettingsFileName;
 
 
     int                      iUsersConnectedCount;

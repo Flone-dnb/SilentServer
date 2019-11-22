@@ -1,10 +1,12 @@
 ﻿#pragma once
 
 
+// Qt
 #include <QMainWindow>
 
 
 class QCloseEvent;
+class SettingsFile;
 
 namespace Ui
 {
@@ -19,11 +21,11 @@ class SettingsWindow : public QMainWindow
 
 signals:
 
-    void signalApply (unsigned short iServerPort);
+    void signalApply (SettingsFile* pSettingsFile);
 
 public:
 
-    explicit SettingsWindow(QWidget *parent = nullptr);
+    explicit SettingsWindow(SettingsFile* pSettingsFile, QWidget *parent = nullptr);
 
 
 

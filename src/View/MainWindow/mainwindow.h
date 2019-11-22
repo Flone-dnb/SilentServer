@@ -10,16 +10,6 @@
 #include <string>
 #include <mutex>
 
-// ============== Network ==============
-// Sockets and stuff
-#include <winsock2.h>
-
-// Adress translation
-#include <ws2tcpip.h>
-
-// Winsock 2 Library
-#pragma comment(lib,"Ws2_32.lib")
-
 
 
 class QMouseEvent;
@@ -28,6 +18,7 @@ class QListWidgetItem;
 class QCloseEvent;
 class QHideEvent;
 class QSystemTrayIcon;
+class SettingsFile;
 
 namespace Ui {
 class MainWindow;
@@ -50,7 +41,6 @@ public:
 
         void             showMessageBox             (bool bErrorBox,         const std::wstring& sMessage, bool bEmitSignal = false);
         void             printOutput                (std::string errorText,  bool bEmitSignal = false);
-        void             showSettingsWindow         (unsigned short iServerPort);
         void             updateOnlineUsersCount     (int iNewAmount);
         void             clearChatWindow            ();
 
@@ -104,7 +94,7 @@ private slots:
 
     // Settings Window
 
-        void             slotApplyNewSettings        (unsigned short iServerPort);
+        void             slotApplyNewSettings        (SettingsFile* pSettingsFile);
 
 
     // Menu
