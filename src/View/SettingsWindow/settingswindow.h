@@ -29,7 +29,7 @@ public:
 
 
 
-    void setSettings (QString sServerPort);
+    void setSettings (SettingsFile* pSettingsFile);
 
 
 

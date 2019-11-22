@@ -532,7 +532,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
                     processMessage(userToListen);
                 }
             }
-        };
+        }
 
         clock_t timePassed = clock() - userToListen->keepAliveTimer;
         float timePassedInSeconds = static_cast<float>(timePassed)/CLOCKS_PER_SEC;
@@ -745,7 +745,28 @@ void ServerService::processMessage(UserStruct *userToListen)
 
 
     // Receive user message to send
-    recv(userToListen->userTCPSocket, pSendToAllBuffer + 3 + timeString.size(), iMessageSize, 0);
+    wchar_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
+    memset(vMessageBuffer, 0, MAX_BUFFER_SIZE / 2);
+
+
+    //recv(userToListen->userTCPSocket, pSendToAllBuffer + 3 + timeString.size(), iMessageSize, 0);
+    recv(userToListen->userTCPSocket, reinterpret_cast <char*> (vMessageBuffer), iMessageSize, 0);
+
+    std::wstring sUserMessage (vMessageBuffer);
+
+    if (pSettingsManager ->getCurrentSettings() ->bAllowHTMLInMessages == false)
+    {
+        for (int i = 0;   i < sUserMessage .size();   i++)
+        {
+            if ( sUserMessage[i] == L'<' || sUserMessage[i] == L'>' )
+            {
+                sUserMessage .erase( sUserMessage .begin() + i );
+                i--;
+            }
+        }
+    }
+
+    std::memcpy(pSendToAllBuffer + 3 + timeString .size(), sUserMessage .c_str(), iMessageSize);
 
     int returnCode = 0;
 

@@ -9,13 +9,16 @@ class SettingsFile
 {
 public:
 
-    SettingsFile(unsigned short int iPort = SERVER_PORT)
+    SettingsFile(unsigned short int iPort  = SERVER_PORT,
+                 bool bAllowHTMLInMessages = true)
     {
-        this ->iPort = iPort;
+        this ->iPort                = iPort;
+        this ->bAllowHTMLInMessages = bAllowHTMLInMessages;
     }
 
 
     // -------------------------
 
     unsigned short int iPort;
+    bool               bAllowHTMLInMessages;
 };

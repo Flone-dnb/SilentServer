@@ -77,8 +77,12 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     newSettingsFile .write
             ( reinterpret_cast <char*> (&pSettingsFile ->iPort), sizeof(pSettingsFile ->iPort) );
 
+    // Allow HTML in messages
+    char cAllowHTMLInMessages = pSettingsFile ->bAllowHTMLInMessages;
+    newSettingsFile .write
+            ( &cAllowHTMLInMessages, sizeof(cAllowHTMLInMessages) );
+
     // NEW SETTINGS GO HERE
-    // + don't forget to update "if ( bSetOnlyNewUserName )" above!
     // + don't forget to update "readSettings()"
 
 
@@ -169,6 +173,25 @@ SettingsFile *SettingsManager::readSettings()
 
         // Read port
         settingsFile .read( reinterpret_cast <char*> (&pSettingsFile ->iPort), sizeof(pSettingsFile ->iPort) );
+
+
+
+
+        // Settings may end here
+        if (settingsFile .eof())
+        {
+            settingsFile .close();
+
+            saveSettings(pSettingsFile);
+        }
+
+
+
+        // Read port
+        char cAllowHTMLInMessages;
+        settingsFile .read( reinterpret_cast <char*> (&cAllowHTMLInMessages), sizeof(cAllowHTMLInMessages) );
+
+        pSettingsFile ->bAllowHTMLInMessages = cAllowHTMLInMessages;
 
 
 

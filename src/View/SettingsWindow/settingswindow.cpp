@@ -10,12 +10,14 @@ SettingsWindow::SettingsWindow(SettingsFile* pSettingsFile, QWidget *parent) : Q
 
     setFixedSize(width(), height());
 
-    setSettings( QString::number( pSettingsFile ->iPort ) );
+    setSettings( pSettingsFile );
 }
 
-void SettingsWindow::setSettings(QString sServerPort)
+void SettingsWindow::setSettings( SettingsFile* pSettingsFile )
 {
-    ui ->lineEdit ->setText (sServerPort);
+    ui ->lineEdit ->setText ( QString::number(pSettingsFile ->iPort) );
+
+    ui ->checkBox_HTML ->setChecked( pSettingsFile ->bAllowHTMLInMessages );
 }
 
 
@@ -24,7 +26,8 @@ void SettingsWindow::on_pushButton_clicked()
 {
     if (ui ->lineEdit ->text() != "")
     {
-       emit signalApply( new SettingsFile(ui ->lineEdit ->text() .toUShort()) );
+       emit signalApply( new SettingsFile(ui ->lineEdit ->text() .toUShort(),
+                                          ui ->checkBox_HTML ->isChecked()) );
     }
 
     close();
