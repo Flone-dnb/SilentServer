@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <winsock2.h>
 #include <string>
@@ -14,6 +14,7 @@ struct UserStruct
     sockaddr_in userUDPAddr;
 
     clock_t keepAliveTimer;
+    clock_t lastTimeMessageSent;
 
     std::string userName;
     std::string userIP;

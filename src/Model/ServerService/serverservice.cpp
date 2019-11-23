@@ -10,6 +10,23 @@
 #include "../src/Model/SettingsManager/SettingsFile.h"
 
 
+enum CONNECT_ERRORS  {
+    CE_USERNAME_INUSE  = 0,
+    CE_SERVER_FULL     = 2,
+    CE_WRONG_CLIENT    = 3
+};
+
+enum SERVER_MESSAGE{
+    SM_NEW_USER             = 0,
+    SM_SOMEONE_DISCONNECTED = 1,
+    SM_CAN_START_UDP        = 2,
+    SM_SPAM_NOTICE          = 3,
+    SM_PING                 = 8,
+    SM_KEEPALIVE            = 9,
+    SM_USERMESSAGE          = 10
+};
+
+
 ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager)
 {
     this ->pMainWindow         = pMainWindow;
@@ -201,7 +218,7 @@ void ServerService::listenForNewTCPConnections()
                         char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
                         memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
 
-                        answerBuffer[0] = 3;
+                        answerBuffer[0] = CE_WRONG_CLIENT;
                         answerBuffer[1] = static_cast<char>(clientLastSupportedVersion.size());
                         std::memcpy(answerBuffer + 2, clientLastSupportedVersion.c_str(), clientLastSupportedVersion.size());
 
@@ -227,7 +244,7 @@ void ServerService::listenForNewTCPConnections()
                     if (bUserNameFree == false)
                     {
                         pMainWindow->printOutput(std::string("User name " + userNameStr + " is already taken."),true);
-                        char command = 0;
+                        char command = CE_USERNAME_INUSE;
                         send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
                         std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                         closethread.detach();
@@ -288,7 +305,7 @@ void ServerService::listenForNewTCPConnections()
 
                             pMainWindow->printOutput(std::string("Server is full.\n"), true);
 
-                            char serverIsFullCommand = 2;
+                            char serverIsFullCommand = CE_SERVER_FULL;
                             send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
                             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                             closethread.detach();
@@ -345,8 +362,7 @@ void ServerService::listenForNewTCPConnections()
 
                                     unsigned char iSendSize = 0;
 
-                                    // 0 - means 'there is new user, update your OnlineCount and add him to list
-                                    unsigned char commandType = 0;
+                                    unsigned char commandType = SM_NEW_USER;
                                     std::memcpy(newUserInfo, &commandType, 1);
                                     iSendSize++;
 
@@ -383,6 +399,7 @@ void ServerService::listenForNewTCPConnections()
                                 pNewUser->userIP         = std::string(connectedWithIP);
                                 pNewUser->userTCPPort    = ntohs(connectedWith.sin_port);
                                 pNewUser->keepAliveTimer = clock();
+                                pNewUser->lastTimeMessageSent = clock();
 
                                 memset(pNewUser->userUDPAddr.sin_zero, 0, sizeof(pNewUser->userUDPAddr.sin_zero));
                                 pNewUser->userUDPAddr.sin_family = AF_INET;
@@ -523,7 +540,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             }
             else
             {
-                if (userToListen->pDataFromUser[0] == 10)
+                if (userToListen->pDataFromUser[0] == SM_USERMESSAGE)
                 {
                     // This is a message (in main lobby), send it to all in main lobby
 
@@ -541,7 +558,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             // User was inactive for INTERVAL_KEEPALIVE_SEC seconds
             // Check if he's alive
 
-            char keepAliveChar = 9;
+            char keepAliveChar = SM_KEEPALIVE;
             send(userToListen->userTCPSocket, &keepAliveChar, 1, 0);
 
             // Translate user socket to blocking mode
@@ -611,7 +628,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 userToListen->userUDPAddr.sin_port = senderInfo.sin_port;
 
                 // Tell user
-                char readyForVOIPcode = 2;
+                char readyForVOIPcode = SM_CAN_START_UDP;
                 send(userToListen->userTCPSocket, &readyForVOIPcode, 1, 0);
 
                 // Ready to check ping
@@ -701,15 +718,44 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
 void ServerService::processMessage(UserStruct *userToListen)
 {
-    // Get message size
+    // Get message size.
     unsigned short int iMessageSize = 0;
     recv(userToListen->userTCPSocket, reinterpret_cast<char*>(&iMessageSize), 2, 0);
 
 
-    // Get local time
+
+    // Check if the message is sent too quickly.
+    clock_t timePassed        = clock() - userToListen ->lastTimeMessageSent;
+    float timePassedInSeconds = static_cast <float> (timePassed)/CLOCKS_PER_SEC;
+
+    if ( timePassedInSeconds < ANTI_SPAM_MINIMUM_TIME_SEC )
+    {
+        // Receive user message.
+        wchar_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
+        memset(vMessageBuffer, 0, MAX_BUFFER_SIZE / 2);
+
+        recv(userToListen->userTCPSocket, reinterpret_cast <char*> (vMessageBuffer), iMessageSize, 0);
+
+
+
+        char cSpamNotice = SM_SPAM_NOTICE;
+
+        send(userToListen->userTCPSocket, &cSpamNotice, sizeof(cSpamNotice), 0);
+
+        return;
+    }
+    else
+    {
+        userToListen->lastTimeMessageSent = clock();
+    }
+
+
+    // Get local time.
     time_t now = time(nullptr);
     struct tm timeinfo;
     localtime_s(&timeinfo, &now);
+
+
 
     // Create string to send in format: "Hour:Minute. UserName: Message".
     std::string timeString = "";
@@ -729,6 +775,7 @@ void ServerService::processMessage(UserStruct *userToListen)
     timeString += ": ";
 
 
+
     // Add 'timeString' size and 'iMessageSize' to 'iPacketSize'
     unsigned short int iPacketSize = static_cast<unsigned short int>(timeString.size() + iMessageSize);
 
@@ -737,11 +784,13 @@ void ServerService::processMessage(UserStruct *userToListen)
     memset(pSendToAllBuffer, 0, 3 + iPacketSize + 1);
 
     // Set packet ID (message) to buffer
-    pSendToAllBuffer[0] = 10;
+    pSendToAllBuffer[0] = SM_USERMESSAGE;
     // Set packet size to buffer
     std::memcpy(pSendToAllBuffer + 1, &iPacketSize, 2);
     // Copy time and name to buffer
     std::memcpy(pSendToAllBuffer + 3, timeString.c_str(), timeString.size());
+
+
 
 
     // Receive user message to send
@@ -769,6 +818,8 @@ void ServerService::processMessage(UserStruct *userToListen)
     std::memcpy(pSendToAllBuffer + 3 + timeString .size(), sUserMessage .c_str(), iMessageSize);
 
     int returnCode = 0;
+
+
 
     // Send message to all but not the sender
     for (unsigned int j = 0; j < users.size(); j++)
@@ -831,8 +882,7 @@ void ServerService::sendPingToAll()
 {
     char sendBuffer[MAX_BUFFER_SIZE];
 
-    // 8 means ping info
-    sendBuffer[0] = 8;
+    sendBuffer[0] = SM_PING;
     // here (in index '1-2' we will insert packet size later)
     int iCurrentPos = 3;
 
@@ -1019,8 +1069,8 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         char sendBuffer[MAX_NAME_LENGTH + 3 + 5];
         memset(sendBuffer, 0, MAX_NAME_LENGTH + 3 + 5);
 
-        // 1 means that someone is disconnected
-        sendBuffer[0] = 1;
+
+        sendBuffer[0] = SM_SOMEONE_DISCONNECTED;
 
         if (bUserLost)
         {
