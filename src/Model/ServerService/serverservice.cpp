@@ -10,10 +10,12 @@
 #include "../src/Model/SettingsManager/SettingsFile.h"
 
 
-enum CONNECT_ERRORS  {
-    CE_USERNAME_INUSE  = 0,
-    CE_SERVER_FULL     = 2,
-    CE_WRONG_CLIENT    = 3
+enum CONNECT_MESSAGES  {
+    CM_USERNAME_INUSE  = 0,
+    CM_SERVER_FULL     = 2,
+    CM_WRONG_CLIENT    = 3,
+    CM_SERVER_INFO     = 4,
+    CM_NEED_PASSWORD   = 5
 };
 
 enum SERVER_MESSAGE{
@@ -195,15 +197,17 @@ void ServerService::listenForNewTCPConnections()
             }
             else
             {
-                // Receive version and user name
-                char nameBuffer[MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + 1];
-                memset(nameBuffer, 0, MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + 1);
-                if (recv(newConnectedSocket, nameBuffer, MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + 1, 0) > 1)
+                // Receive version, user name and password (optional)
+                char nameBuffer[MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2];
+                memset(nameBuffer, 0, MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2);
+
+                if (recv(newConnectedSocket, nameBuffer, MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2, 0) > 1)
                 {
-                    // Received version & user name
+                    // Received version, user name and password
 
                     // Check if client version is the same with the server version
                     char clientVersionSize = nameBuffer[0];
+
                     char* pVersion = new char[ static_cast<size_t>(clientVersionSize + 1) ];
                     memset( pVersion, 0, static_cast<size_t>(clientVersionSize + 1) );
 
@@ -211,6 +215,7 @@ void ServerService::listenForNewTCPConnections()
 
                     std::string clientVersion(pVersion);
                     delete[] pVersion;
+
                     if ( clientVersion != clientLastSupportedVersion )
                     {
                         pMainWindow->printOutput(std::string("Client version " + clientVersion + " does not match with the last supported client version " + clientLastSupportedVersion + ".\n"
@@ -218,7 +223,7 @@ void ServerService::listenForNewTCPConnections()
                         char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
                         memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
 
-                        answerBuffer[0] = CE_WRONG_CLIENT;
+                        answerBuffer[0] = CM_WRONG_CLIENT;
                         answerBuffer[1] = static_cast<char>(clientLastSupportedVersion.size());
                         std::memcpy(answerBuffer + 2, clientLastSupportedVersion.c_str(), clientLastSupportedVersion.size());
 
@@ -230,8 +235,16 @@ void ServerService::listenForNewTCPConnections()
                     }
 
                     // Check if this user name is free
-                    std::string userNameStr(nameBuffer + 1 + clientVersionSize);
+
+                    char vBuffer[MAX_NAME_LENGTH + 2];
+                    memset(vBuffer, 0, MAX_NAME_LENGTH + 2);
+
+                    std::memcpy(vBuffer, nameBuffer + 2 + clientVersionSize, nameBuffer[1 + clientVersionSize]);
+
+                    //std::string userNameStr(nameBuffer + 1 + clientVersionSize);
+                    std::string userNameStr(vBuffer);
                     bool bUserNameFree = true;
+
                     for (unsigned int i = 0; i<users.size(); i++)
                     {
                         if (users[i]->userName == userNameStr)
@@ -244,13 +257,39 @@ void ServerService::listenForNewTCPConnections()
                     if (bUserNameFree == false)
                     {
                         pMainWindow->printOutput(std::string("User name " + userNameStr + " is already taken."),true);
-                        char command = CE_USERNAME_INUSE;
+                        char command = CM_USERNAME_INUSE;
                         send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
                         std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                         closethread.detach();
                     }
                     else
                     {
+                        if (pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != L"")
+                        {
+                            wchar_t vPassBuffer[UCHAR_MAX + 1];
+                            memset(vPassBuffer, 0, (UCHAR_MAX * 2) + 2);
+
+                            char cUserNameSize = nameBuffer[1 + clientVersionSize];
+                            char cPasswordSize = nameBuffer[2 + clientVersionSize + cUserNameSize];
+
+                            std::memcpy(vPassBuffer, nameBuffer + 3 + clientVersionSize + cUserNameSize,
+                                        cPasswordSize * 2);
+
+                            std::wstring sPassword(vPassBuffer);
+
+                            if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
+                            {
+                                pMainWindow->printOutput(std::string("User " + userNameStr + " entered wrong or blank password."),true);
+                                char command = CM_NEED_PASSWORD;
+                                send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
+                                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+                                closethread.detach();
+
+                                newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
+                                continue;
+                            }
+                        }
+
                         // Show with whom connected
                         char connectedWithIP[16];
                         memset(&connectedWithIP,0,16);
@@ -275,7 +314,7 @@ void ServerService::listenForNewTCPConnections()
                         // ]
 
                         int iBytesWillSend = 0;
-                        char command = 4;
+                        char command = CM_SERVER_INFO;
                         std::memcpy(tempData, &command, 1);
                         iBytesWillSend++;
 
@@ -305,7 +344,7 @@ void ServerService::listenForNewTCPConnections()
 
                             pMainWindow->printOutput(std::string("Server is full.\n"), true);
 
-                            char serverIsFullCommand = CE_SERVER_FULL;
+                            char serverIsFullCommand = CM_SERVER_FULL;
                             send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
                             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                             closethread.detach();

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>402</width>
-    <height>186</height>
+    <width>454</width>
+    <height>227</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,6 +39,12 @@ color: white;</string>
       </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="lineEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="font">
          <font>
           <family>Segoe UI</family>
@@ -102,6 +108,51 @@ border-radius: 6px;</string>
         </property>
         <property name="checked">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="font">
+         <font>
+          <family>Segoe UI</family>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: rgba(255, 255, 255, 0);</string>
+        </property>
+        <property name="text">
+         <string>Password to Join</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="lineEdit_pass">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Segoe UI</family>
+          <pointsize>10</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.5, stop:0 rgba(25, 25, 25, 255), stop:0.211618 rgba(12, 12, 12, 255), stop:0.5 rgba(5, 5, 5, 255), stop:0.73029 rgba(9, 9, 9, 255), stop:1 rgba(25, 25, 25, 255));
+selection-background-color: rgb(140, 0, 0);
+color: white;
+border: 1px solid rgb(240, 0, 0);
+border-radius: 6px;</string>
+        </property>
+        <property name="maxLength">
+         <number>255</number>
+        </property>
+        <property name="echoMode">
+         <enum>QLineEdit::Password</enum>
         </property>
        </widget>
       </item>
@@ -185,7 +236,7 @@ QPushButton:hover
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>402</width>
+     <width>454</width>
      <height>30</height>
     </rect>
    </property>

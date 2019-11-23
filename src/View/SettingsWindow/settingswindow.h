@@ -25,7 +25,7 @@ signals:
 
 public:
 
-    explicit SettingsWindow(SettingsFile* pSettingsFile, QWidget *parent = nullptr);
+    explicit SettingsWindow(QWidget *parent = nullptr);
 
 
 

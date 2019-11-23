@@ -82,6 +82,14 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     newSettingsFile .write
             ( &cAllowHTMLInMessages, sizeof(cAllowHTMLInMessages) );
 
+    // Password to join
+    unsigned char cPasswordToJoinLength = static_cast <unsigned char> ( pSettingsFile ->sPasswordToJoin .size() );
+    newSettingsFile .write
+            ( reinterpret_cast<char*>(&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
+
+    newSettingsFile .write
+            ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
+
     // NEW SETTINGS GO HERE
     // + don't forget to update "readSettings()"
 
@@ -195,12 +203,28 @@ SettingsFile *SettingsManager::readSettings()
 
 
 
-        // Read port
+        // Read allow HTML in messages
         char cAllowHTMLInMessages;
         settingsFile .read( reinterpret_cast <char*> (&cAllowHTMLInMessages), sizeof(cAllowHTMLInMessages) );
         iPos += sizeof(cAllowHTMLInMessages);
 
         pSettingsFile ->bAllowHTMLInMessages = cAllowHTMLInMessages;
+
+
+
+
+        // Read password to join
+        unsigned char cPasswordToJoinLength = 0;
+        settingsFile .read( reinterpret_cast <char*> (&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
+        iPos += sizeof(cPasswordToJoinLength);
+
+        wchar_t vBuffer[UCHAR_MAX];
+        memset(vBuffer, 0, UCHAR_MAX);
+
+        settingsFile .read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because wchar_t is 2 bytes each char
+        iPos += cPasswordToJoinLength * 2;
+
+        pSettingsFile ->sPasswordToJoin = vBuffer;
 
 
 

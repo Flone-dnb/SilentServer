@@ -29,9 +29,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pTrayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slotTrayIconActivated);
 
 
-    qRegisterMetaType<SettingsFile>("SettingsFile");
-
-
     bAlreadyClosing = false;
 
 
@@ -260,10 +257,12 @@ void MainWindow::on_actionAbout_2_triggered()
 
 void MainWindow::on_actionSettings_triggered()
 {
-    SettingsWindow* pSettingsWindow = new SettingsWindow (pController ->getSettingsFile(), this);
+    SettingsWindow* pSettingsWindow = new SettingsWindow (this);
     pSettingsWindow ->setWindowModality( Qt::WindowModality::WindowModal );
 
     connect(pSettingsWindow, &SettingsWindow::signalApply, this, &MainWindow::slotApplyNewSettings);
+
+    pSettingsWindow ->setSettings(pController ->getSettingsFile());
 
     pSettingsWindow ->show();
 }
