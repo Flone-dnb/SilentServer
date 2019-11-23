@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <ctime>
+#include <mutex>
 
 // ============== Network ==============
 // Sockets and stuff
@@ -20,6 +21,7 @@
 
 class MainWindow;
 class SettingsManager;
+class UDPPacket;
 
 
 
@@ -81,6 +83,12 @@ public:
 
 private:
 
+    void catchUDPPackets();
+    void eraseUDPPacket();
+
+
+    // --------------------------------
+
 
     MainWindow*              pMainWindow;
     SettingsManager*         pSettingsManager;
@@ -91,11 +99,15 @@ private:
     SOCKET                   UDPsocket;
     SOCKET                   udpPingCheckSocket;
     std::vector<UserStruct*> users;
+    std::vector<UDPPacket*>  vUDPPackets;
 
 
     // Ping
     unsigned short           iPingNormalBelow;
     unsigned short           iPingWarningBelow;
+
+
+    std::mutex               mtxUDPPackets;
 
 
     std::string              serverVersion;

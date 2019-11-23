@@ -34,6 +34,7 @@ SOURCES += \
         ../src/Model/ServerService/serverservice.cpp \
 
 HEADERS += \
+        ../src/Model/ServerService/UDPPacket.h \
         ../src/Model/SettingsManager/SettingsFile.h \
         ../src/Model/SettingsManager/settingsmanager.h \
         ../src/View/PingColorParams.h \

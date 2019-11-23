@@ -8,9 +8,11 @@
 #include "../src/Model/net_params.h"
 #include "../src/Model/SettingsManager/settingsmanager.h"
 #include "../src/Model/SettingsManager/SettingsFile.h"
+#include "../src/Model/ServerService/UDPPacket.h"
 
 
-enum CONNECT_MESSAGES  {
+enum CONNECT_MESSAGES
+{
     CM_USERNAME_INUSE  = 0,
     CM_SERVER_FULL     = 2,
     CM_WRONG_CLIENT    = 3,
@@ -18,7 +20,8 @@ enum CONNECT_MESSAGES  {
     CM_NEED_PASSWORD   = 5
 };
 
-enum SERVER_MESSAGE{
+enum TCP_SERVER_MESSAGE
+{
     SM_NEW_USER             = 0,
     SM_SOMEONE_DISCONNECTED = 1,
     SM_CAN_START_UDP        = 2,
@@ -26,6 +29,12 @@ enum SERVER_MESSAGE{
     SM_PING                 = 8,
     SM_KEEPALIVE            = 9,
     SM_USERMESSAGE          = 10
+};
+
+enum UDP_SERVER_MESSAGE
+{
+    UDP_SM_PREPARE          = -1,
+    UDP_SM_PING             = 0
 };
 
 
@@ -74,6 +83,57 @@ unsigned short ServerService::getPingNormalBelow()
 unsigned short ServerService::getPingWarningBelow()
 {
     return iPingWarningBelow;
+}
+
+void ServerService::catchUDPPackets()
+{
+    sockaddr_in senderInfo;
+    memset(senderInfo.sin_zero, 0, sizeof(senderInfo.sin_zero));
+    int iLen = sizeof(senderInfo);
+
+    char readBuffer[MAX_BUFFER_SIZE];
+
+    while (bVoiceListen)
+    {
+        // Peeks at the incoming data. The data is copied into the buffer but is not removed from the input queue.
+        int iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+
+        while (iSize > 0)
+        {
+            UDPPacket* pPacket = new UDPPacket();
+
+            pPacket ->iSize = recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
+                                 reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen);
+
+            vUDPPackets .push_back(pPacket);
+
+
+
+            iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+        }
+
+        if (iSize == 0)
+        {
+            // Empty packet, delete it.
+
+            recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+        }
+
+
+        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS / 2) );
+    }
+}
+
+void ServerService::eraseUDPPacket()
+{
+    // This function should be called when mtxUDPPackets is locked.
+
+    if ( vUDPPackets .front() ->mThreadsRejectedPacket .size() == users .size() )
+    {
+        delete vUDPPackets .front();
+
+        vUDPPackets .erase( vUDPPackets .begin() );
+    }
 }
 
 bool ServerService::startWinSock()
@@ -551,6 +611,11 @@ void ServerService::prepareForVoiceConnection()
 
 
     bVoiceListen = true;
+
+
+
+    std::thread tUDP (&ServerService::catchUDPPackets, this);
+    tUDP .detach();
 }
 
 void ServerService::listenForMessage(UserStruct* userToListen)
@@ -574,7 +639,6 @@ void ServerService::listenForMessage(UserStruct* userToListen)
                 responseToFIN(userToListen);
 
                 // Stop thread
-                userToListen->bConnectedToTextChat = false;
                 return;
             }
             else
@@ -637,34 +701,44 @@ void ServerService::listenForMessage(UserStruct* userToListen)
 
 void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 {
-    sockaddr_in senderInfo;
-    memset(senderInfo.sin_zero, 0, sizeof(senderInfo.sin_zero));
-    int iLen = sizeof(senderInfo);
-
-    char readBuffer[MAX_BUFFER_SIZE];
-
     // Preparation cycle
-    while(userToListen->bConnectedToTextChat)
+    while(userToListen ->bConnectedToTextChat)
     {
-        // Peeks at the incoming data. The data is copied into the buffer but is not removed from the input queue.
-        // If it's data not from 'userToListen' user then we should not touch it.
-        int iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+        mtxUDPPackets .lock();
 
-        if ( (iSize > 0) && (readBuffer[0] == -1)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4) )
+        if (vUDPPackets .size() == 0)
         {
-            char userNameSize = readBuffer[1];
+            mtxUDPPackets .unlock();
+
+            std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+
+            continue;
+        }
+
+
+        UDPPacket* pPacket = vUDPPackets .front();
+
+        // If it's data not from 'userToListen' user then we should not touch it.
+
+        if ( (pPacket ->vPacketData[0] == UDP_SM_PREPARE)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4) )
+        {
+            char userNameSize = pPacket ->vPacketData[1];
             char userNameBuffer[MAX_NAME_LENGTH + 1];
             memset(userNameBuffer, 0, MAX_NAME_LENGTH + 1);
-            std::memcpy(userNameBuffer, readBuffer + 2, static_cast<size_t>(userNameSize));
+            std::memcpy(userNameBuffer, pPacket ->vPacketData + 2, static_cast<size_t>(userNameSize));
 
             if ( std::string(userNameBuffer) == userToListen->userName )
             {
-                iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
-                userToListen->userUDPAddr.sin_port = senderInfo.sin_port;
+                vUDPPackets .erase( vUDPPackets .begin() );
+
+                mtxUDPPackets .unlock();
+
+
+                userToListen->userUDPAddr.sin_port = pPacket ->senderInfo.sin_port;
 
                 // Tell user
                 char readyForVOIPcode = SM_CAN_START_UDP;
@@ -681,32 +755,81 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                     std::thread pingCheckThread(&ServerService::checkPing, this);
                     pingCheckThread.detach();
                 }
+
+
+                delete pPacket;
+
+
+                break;
+            }
+            else
+            {
+                if ( pPacket ->checkRejected(userToListen ->userName) == false )
+                {
+                    pPacket ->rejectPacket( userToListen ->userName );
+
+                    eraseUDPPacket();
+                }
+
+                mtxUDPPackets .unlock();
+
+                std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+
+                continue;
+            }
+        }
+        else
+        {
+            if ( pPacket ->checkRejected(userToListen ->userName) == false )
+            {
+                pPacket ->rejectPacket( userToListen ->userName );
+
+                eraseUDPPacket();
             }
 
-            break;
+            mtxUDPPackets .unlock();
+
+            std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+
+            continue;
         }
     }
 
+
     while (userToListen->bConnectedToVOIP)
     {
-        // Peeks at the incoming data. The data is copied into the buffer but is not removed from the input queue.
-        // If it's data not from 'userToListen' user then we should not touch it.
-        int iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+        mtxUDPPackets .lock();
 
-        while ( (iSize > 0)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-             && (senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
-             && (userToListen->userUDPAddr.sin_port == senderInfo.sin_port) )
+        if ( (vUDPPackets .size() == 0) || (userToListen->bConnectedToVOIP == false))
         {
-            if (readBuffer[0] == 0)
-            {
-                iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+            mtxUDPPackets .unlock();
 
+            std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+
+            continue;
+        }
+
+
+        UDPPacket* pPacket = vUDPPackets .front();
+
+        // If it's data not from 'userToListen' user then we should not touch it.
+
+        while ( (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+             && (userToListen ->userUDPAddr.sin_port == pPacket ->senderInfo.sin_port) )
+        {
+            vUDPPackets .erase( vUDPPackets .begin() );
+
+            mtxUDPPackets .unlock();
+
+
+            if (pPacket ->vPacketData[0] == UDP_SM_PING)
+            {
                 // it's ping check
                 clock_t startPingTime;
-                std::memcpy(&startPingTime, readBuffer + 1, 4);
+                std::memcpy(&startPingTime, pPacket ->vPacketData + 1, sizeof(startPingTime));
 
                 clock_t stopPingTime = clock() - startPingTime;
                 float timePassedInMs = static_cast<float>(stopPingTime)/CLOCKS_PER_SEC;
@@ -714,16 +837,21 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                 unsigned short ping = static_cast<unsigned short>(timePassedInMs);
 
-                userToListen->iCurrentPing = ping;
+                userToListen ->iCurrentPing = ping;
             }
             else
             {
-                iSize = recvfrom(UDPsocket, readBuffer + 1 + userToListen->userName.size(), MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+                char vBuffer[MAX_BUFFER_SIZE + MAX_NAME_LENGTH + 2];
+                memset(vBuffer, 0, MAX_BUFFER_SIZE + MAX_NAME_LENGTH + 2);
 
-                readBuffer[0] = static_cast<char>(userToListen->userName.size());
-                std::memcpy(readBuffer + 1, userToListen->userName.c_str(), userToListen->userName.size());
+                std::memcpy( vBuffer + 1 + userToListen ->userName .size(), pPacket ->vPacketData,
+                             static_cast <size_t> (pPacket ->iSize) );
 
-                iSize += 1 + userToListen->userName.size();
+                vBuffer[0] = static_cast<char>(userToListen->userName.size());
+                std::memcpy(vBuffer + 1, userToListen->userName.c_str(), userToListen->userName.size());
+
+                int iSize = pPacket ->iSize;
+                iSize    += 1 + userToListen->userName.size();
 
                 int iSentSize = 0;
 
@@ -731,7 +859,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 {
                     if ( users[i]->userName != userToListen->userName )
                     {
-                        iSentSize = sendto(UDPsocket, readBuffer, iSize, 0, reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
+                        iSentSize = sendto(UDPsocket, vBuffer, iSize, 0, reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
                         if (iSentSize != iSize)
                         {
                             if (iSentSize == SOCKET_ERROR)
@@ -748,8 +876,41 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 }
             }
 
-            iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+
+            delete pPacket;
+
+
+
+            mtxUDPPackets .lock();
+
+            if (vUDPPackets .size() == 0)
+            {
+                pPacket = nullptr;
+
+                mtxUDPPackets .unlock();
+
+                break;
+            }
+
+
+            pPacket = vUDPPackets .front();
         }
+
+
+        if (pPacket)
+        {
+            // Not our packet
+
+            if ( pPacket ->checkRejected(userToListen ->userName) == false )
+            {
+                pPacket ->rejectPacket( userToListen ->userName );
+
+                eraseUDPPacket();
+            }
+
+            mtxUDPPackets .unlock();
+        }
+
 
         std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS));
     }
@@ -1040,6 +1201,29 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     {
         userToClose->bConnectedToVOIP = false;
         iUsersConnectedToVOIP--;
+
+        mtxUDPPackets .lock();
+
+        // It's gonna grow.
+        size_t ivUDPPacketsSize = vUDPPackets .size() / 2;
+
+
+        // This never happened (I think) but let's check if there are some packets from this user. Just in case.
+
+        for (size_t i = 0; i < ivUDPPacketsSize; i++)
+        {
+            if ( (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+                 && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
+            {
+                delete vUDPPackets[i];
+                vUDPPackets.erase( vUDPPackets .begin() );
+            }
+        }
+
+        mtxUDPPackets .unlock();
     }
 
     if (!bUserLost)
@@ -1343,6 +1527,18 @@ void ServerService::shutdownAllUsers()
         closesocket(UDPsocket);
         closesocket(udpPingCheckSocket);
     }
+
+
+    mtxUDPPackets .lock();
+    mtxUDPPackets .unlock();
+
+    for (size_t i = 0; i < vUDPPackets .size(); i++)
+    {
+        delete vUDPPackets[i];
+    }
+
+    vUDPPackets .clear();
+
 
     pMainWindow->printOutput( std::string("\nServer stopped.") );
     pMainWindow->changeStartStopActionText(false);
