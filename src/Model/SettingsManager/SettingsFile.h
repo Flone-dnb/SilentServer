@@ -10,7 +10,7 @@ class SettingsFile
 public:
 
     SettingsFile(unsigned short int iPort  = SERVER_PORT,
-                 bool bAllowHTMLInMessages = true)
+                 bool bAllowHTMLInMessages = false)
     {
         this ->iPort                = iPort;
         this ->bAllowHTMLInMessages = bAllowHTMLInMessages;

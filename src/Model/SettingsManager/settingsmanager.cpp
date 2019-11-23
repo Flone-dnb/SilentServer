@@ -165,6 +165,13 @@ SettingsFile *SettingsManager::readSettings()
 
     std::ifstream settingsFile (adressToSettings, std::ios::binary);
 
+    // Get file size.
+    settingsFile .seekg(0, std::ios::end);
+    long long iFileSize = settingsFile .tellg();
+    settingsFile .seekg(0, std::ios::beg);
+
+    long long iPos = 0;
+
     if ( settingsFile .is_open() )
     {
         // Read the settings.
@@ -173,12 +180,13 @@ SettingsFile *SettingsManager::readSettings()
 
         // Read port
         settingsFile .read( reinterpret_cast <char*> (&pSettingsFile ->iPort), sizeof(pSettingsFile ->iPort) );
+        iPos += sizeof(pSettingsFile ->iPort);
 
 
 
 
         // Settings may end here
-        if (settingsFile .eof())
+        if (iPos >= iFileSize)
         {
             settingsFile .close();
 
@@ -190,6 +198,7 @@ SettingsFile *SettingsManager::readSettings()
         // Read port
         char cAllowHTMLInMessages;
         settingsFile .read( reinterpret_cast <char*> (&cAllowHTMLInMessages), sizeof(cAllowHTMLInMessages) );
+        iPos += sizeof(cAllowHTMLInMessages);
 
         pSettingsFile ->bAllowHTMLInMessages = cAllowHTMLInMessages;
 

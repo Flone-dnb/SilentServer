@@ -101,7 +101,7 @@ border-radius: 6px;</string>
          <string>Allow</string>
         </property>
         <property name="checked">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
        </widget>
       </item>
