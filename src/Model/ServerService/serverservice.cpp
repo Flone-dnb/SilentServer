@@ -240,11 +240,15 @@ void ServerService::listenForNewTCPConnections()
     // Accept new connection
     while (bTextListen)
     {
+        bool bConnectionFinished = false;
+
         SOCKET newConnectedSocket;
         newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
+
         while (newConnectedSocket != INVALID_SOCKET)
         {
             pMainWindow->printOutput(std::string("\nSomeone is connecting..."), true);
+
             // Disable Nagle algorithm for Connected Socket
             BOOL bOptVal = true;
             int bOptLen = sizeof(BOOL);
@@ -278,8 +282,8 @@ void ServerService::listenForNewTCPConnections()
 
                     if ( clientVersion != clientLastSupportedVersion )
                     {
-                        pMainWindow->printOutput(std::string("Client version " + clientVersion + " does not match with the last supported client version " + clientLastSupportedVersion + ".\n"
-                                                             "Server version: " + serverVersion + "."), true);
+                        pMainWindow->printOutput(std::string("Client version \"" + clientVersion + "\" does not match with the last supported client version "
+                                                             + clientLastSupportedVersion + ".\n"), true);
                         char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
                         memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
 
@@ -528,6 +532,7 @@ void ServerService::listenForNewTCPConnections()
                                 std::thread listenThread(&ServerService::listenForMessage, this, pNewUser);
                                 listenThread.detach();
 
+                                bConnectionFinished = true;
                             }
                         }
                     }
@@ -541,6 +546,12 @@ void ServerService::listenForNewTCPConnections()
             else
             {
                 return;
+            }
+
+
+            if (bConnectionFinished == false)
+            {
+                pMainWindow ->printOutput("The user was not connected.", true);
             }
         }
 
