@@ -141,8 +141,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
         // First time pressed exit button
         pController->stop();
 
-        ui->label_2->setText("Connected: 0");
-
         event->ignore();
         bAlreadyClosing = true;
 

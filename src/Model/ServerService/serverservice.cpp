@@ -128,9 +128,9 @@ void ServerService::eraseUDPPacket()
 {
     // This function should be called when mtxUDPPackets is locked.
 
-    if ( vUDPPackets .front() ->mThreadsRejectedPacket .size() == users .size() )
+    if ( vUDPPackets[0] ->mThreadsRejectedPacket .size() >= users .size() )
     {
-        delete vUDPPackets .front();
+        delete vUDPPackets[0];
 
         vUDPPackets .erase( vUDPPackets .begin() );
     }
@@ -527,7 +527,14 @@ void ServerService::listenForNewTCPConnections()
                 }
             }
 
-            newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
+            if (bTextListen)
+            {
+                newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
+            }
+            else
+            {
+                return;
+            }
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_TCP_ACCEPT_MS));
@@ -717,7 +724,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
 
 
-        UDPPacket* pPacket = vUDPPackets .front();
+        UDPPacket* pPacket = vUDPPackets[0];
 
         // If it's data not from 'userToListen' user then we should not touch it.
 
@@ -811,7 +818,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
 
 
-        UDPPacket* pPacket = vUDPPackets .front();
+        UDPPacket* pPacket = vUDPPackets[0];
 
         // If it's data not from 'userToListen' user then we should not touch it.
 
@@ -894,7 +901,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
 
 
-            pPacket = vUDPPackets .front();
+            pPacket = vUDPPackets[0];
         }
 
 
@@ -1074,13 +1081,16 @@ void ServerService::checkPing()
                     }
                 }
             }
-            else if (users[i]->bFirstPingCheckPassed == false)
-            {
-                users[i]->bFirstPingCheckPassed = true;
-            }
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(PING_CHECK_INTERVAL_SEC));
+        for (size_t i = 0; i < PING_CHECK_INTERVAL_SEC; i++)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            if (bVoiceListen == false) return;
+        }
+
+        //std::this_thread::sleep_for(std::chrono::seconds(PING_CHECK_INTERVAL_SEC));
 
         if (bVoiceListen) sendPingToAll();
     }
@@ -1098,8 +1108,10 @@ void ServerService::sendPingToAll()
     {
         // Check if we are able to add another user to 'sendBuffer'.
 
-        if ( iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size())
-                             - static_cast<int>(sizeof(users[i]->iCurrentPing))) )
+        if ( (iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size())
+                             - static_cast<int>(sizeof(users[i]->iCurrentPing))))
+             &&
+             (users[i]->bFirstPingCheckPassed) )
         {
             // Copy size of name
             sendBuffer[iCurrentPos] = static_cast<char>(users[i]->userName.size());
@@ -1118,6 +1130,10 @@ void ServerService::sendPingToAll()
 
             // Reset ping
             users[i]->iCurrentPing = 0;
+        }
+        else if (users[i]->bFirstPingCheckPassed == false)
+        {
+            users[i]->bFirstPingCheckPassed = true;
         }
         else
         {
@@ -1223,7 +1239,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 
         for (size_t i = 0; i < ivUDPPacketsSize; i++)
         {
-            if ( (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+            if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
                  && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
                  && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
                  && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
