@@ -1237,8 +1237,9 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         userToClose->bConnectedToTextChat = false;
         iUsersConnectedToVOIP--;
 
-        // Wait for listenForVoiceMessage() to end.
+        // Wait for listenForVoiceMessage() and listenForMessage() to end.
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
 
         mtxUDPPackets .lock();
 
