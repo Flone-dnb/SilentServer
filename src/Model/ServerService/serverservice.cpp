@@ -98,25 +98,25 @@ void ServerService::catchUDPPackets()
         // Peeks at the incoming data. The data is copied into the buffer but is not removed from the input queue.
         int iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
 
-        while (iSize > 0)
+        while (iSize >= 0)
         {
-            UDPPacket* pPacket = new UDPPacket();
+            if (iSize == 0)
+            {
+                // Empty packet, delete it.
 
-            pPacket ->iSize = recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
-                                 reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen);
+                recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+            }
+            else
+            {
+                UDPPacket* pPacket = new UDPPacket();
 
-            vUDPPackets .push_back(pPacket);
+                pPacket ->iSize = recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
+                                     reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen);
 
-
+                vUDPPackets .push_back(pPacket);
+            }
 
             iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
-        }
-
-        if (iSize == 0)
-        {
-            // Empty packet, delete it.
-
-            recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
         }
 
 
