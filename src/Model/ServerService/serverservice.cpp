@@ -491,23 +491,24 @@ void ServerService::listenForNewTCPConnections()
 
                                 // Fill UserStruct for new user
 
-                                UserStruct* pNewUser = new UserStruct();
-                                pNewUser->userTCPSocket  = newConnectedSocket;
-                                pNewUser->userName       = userNameStr;
-                                pNewUser->pDataFromUser  = new char[MAX_BUFFER_SIZE];
-                                pNewUser->userIP         = std::string(connectedWithIP);
-                                pNewUser->userTCPPort    = ntohs(connectedWith.sin_port);
-                                pNewUser->keepAliveTimer = clock();
+                                UserStruct* pNewUser          = new UserStruct();
+                                pNewUser->userTCPSocket       = newConnectedSocket;
+                                pNewUser->userName            = userNameStr;
+                                pNewUser->pDataFromUser       = new char[MAX_BUFFER_SIZE];
+                                pNewUser->userIP              = std::string(connectedWithIP);
+                                pNewUser->userTCPPort         = ntohs(connectedWith.sin_port);
+                                pNewUser->keepAliveTimer      = clock();
                                 pNewUser->lastTimeMessageSent = clock();
 
                                 memset(pNewUser->userUDPAddr.sin_zero, 0, sizeof(pNewUser->userUDPAddr.sin_zero));
                                 pNewUser->userUDPAddr.sin_family = AF_INET;
-                                pNewUser->userUDPAddr.sin_addr = connectedWith.sin_addr;
-                                pNewUser->userUDPAddr.sin_port = 0;
-                                pNewUser->iCurrentPing = 0;
+                                pNewUser->userUDPAddr.sin_addr   = connectedWith.sin_addr;
+                                pNewUser->userUDPAddr.sin_port   = 0;
+                                pNewUser->iCurrentPing           = 0;
 
-                                pNewUser->bConnectedToTextChat = false;
-                                pNewUser->bConnectedToVOIP = false;
+                                pNewUser->bConnectedToTextChat   = false;
+                                pNewUser->bConnectedToVOIP       = false;
+                                pNewUser->bFirstPingCheckPassed  = false;
 
                                 users.push_back(pNewUser);
 
@@ -1047,16 +1048,20 @@ void ServerService::checkPing()
     {
         int iSentSize = 0;
 
+        char sendBuffer[sizeof(clock_t) + sizeof(char)];
+        sendBuffer[0] = UDP_SM_PING;
+
         clock_t currentTime = clock();
-        char sendBuffer[5];
-        sendBuffer[0] = 0;
-        std::memcpy(sendBuffer + 1, &currentTime, 4);
+
+        std::memcpy(sendBuffer + 1, &currentTime, sizeof(currentTime));
 
         for (unsigned int i = 0; i < users.size(); i++)
         {
-            if ( users[i]->bConnectedToVOIP )
+            if ( users[i]->bConnectedToVOIP && users[i]->bFirstPingCheckPassed )
             {
-                iSentSize = sendto(udpPingCheckSocket, sendBuffer, 5, 0, reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
+                iSentSize = sendto(udpPingCheckSocket, sendBuffer, 5, 0,
+                                   reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
+
                 if (iSentSize != 5)
                 {
                     if (iSentSize == SOCKET_ERROR)
@@ -1069,7 +1074,10 @@ void ServerService::checkPing()
                     }
                 }
             }
-
+            else if (users[i]->bFirstPingCheckPassed == false)
+            {
+                users[i]->bFirstPingCheckPassed = true;
+            }
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(PING_CHECK_INTERVAL_SEC));
@@ -1088,7 +1096,10 @@ void ServerService::sendPingToAll()
 
     for (size_t i = 0; i < users.size(); i++)
     {
-        if (iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size()) - static_cast<int>(sizeof(users[i]->iCurrentPing))) )
+        // Check if we are able to add another user to 'sendBuffer'.
+
+        if ( iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size())
+                             - static_cast<int>(sizeof(users[i]->iCurrentPing))) )
         {
             // Copy size of name
             sendBuffer[iCurrentPos] = static_cast<char>(users[i]->userName.size());

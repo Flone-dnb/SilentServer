@@ -1,30 +1,42 @@
 ﻿#pragma once
 
+
 #include <winsock2.h>
 #include <string>
 #include <vector>
 #include <ctime>
 
+
+
 class QListWidgetItem;
+
+
 
 struct UserStruct
 {
-    SOCKET userTCPSocket;
+    SOCKET           userTCPSocket;
 
-    sockaddr_in userUDPAddr;
 
-    clock_t keepAliveTimer;
-    clock_t lastTimeMessageSent;
+    sockaddr_in      userUDPAddr;
 
-    std::string userName;
-    std::string userIP;
-    unsigned short userTCPPort;
-    unsigned short iCurrentPing;
 
-    bool bConnectedToTextChat;
-    bool bConnectedToVOIP;
+    clock_t          keepAliveTimer;
+    clock_t          lastTimeMessageSent;
 
-    char* pDataFromUser;
 
+    char*            pDataFromUser;
     QListWidgetItem* pListItem;
+
+
+    std::string      userName;
+    std::string      userIP;
+
+
+    unsigned short   userTCPPort;
+    unsigned short   iCurrentPing;
+
+
+    bool             bConnectedToTextChat;
+    bool             bConnectedToVOIP;
+    bool             bFirstPingCheckPassed;
 };
