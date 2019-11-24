@@ -113,7 +113,4 @@ private:
 
 
     std::mutex       mtxPrintOutput;
-
-
-    bool             bAlreadyClosing;
 };

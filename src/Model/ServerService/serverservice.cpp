@@ -345,8 +345,15 @@ void ServerService::listenForNewTCPConnections()
                                 std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                                 closethread.detach();
 
-                                newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
-                                continue;
+                                if (bTextListen)
+                                {
+                                    newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
+                                    continue;
+                                }
+                                else
+                                {
+                                    return;
+                                }
                             }
                         }
 
@@ -514,11 +521,11 @@ void ServerService::listenForNewTCPConnections()
 
                                 // Ready to send and receive data
 
-                                pMainWindow->printOutput(std::string("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + users.back()->userName + "."),true);
+                                pMainWindow->printOutput(std::string("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + pNewUser->userName + "."),true);
                                 pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
-                                users.back()->pListItem = pMainWindow->addNewUserToList(users.back()->userName);
+                                pNewUser->pListItem = pMainWindow->addNewUserToList(pNewUser->userName);
 
-                                std::thread listenThread(&ServerService::listenForMessage, this, users.back());
+                                std::thread listenThread(&ServerService::listenForMessage, this, pNewUser);
                                 listenThread.detach();
 
                             }
@@ -1226,8 +1233,12 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
     if (userToClose->bConnectedToVOIP)
     {
-        userToClose->bConnectedToVOIP = false;
+        userToClose->bConnectedToVOIP     = false;
+        userToClose->bConnectedToTextChat = false;
         iUsersConnectedToVOIP--;
+
+        // Wait for listenForVoiceMessage() to end.
+        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
         mtxUDPPackets .lock();
 

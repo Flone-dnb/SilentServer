@@ -29,9 +29,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pTrayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slotTrayIconActivated);
 
 
-    bAlreadyClosing = false;
-
-
 
     pController = new Controller(this);
 
@@ -131,18 +128,10 @@ void MainWindow::hideEvent(QHideEvent *event)
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (pController->isServerRunning() == false)
+    if (pController->isServerRunning())
     {
-        return;
-    }
-
-    if (bAlreadyClosing == false)
-    {
-        // First time pressed exit button
-        pController->stop();
-
-        event->ignore();
-        bAlreadyClosing = true;
+        pController ->stop();
+        event       ->ignore();
 
         ui->plainTextEdit->appendPlainText("Press Exit again to close.");
     }

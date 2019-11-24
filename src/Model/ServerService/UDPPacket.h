@@ -8,7 +8,7 @@
 
 // Custom
 #include "../src/Model/net_params.h"
-#include <Ws2def.h>
+#include <Ws2def.h> // sockaddr_in
 
 
 
