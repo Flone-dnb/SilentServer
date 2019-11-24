@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>454</width>
-    <height>227</height>
+    <width>457</width>
+    <height>265</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
 color: white;</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="80,20">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="80,0,20">
     <item>
      <layout class="QFormLayout" name="formLayout_3">
       <item row="0" column="0">
@@ -159,6 +159,29 @@ border-radius: 6px;</string>
      </layout>
     </item>
     <item>
+     <widget class="QLabel" name="label_4">
+      <property name="font">
+       <font>
+        <family>Segoe UI</family>
+        <pointsize>8</pointsize>
+        <italic>true</italic>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background: transparent;</string>
+      </property>
+      <property name="text">
+       <string>Some of the settings will be applied after the server is restarted.</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="25,50,25">
       <item>
        <spacer name="horizontalSpacer">
@@ -236,7 +259,7 @@ QPushButton:hover
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>454</width>
+     <width>457</width>
      <height>30</height>
     </rect>
    </property>
