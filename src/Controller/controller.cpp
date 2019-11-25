@@ -5,14 +5,22 @@
 // Custom
 #include "../src/Model/ServerService/serverservice.h"
 #include "../src/Model/SettingsManager/settingsmanager.h"
+#include "../src/Model/LogManager/logmanager.h"
 
 
 Controller::Controller(MainWindow* pMainWindow)
 {
     pSettingsManager = new SettingsManager(pMainWindow);
+
     if (pSettingsManager ->getCurrentSettings())
     {
-        pServerService   = new ServerService(pMainWindow, pSettingsManager);
+        pLogManager      = new LogManager(pMainWindow, pSettingsManager);
+        pServerService   = new ServerService(pMainWindow, pSettingsManager, pLogManager);
+    }
+    else
+    {
+        pLogManager    = nullptr;
+        pServerService = nullptr;
     }
 
 
@@ -63,7 +71,10 @@ void Controller::stop()
 {
     if (bServerStarted)
     {
-        pServerService->shutdownAllUsers();
+        pServerService ->shutdownAllUsers();
+
+        pLogManager ->stop();
+
         bServerStarted = false;
     }
 }
@@ -80,5 +91,15 @@ SettingsFile *Controller::getSettingsFile()
 
 Controller::~Controller()
 {
-    delete pServerService;
+    if (pLogManager)
+    {
+        delete pLogManager;
+    }
+
+    if (pServerService)
+    {
+        delete pServerService;
+    }
+
+    delete pSettingsManager;
 }

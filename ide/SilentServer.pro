@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+    ../src/Model/LogManager/logmanager.cpp \
     ../src/Model/SettingsManager/settingsmanager.cpp \
         ../src/View/AboutWindow/aboutwindow.cpp \
         ../src/View/SettingsWindow/settingswindow.cpp \
@@ -34,6 +35,7 @@ SOURCES += \
         ../src/Model/ServerService/serverservice.cpp \
 
 HEADERS += \
+        ../src/Model/LogManager/logmanager.h \
         ../src/Model/ServerService/UDPPacket.h \
         ../src/Model/SettingsManager/SettingsFile.h \
         ../src/Model/SettingsManager/settingsmanager.h \

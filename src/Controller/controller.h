@@ -6,6 +6,7 @@ class MainWindow;
 class ServerService;
 class SettingsManager;
 class SettingsFile;
+class LogManager;
 
 
 class Controller
@@ -45,6 +46,8 @@ private:
 
     ServerService*   pServerService;
     SettingsManager* pSettingsManager;
+    LogManager*      pLogManager;
+
 
     bool bServerStarted;
 };

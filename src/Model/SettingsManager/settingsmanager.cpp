@@ -90,6 +90,21 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     newSettingsFile .write
             ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
 
+    // Log
+    char cLog = pSettingsFile ->bLog;
+    newSettingsFile .write
+            ( &cLog, sizeof(cLog) );
+
+    if (pSettingsFile ->bLog)
+    {
+       unsigned char cLogFilePathLength = static_cast <unsigned char> (pSettingsFile ->sPathToLogFile .size());
+       newSettingsFile .write
+               ( reinterpret_cast<char*>(&cLogFilePathLength), sizeof(cLogFilePathLength) );
+
+       newSettingsFile .write
+               ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength * 2 );
+    }
+
     // NEW SETTINGS GO HERE
     // + don't forget to update "readSettings()"
 
@@ -218,14 +233,39 @@ SettingsFile *SettingsManager::readSettings()
         settingsFile .read( reinterpret_cast <char*> (&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
         iPos += sizeof(cPasswordToJoinLength);
 
-        wchar_t vBuffer[UCHAR_MAX];
-        memset(vBuffer, 0, UCHAR_MAX);
+        wchar_t vBuffer[UCHAR_MAX + 1];
+        memset(vBuffer, 0, UCHAR_MAX + 1);
 
         settingsFile .read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because wchar_t is 2 bytes each char
         iPos += cPasswordToJoinLength * 2;
 
         pSettingsFile ->sPasswordToJoin = vBuffer;
 
+
+        // Read log
+        char cLog = 0;
+        settingsFile .read( &cLog, sizeof(cLog) );
+        iPos += sizeof(cLog);
+
+        if (cLog)
+        {
+            pSettingsFile ->bLog = true;
+
+
+            unsigned char cLogFilePathLength = 0;
+            settingsFile .read
+                   ( reinterpret_cast<char*>(&cLogFilePathLength), sizeof(cLogFilePathLength) );
+            iPos += sizeof(cLogFilePathLength);
+
+
+
+            memset(vBuffer, 0, UCHAR_MAX + 1);
+            settingsFile .read
+                   ( reinterpret_cast<char*>( vBuffer ), cLogFilePathLength * 2 );
+            iPos += cLogFilePathLength * 2;
+
+            pSettingsFile ->sPathToLogFile = vBuffer;
+        }
 
 
         settingsFile .close();

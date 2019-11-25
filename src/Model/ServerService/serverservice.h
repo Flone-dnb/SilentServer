@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-// Custom
-#include "../src/Model/userstruct.h"
 
 // C++
 #include <vector>
@@ -17,10 +15,14 @@
 // Winsock 2 Library
 #pragma comment(lib,"Ws2_32.lib")
 
+// Custom
+#include "../src/Model/userstruct.h"
+
 
 
 class MainWindow;
 class SettingsManager;
+class LogManager;
 class UDPPacket;
 
 
@@ -28,6 +30,7 @@ class UDPPacket;
 // should be shorter than MAX_VERSION_STRING_LENGTH
 #define SERVER_VERSION           "2.18.0"
 #define CLIENT_SUPPORTED_VERSION "2.21.0"
+
 
 
 // ------------------------------------------------------------------------------------------------
@@ -41,7 +44,7 @@ class ServerService
 
 public:
 
-    ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager);
+    ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager, LogManager* pLogManager);
 
 
 
@@ -94,6 +97,7 @@ private:
 
     MainWindow*              pMainWindow;
     SettingsManager*         pSettingsManager;
+    LogManager*              pLogManager;
 
 
     // Users
