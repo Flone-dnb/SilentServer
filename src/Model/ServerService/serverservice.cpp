@@ -55,6 +55,7 @@ ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettings
 
     iUsersConnectedCount       = 0;
     iUsersConnectedToVOIP      = 0;
+    iWrongOrEmptyPacketCount   = 0;
 
 
     bWinSockStarted            = false;
@@ -93,6 +94,15 @@ void ServerService::catchUDPPackets()
 
     char readBuffer[MAX_BUFFER_SIZE];
 
+
+
+
+    // Wrong packet refresh thread
+
+    std::thread tWrongPacketRefresher (&ServerService::refreshWrongUDPPackets, this);
+    tWrongPacketRefresher .detach();
+
+
     while (bVoiceListen)
     {
         // Peeks at the incoming data. The data is copied into the buffer but is not removed from the input queue.
@@ -105,6 +115,12 @@ void ServerService::catchUDPPackets()
                 // Empty packet, delete it.
 
                 recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
+
+                mtxRefreshWrongPacketCount .lock();
+
+                iWrongOrEmptyPacketCount++;
+
+                mtxRefreshWrongPacketCount .unlock();
             }
             else
             {
@@ -133,6 +149,50 @@ void ServerService::eraseUDPPacket()
         delete vUDPPackets[0];
 
         vUDPPackets .erase( vUDPPackets .begin() );
+
+
+        mtxRefreshWrongPacketCount .lock();
+
+        iWrongOrEmptyPacketCount++;
+
+        mtxRefreshWrongPacketCount .unlock();
+    }
+}
+
+void ServerService::refreshWrongUDPPackets()
+{
+    while (bVoiceListen)
+    {
+        for (size_t i = 0; i < INTERVAL_REFRESH_WRONG_PACKETS_SEC; i++)
+        {
+            if (bVoiceListen)
+            {
+               std::this_thread::sleep_for( std::chrono::seconds(1) );
+            }
+            else
+            {
+                return;
+            }
+        }
+
+
+
+        if ( iWrongOrEmptyPacketCount > NOTIFY_WHEN_WRONG_PACKETS_MORE )
+        {
+            pMainWindow ->printOutput("\nFor the last " + std::to_string(INTERVAL_REFRESH_WRONG_PACKETS_SEC) +
+                                      " sec. wrong or empty UDP packets received: " +
+                                      std::to_string(iWrongOrEmptyPacketCount) + ".", true);
+        }
+
+
+        mtxRefreshWrongPacketCount .lock();
+
+        iWrongOrEmptyPacketCount = 0;
+
+        mtxRefreshWrongPacketCount .unlock();
+
+
+        clockWrongUDPPacket = clock();
     }
 }
 

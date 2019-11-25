@@ -86,6 +86,8 @@ private:
     void catchUDPPackets();
     void eraseUDPPacket();
 
+    void refreshWrongUDPPackets();
+
 
     // --------------------------------
 
@@ -105,6 +107,12 @@ private:
     // Ping
     unsigned short           iPingNormalBelow;
     unsigned short           iPingWarningBelow;
+
+
+    // For wrong or empty packets (not from our users)
+    size_t                   iWrongOrEmptyPacketCount; // will refresh every 'clockWrongUDPPacket'
+    clock_t                  clockWrongUDPPacket;
+    std::mutex               mtxRefreshWrongPacketCount;
 
 
     std::mutex               mtxUDPPackets;
