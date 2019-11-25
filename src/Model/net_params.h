@@ -25,5 +25,5 @@
 
 
 // Ping color
-#define  PING_NORMAL_BELOW                   190
-#define  PING_WARNING_BELOW                  280
+#define  PING_NORMAL_BELOW                   170
+#define  PING_WARNING_BELOW                  250
