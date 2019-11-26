@@ -19,10 +19,18 @@ class QCloseEvent;
 class QHideEvent;
 class QSystemTrayIcon;
 class SettingsFile;
+class QMenu;
+class QAction;
 
 namespace Ui {
 class MainWindow;
 }
+
+
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+
 
 class MainWindow : public QMainWindow
 {
@@ -103,10 +111,20 @@ private slots:
         void             on_actionAbout_2_triggered  ();
         void             on_actionSettings_triggered ();
 
+
+    // Context Menu
+
+        void on_listWidget_users_customContextMenuRequested(const QPoint &pos);
+        void kickUser();
+
 private:
 
     Ui::MainWindow*  ui;
     Controller*      pController;
+
+
+    QMenu*           pMenuContextMenu;
+    QAction*         pActionKick;
 
 
     QSystemTrayIcon* pTrayIcon;

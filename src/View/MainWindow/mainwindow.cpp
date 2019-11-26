@@ -7,6 +7,8 @@
 #include <QCloseEvent>
 #include <QHideEvent>
 #include <QSystemTrayIcon>
+#include <QMenu>
+#include <QAction>
 
 // Custom
 #include "../src/Controller/controller.h"
@@ -31,6 +33,25 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     pController = new Controller(this);
+
+
+
+
+    // Setup context menu for 'connected users' list
+
+    ui ->listWidget_users ->setContextMenuPolicy (Qt::CustomContextMenu);
+    ui ->listWidget_users ->setViewMode          (QListView::ListMode);
+
+    pMenuContextMenu    = new QMenu(this);
+
+    pMenuContextMenu ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+
+    pActionKick         = new QAction("Kick");
+
+    pMenuContextMenu ->addAction(pActionKick);
+
+    connect(pActionKick, &QAction::triggered, this, &MainWindow::kickUser);
+
 
 
     // This to This
@@ -87,8 +108,8 @@ QListWidgetItem* MainWindow::addNewUserToList(std::string userName)
 {
     userName += " [-- ms]";
 
-    ui->listWidget->addItem( QString::fromStdString(userName) );
-    return ui->listWidget->item( ui->listWidget->model()->rowCount()-1 );
+    ui ->listWidget_users        ->addItem ( QString::fromStdString(userName) );
+    return ui ->listWidget_users ->item    ( ui ->listWidget_users ->model() ->rowCount()-1 );
 }
 
 void MainWindow::setPingToUser(QListWidgetItem *pListItem, int ping)
@@ -255,6 +276,25 @@ void MainWindow::on_actionSettings_triggered()
 }
 
 
+void MainWindow::on_listWidget_users_customContextMenuRequested(const QPoint &pos)
+{
+    QListWidgetItem* pItem = ui->listWidget_users->itemAt(pos);
+
+    if (pItem)
+    {
+        QPoint globalPos = ui->listWidget_users->mapToGlobal(pos);
+
+        pMenuContextMenu->exec(globalPos);
+    }
+}
+
+void MainWindow::kickUser()
+{
+    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    {
+        pController ->kickUser( ui ->listWidget_users ->currentItem() );
+    }
+}
 
 MainWindow::~MainWindow()
 {

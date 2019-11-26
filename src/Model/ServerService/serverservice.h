@@ -72,8 +72,9 @@ public:
 
     // Closing
 
-        void  sendFINtoSocket             (SOCKET socketToClose);
         void  responseToFIN               (UserStruct* userToClose, bool bUserLost = false);
+        void  kickUser                    (QListWidgetItem* pListWidgetItem);
+        void  sendFINtoSocket             (SOCKET socketToClose);
         void  shutdownAllUsers            ();
 
 
@@ -90,6 +91,8 @@ private:
     void eraseUDPPacket();
 
     void refreshWrongUDPPackets();
+
+    void sendFINtoUser               (UserStruct* userToClose);
 
 
     // --------------------------------

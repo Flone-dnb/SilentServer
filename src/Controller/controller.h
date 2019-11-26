@@ -3,6 +3,7 @@
 #include <string>
 
 class MainWindow;
+class QListWidgetItem;
 class ServerService;
 class SettingsManager;
 class SettingsFile;
@@ -22,6 +23,11 @@ public:
 
         bool            start                 ();
         void            stop                  ();
+
+
+    // Commands
+
+        void            kickUser              (QListWidgetItem* pListWidgetItem);
 
 
     // Settings

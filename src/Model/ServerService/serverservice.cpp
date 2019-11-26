@@ -29,7 +29,15 @@ enum TCP_SERVER_MESSAGE
     SM_SPAM_NOTICE          = 3,
     SM_PING                 = 8,
     SM_KEEPALIVE            = 9,
-    SM_USERMESSAGE          = 10
+    SM_USERMESSAGE          = 10,
+    SM_KICKED               = 11
+};
+
+enum USER_DISCONNECT_REASON
+{
+    UDR_DISCONNECT          = 0,
+    UDR_LOST                = 1,
+    UDR_KICKED              = 2
 };
 
 enum UDP_SERVER_MESSAGE
@@ -1444,11 +1452,11 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 
         if (bUserLost)
         {
-            sendBuffer[1] = 1;
+            sendBuffer[1] = UDR_LOST;
         }
         else
         {
-            sendBuffer[1] = 0;
+            sendBuffer[1] = UDR_DISCONNECT;
         }
 
 
@@ -1474,6 +1482,120 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     {
         if (users[i]->userName == userToClose->userName)
         {
+            delete[] userToClose->pDataFromUser;
+            pMainWindow->deleteUserFromList(userToClose->pListItem);
+            delete users[i];
+            users.erase(users.begin() + i);
+            break;
+        }
+    }
+}
+
+void ServerService::kickUser(QListWidgetItem *pListWidgetItem)
+{
+    for (size_t i = 0; i < users .size(); i++)
+    {
+        if ( users[i] ->pListItem == pListWidgetItem )
+        {
+            sendFINtoUser(users[i]);
+
+            break;
+        }
+    }
+}
+
+void ServerService::sendFINtoUser(UserStruct *userToClose)
+{
+    char cKickedNotice = SM_KICKED;
+
+    int iSentSize = send( userToClose ->userTCPSocket, &cKickedNotice, sizeof(cKickedNotice), 0 );
+
+    if (iSentSize != sizeof(cKickedNotice))
+    {
+        pLogManager ->printAndLog( "Can't send the \"kick notice\" to the user \"" + userToClose ->userName
+                                   + "\". Closing connection.");
+    }
+
+
+    if (userToClose->bConnectedToVOIP)
+    {
+        userToClose->bConnectedToVOIP     = false;
+        userToClose->bConnectedToTextChat = false;
+        iUsersConnectedToVOIP--;
+
+        // Wait for listenForVoiceMessage() and listenForMessage() to end.
+        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
+
+        mtxUDPPackets .lock();
+
+        // It's gonna grow.
+        size_t ivUDPPacketsSize = vUDPPackets .size() / 2;
+
+
+        // This never happened (I think) but let's check if there are some packets from this user. Just in case.
+
+        for (size_t i = 0; i < ivUDPPacketsSize; i++)
+        {
+            if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+                 && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
+            {
+                delete vUDPPackets[i];
+                vUDPPackets.erase( vUDPPackets .begin() );
+            }
+        }
+
+        mtxUDPPackets .unlock();
+    }
+
+
+    sendFINtoSocket(userToClose ->userTCPSocket);
+
+
+    iUsersConnectedCount--;
+    pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
+
+
+    // Clear 'users' massive
+
+    if (users.size() - 1 != 0)
+    {
+        // Tell other users that one is disconnected
+        char sendBuffer[MAX_NAME_LENGTH + 3 + 5];
+        memset(sendBuffer, 0, MAX_NAME_LENGTH + 3 + 5);
+
+
+        sendBuffer[0] = SM_SOMEONE_DISCONNECTED;
+        sendBuffer[1] = UDR_KICKED;
+
+
+        unsigned char iPacketSize = static_cast <unsigned char> (7 + userToClose->userName.size());
+
+        std::memcpy(sendBuffer + 2, &iPacketSize, 1);
+
+        std::memcpy(sendBuffer + 3, &iUsersConnectedCount, 4);
+
+        std::memcpy(sendBuffer + 7, userToClose->userName.c_str(), userToClose->userName.size());
+
+        for (size_t j = 0; j < users.size(); j++)
+        {
+            if ( users[j] ->userName != userToClose ->userName )
+            {
+               send(users[j]->userTCPSocket, sendBuffer, iPacketSize, 0);
+            }
+        }
+    }
+
+    // Erase user from massive
+    for (unsigned int i = 0; i < users.size(); i++)
+    {
+        if (users[i]->userName == userToClose->userName)
+        {
+            pLogManager ->printAndLog("Kicked the user \"" + userToClose ->userName + "\" from the server.\n");
+
             delete[] userToClose->pDataFromUser;
             pMainWindow->deleteUserFromList(userToClose->pListItem);
             delete users[i];

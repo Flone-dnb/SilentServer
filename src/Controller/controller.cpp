@@ -79,6 +79,11 @@ void Controller::stop()
     }
 }
 
+void Controller::kickUser(QListWidgetItem *pListWidgetItem)
+{
+    pServerService ->kickUser(pListWidgetItem);
+}
+
 void Controller::saveNewSettings(SettingsFile* pSettingsFile)
 {
     pSettingsManager ->saveSettings(pSettingsFile);

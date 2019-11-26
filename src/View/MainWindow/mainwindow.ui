@@ -114,7 +114,7 @@ border-radius: 6px;</string>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_3" stretch="45">
           <item>
-           <widget class="QListWidget" name="listWidget">
+           <widget class="QListWidget" name="listWidget_users">
             <property name="font">
              <font>
               <pointsize>10</pointsize>
