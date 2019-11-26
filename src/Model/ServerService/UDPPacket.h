@@ -2,14 +2,29 @@
 
 
 // STL
-#include <map>
-#include <iterator>
+#include <vector>
 #include <string>
 
 // Custom
 #include "../src/Model/net_params.h"
 #include <Ws2def.h> // sockaddr_in
 
+
+
+class ThreadReject
+{
+public:
+
+    ThreadReject(std::string sUserName)
+    {
+        this ->sUserName = sUserName;
+        bRejected        = true;
+    }
+
+
+    std::string sUserName;
+    bool        bRejected;
+};
 
 
 // So, we use this class and not raw recvfrom() to get UDP packets because the Server is designed that way
@@ -19,7 +34,6 @@
 // And so when we receive a UDP packet not from our users (say it's some bad guy or just a weird coincidence) then
 // every thread will reject this packet and will infinitely wait until this packet will be gone from the packet queue and
 // so all VOIP will not work.
-
 
 
 class UDPPacket
@@ -32,30 +46,29 @@ public:
         iLen = sizeof(senderInfo);
     }
 
-    bool checkRejected(std::string sUserName)
+    bool checkRejected(const std::string& sUserName)
     {
-        std::map<std::string, bool>::iterator it = mThreadsRejectedPacket .find(sUserName);
+        for (size_t i = 0; i < vThreadsRejectedPacket .size(); i++)
+        {
+            if (vThreadsRejectedPacket[i] .sUserName == sUserName)
+            {
+                return true;
+            }
+        }
 
-        if (it == mThreadsRejectedPacket .end())
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
+        return false;
     }
 
-    void rejectPacket(std::string sUserName)
+    void rejectPacket(const std::string& sUserName)
     {
-        mThreadsRejectedPacket .insert( std::pair<std::string, bool>(sUserName, true) );
+        vThreadsRejectedPacket .push_back( ThreadReject(sUserName) );
     }
 
 
     // ------------------------------
 
 
-    std::map<std::string, bool> mThreadsRejectedPacket;
+    std::vector<ThreadReject> vThreadsRejectedPacket;
 
 
     // Packet info.

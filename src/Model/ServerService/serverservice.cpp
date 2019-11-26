@@ -146,7 +146,11 @@ void ServerService::catchUDPPackets()
                 pPacket ->iSize = recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
                                      reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen);
 
+                mtxUDPPackets .lock();
+
                 vUDPPackets .push_back(pPacket);
+
+                mtxUDPPackets .unlock();
             }
 
             iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
@@ -161,7 +165,7 @@ void ServerService::eraseUDPPacket()
 {
     // This function should be called when mtxUDPPackets is locked.
 
-    if ( vUDPPackets[0] ->mThreadsRejectedPacket .size() >= users .size() )
+    if ( vUDPPackets[0] ->vThreadsRejectedPacket .size() >= users .size() )
     {
         delete vUDPPackets[0];
 
@@ -1009,9 +1013,10 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                 break;
             }
-
-
-            pPacket = vUDPPackets[0];
+            else
+            {
+                pPacket = vUDPPackets[0];
+            }
         }
 
 
@@ -1249,7 +1254,11 @@ void ServerService::sendPingToAll()
             iCurrentPos += static_cast <int> (users[i]->userName.size());
 
             // Copy ping
-            if (users[i]->iCurrentPing > 2000) users[i]->iCurrentPing = 0;
+            if (users[i]->iCurrentPing > 2000)
+            {
+                users[i]->iCurrentPing = 0;
+            }
+
             std::memcpy(sendBuffer + iCurrentPos, &users[i]->iCurrentPing, sizeof(users[i]->iCurrentPing));
             iCurrentPos += sizeof(users[i]->iCurrentPing);
 
@@ -1437,7 +1446,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
                 }
                 else
                 {
-                    pLogManager ->printAndLog( "Successfully closed the socket.", true );
+                    pLogManager ->printAndLog( "Successfully closed the socket.\n", true );
                 }
             }
         }
