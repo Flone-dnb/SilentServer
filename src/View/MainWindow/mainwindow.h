@@ -131,4 +131,5 @@ private:
 
 
     std::mutex       mtxPrintOutput;
+    std::mutex       mtxListUsers;
 };

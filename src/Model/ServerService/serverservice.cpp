@@ -420,7 +420,7 @@ void ServerService::listenForNewTCPConnections()
 
                             if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
                             {
-                                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.",true);
+                                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.\n",true);
                                 char command = CM_NEED_PASSWORD;
                                 send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
                                 std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -632,7 +632,7 @@ void ServerService::listenForNewTCPConnections()
 
             if (bConnectionFinished == false)
             {
-                pLogManager ->printAndLog("The user was not connected.", true);
+                pLogManager ->printAndLog("The user was not connected.\n", true);
             }
         }
 
@@ -911,6 +911,8 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         {
             mtxUDPPackets .unlock();
 
+            if (userToListen->bConnectedToVOIP == false) return;
+
             std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
             continue;
@@ -991,6 +993,12 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
 
 
+            if (userToListen->bConnectedToVOIP == false)
+            {
+                return;
+            }
+
+
             mtxUDPPackets .lock();
 
             if (vUDPPackets .size() == 0)
@@ -1021,6 +1029,11 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             mtxUDPPackets .unlock();
         }
 
+
+        if (userToListen->bConnectedToVOIP == false)
+        {
+            return;
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS));
     }
@@ -1164,6 +1177,8 @@ void ServerService::checkPing()
 
         std::memcpy(sendBuffer + 1, &currentTime, sizeof(currentTime));
 
+        mtxUsersDelete .lock();
+
         for (unsigned int i = 0; i < users.size(); i++)
         {
             if ( users[i]->bConnectedToVOIP && users[i]->bFirstPingCheckPassed )
@@ -1187,6 +1202,8 @@ void ServerService::checkPing()
             }
         }
 
+        mtxUsersDelete .unlock();
+
         for (size_t i = 0; i < PING_CHECK_INTERVAL_SEC; i++)
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -1208,6 +1225,10 @@ void ServerService::sendPingToAll()
     // here (in index '1-2' we will insert packet size later)
     int iCurrentPos = 3;
 
+    mtxUsersDelete .lock();
+
+    size_t iAllUsers = users .size();
+
     for (size_t i = 0; i < users.size(); i++)
     {
         // Check if we are able to add another user to 'sendBuffer'.
@@ -1215,7 +1236,9 @@ void ServerService::sendPingToAll()
         if ( (iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size())
                              - static_cast<int>(sizeof(users[i]->iCurrentPing))))
              &&
-             (users[i]->bFirstPingCheckPassed) )
+             (users[i]->bFirstPingCheckPassed)
+             &&
+             (users[i]->bConnectedToVOIP) )
         {
             // Copy size of name
             sendBuffer[iCurrentPos] = static_cast<char>(users[i]->userName.size());
@@ -1239,10 +1262,14 @@ void ServerService::sendPingToAll()
         {
             users[i]->bFirstPingCheckPassed = true;
         }
+        else if (users[i]->bConnectedToVOIP == false)
+        {
+            iAllUsers--;
+        }
         else
         {
             pLogManager ->printAndLog( "ServerService::sendPingToAll() sendBuffer is full. " + std::to_string(i)
-                                       + "/" + std::to_string(users.size()) + " users was added to buffer.", true );
+                                       + "/" + std::to_string(iAllUsers) + " users was added to buffer.", true );
             break;
         }
     }
@@ -1271,6 +1298,9 @@ void ServerService::sendPingToAll()
             }
         }
     }
+
+
+    mtxUsersDelete .unlock();
 }
 
 
@@ -1326,7 +1356,7 @@ void ServerService::sendFINtoSocket(SOCKET socketToClose)
                     }
                     else
                     {
-                        pLogManager ->printAndLog( "Received FIN and closed socket.", true );
+                        pLogManager ->printAndLog( "Try #2. Received FIN and closed socket.", true );
                     }
                 }
             }
@@ -1338,9 +1368,13 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
     if (userToClose->bConnectedToVOIP)
     {
+        mtxUsersDelete .lock();
+
         userToClose->bConnectedToVOIP     = false;
         userToClose->bConnectedToTextChat = false;
         iUsersConnectedToVOIP--;
+
+        mtxUsersDelete .unlock();
 
         // Wait for listenForVoiceMessage() and listenForMessage() to end.
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
@@ -1348,13 +1382,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 
         mtxUDPPackets .lock();
 
-        // It's gonna grow.
-        size_t ivUDPPacketsSize = vUDPPackets .size() / 2;
-
-
-        // This never happened (I think) but let's check if there are some packets from this user. Just in case.
-
-        for (size_t i = 0; i < ivUDPPacketsSize; i++)
+        for (int i = 0; i < vUDPPackets .size(); i++)
         {
             if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
                  && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
@@ -1363,7 +1391,8 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
                  && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
             {
                 delete vUDPPackets[i];
-                vUDPPackets.erase( vUDPPackets .begin() );
+                vUDPPackets .erase( vUDPPackets .begin() + i );
+                i--;
             }
         }
 
@@ -1477,6 +1506,9 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         }
     }
 
+
+    mtxUsersDelete .lock();
+
     // Erase user from massive
     for (unsigned int i = 0; i < users.size(); i++)
     {
@@ -1489,6 +1521,8 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
             break;
         }
     }
+
+    mtxUsersDelete .unlock();
 }
 
 void ServerService::kickUser(QListWidgetItem *pListWidgetItem)
@@ -1497,7 +1531,8 @@ void ServerService::kickUser(QListWidgetItem *pListWidgetItem)
     {
         if ( users[i] ->pListItem == pListWidgetItem )
         {
-            sendFINtoUser(users[i]);
+            std::thread tKickThread(&ServerService::sendFINtoUser, this, users[i]);
+            tKickThread .detach();
 
             break;
         }
@@ -1517,11 +1552,18 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
     }
 
 
+    pLogManager ->printAndLog("Kicked the user \"" + userToClose ->userName + "\" from the server.\n");
+
+
     if (userToClose->bConnectedToVOIP)
     {
+        mtxUsersDelete .lock();
+
         userToClose->bConnectedToVOIP     = false;
         userToClose->bConnectedToTextChat = false;
         iUsersConnectedToVOIP--;
+
+        mtxUsersDelete .unlock();
 
         // Wait for listenForVoiceMessage() and listenForMessage() to end.
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
@@ -1529,13 +1571,10 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
 
         mtxUDPPackets .lock();
 
-        // It's gonna grow.
-        size_t ivUDPPacketsSize = vUDPPackets .size() / 2;
-
 
         // This never happened (I think) but let's check if there are some packets from this user. Just in case.
 
-        for (size_t i = 0; i < ivUDPPacketsSize; i++)
+        for (int i = 0; i < vUDPPackets .size(); i++)
         {
             if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
                  && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
@@ -1544,7 +1583,8 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
                  && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
             {
                 delete vUDPPackets[i];
-                vUDPPackets.erase( vUDPPackets .begin() );
+                vUDPPackets .erase( vUDPPackets .begin() + i );
+                i--;
             }
         }
 
@@ -1589,20 +1629,28 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
         }
     }
 
+
+    mtxUsersDelete .lock();
+
+
+
     // Erase user from massive
     for (unsigned int i = 0; i < users.size(); i++)
     {
         if (users[i]->userName == userToClose->userName)
         {
-            pLogManager ->printAndLog("Kicked the user \"" + userToClose ->userName + "\" from the server.\n");
-
-            delete[] userToClose->pDataFromUser;
-            pMainWindow->deleteUserFromList(userToClose->pListItem);
-            delete users[i];
             users.erase(users.begin() + i);
+
             break;
         }
     }
+
+    pMainWindow->deleteUserFromList(userToClose->pListItem);
+    delete[] userToClose->pDataFromUser;
+    delete userToClose;
+
+
+    mtxUsersDelete .unlock();
 }
 
 void ServerService::shutdownAllUsers()
@@ -1613,6 +1661,8 @@ void ServerService::shutdownAllUsers()
 
         pMainWindow->updateOnlineUsersCount(0);
 
+        mtxUsersDelete .lock();
+
         for (unsigned int i = 0; i < users.size(); i++)
         {
             if (users[i]->bConnectedToVOIP)
@@ -1621,6 +1671,8 @@ void ServerService::shutdownAllUsers()
             }
             users[i]->bConnectedToTextChat = false;
         }
+
+        mtxUsersDelete .unlock();
 
         // Now we will not listen for new sockets and we also
         // will not listen connected users (because in listenForNewMessage function while cycle will fail)

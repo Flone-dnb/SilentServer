@@ -32,7 +32,7 @@ public:
         iLen = sizeof(senderInfo);
     }
 
-    bool checkRejected(const std::string& sUserName)
+    bool checkRejected(std::string sUserName)
     {
         std::map<std::string, bool>::iterator it = mThreadsRejectedPacket .find(sUserName);
 
@@ -46,7 +46,7 @@ public:
         }
     }
 
-    void rejectPacket(const std::string& sUserName)
+    void rejectPacket(std::string sUserName)
     {
         mThreadsRejectedPacket .insert( std::pair<std::string, bool>(sUserName, true) );
     }

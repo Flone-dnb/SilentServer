@@ -72,9 +72,7 @@ public:
 
     // Closing
 
-        void  responseToFIN               (UserStruct* userToClose, bool bUserLost = false);
         void  kickUser                    (QListWidgetItem* pListWidgetItem);
-        void  sendFINtoSocket             (SOCKET socketToClose);
         void  shutdownAllUsers            ();
 
 
@@ -92,7 +90,12 @@ private:
 
     void refreshWrongUDPPackets();
 
-    void sendFINtoUser               (UserStruct* userToClose);
+
+    // Closing
+
+        void responseToFIN               (UserStruct* userToClose, bool bUserLost = false);
+        void sendFINtoUser               (UserStruct* userToClose);
+        void sendFINtoSocket             (SOCKET socketToClose);
 
 
     // --------------------------------
@@ -123,6 +126,7 @@ private:
 
 
     std::mutex               mtxUDPPackets;
+    std::mutex               mtxUsersDelete;
 
 
     std::string              serverVersion;

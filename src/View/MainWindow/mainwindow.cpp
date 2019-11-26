@@ -9,6 +9,7 @@
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QAction>
+#include <QListWidgetItem>
 
 // Custom
 #include "../src/Controller/controller.h"
@@ -29,6 +30,10 @@ MainWindow::MainWindow(QWidget *parent) :
     QIcon icon     = QIcon(":/appMainIcon.png");
     pTrayIcon->setIcon(icon);
     connect(pTrayIcon, &QSystemTrayIcon::activated, this, &MainWindow::slotTrayIconActivated);
+
+
+
+    qRegisterMetaType<QTextCursor>("QTextCursor");
 
 
 
@@ -112,14 +117,18 @@ QListWidgetItem* MainWindow::addNewUserToList(std::string userName)
     return ui ->listWidget_users ->item    ( ui ->listWidget_users ->model() ->rowCount()-1 );
 }
 
-void MainWindow::setPingToUser(QListWidgetItem *pListItem, int ping)
+void MainWindow::setPingToUser(QListWidgetItem* pListItem, int ping)
 {
     emit signalSetPingToUser(pListItem, ping);
 }
 
-void MainWindow::deleteUserFromList(QListWidgetItem *pListItem)
+void MainWindow::deleteUserFromList(QListWidgetItem* pListItem)
 {
+    mtxListUsers .lock();
+
     delete pListItem;
+
+    mtxListUsers .unlock();
 }
 
 void MainWindow::changeStartStopActionText(bool bStop)
@@ -192,8 +201,10 @@ void MainWindow::slotApplyNewSettings(SettingsFile* pSettingsFile)
     pController ->saveNewSettings(pSettingsFile);
 }
 
-void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
+void MainWindow::slotSetPingToUser(QListWidgetItem* pListItem, int ping)
 {
+    mtxListUsers .lock();
+
     if (pListItem != nullptr)
     {
         QString userNameWithOldPing = pListItem->text();
@@ -236,6 +247,8 @@ void MainWindow::slotSetPingToUser(QListWidgetItem *pListItem, int ping)
             pListItem->setForeground(QColor(PING_BAD_R, PING_BAD_G, PING_BAD_B));
         }
     }
+
+    mtxListUsers .unlock();
 }
 
 void MainWindow::slotClearChatWindow()
