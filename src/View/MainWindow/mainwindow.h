@@ -27,7 +27,7 @@ class MainWindow;
 }
 
 
-#define ARCHIVE_HALF_TEXT_SLIDER_VALUE 20
+#define ARCHIVE_HALF_TEXT_SLIDER_VALUE 100
 
 
 // ------------------------------------------------------------------------------------------------
