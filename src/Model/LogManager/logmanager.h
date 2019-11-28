@@ -12,6 +12,9 @@ class SettingsManager;
 
 
 
+#define TEMP_FILE_NAME L"SilentServerTempText.temp~"
+
+
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -25,14 +28,20 @@ public:
     LogManager(MainWindow* pMainWindow, SettingsManager* pSettingsManager);
 
 
-    void printAndLog(std::string sText, bool bEmitSignal = false);
+    void  printAndLog   (std::string sText, bool bEmitSignal = false);
+    void  archiveText   (wchar_t* pText, size_t iWChars);
+    void  showOldText   ();
+    void  eraseTempFile ();
 
 
-    void stop();
+
+    void  stop          ();
 
 private:
 
-    void logThread(std::string sText);
+    void  logThread     (std::string sText);
+    void  archiveThread (wchar_t* pText, size_t iWChars);
+    void  showTextThread();
 
 
 

@@ -27,6 +27,9 @@ class MainWindow;
 }
 
 
+#define ARCHIVE_HALF_TEXT_SLIDER_VALUE 20
+
+
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -50,6 +53,7 @@ public:
         void             showMessageBox             (bool bErrorBox,         const std::wstring& sMessage, bool bEmitSignal = false);
         void             printOutput                (std::string errorText,  bool bEmitSignal = false);
         void             updateOnlineUsersCount     (int iNewAmount);
+        void             showOldText                (wchar_t* pText);
         void             clearChatWindow            ();
 
 
@@ -77,6 +81,7 @@ signals:
         void             signalShowMessageBox        (bool bErrorBox,              const QString& sMessage);
         void             signalSetPingToUser         (QListWidgetItem* pListItem,  int ping);
         void             signalTypeOnOutput          (QString text);
+        void             signalShowOldText           (wchar_t* pText);
         void             signalClearChatWindow       ();
 
 protected:
@@ -92,6 +97,7 @@ private slots:
         void             slotShowMessageBox          (bool bErrorBox,              const QString& sMessage);
         void             slotSetPingToUser           (QListWidgetItem* pListItem,  int ping);
         void             typeSomeOnOutputLog         (QString text);
+        void             slotShowOldText             (wchar_t* pText);
         void             slotClearChatWindow         ();
 
 
@@ -112,12 +118,23 @@ private slots:
         void             on_actionSettings_triggered ();
 
 
+    // Slider on output log
+
+        void             slotSliderMoved(int iValue);
+
+
     // Context Menu
 
         void on_listWidget_users_customContextMenuRequested(const QPoint &pos);
         void kickUser();
 
 private:
+
+
+    void checkTextSize();
+
+    // --------------------------------------
+
 
     Ui::MainWindow*  ui;
     Controller*      pController;
@@ -132,4 +149,7 @@ private:
 
     std::mutex       mtxPrintOutput;
     std::mutex       mtxListUsers;
+
+
+    bool             bInternalTextWork;
 };

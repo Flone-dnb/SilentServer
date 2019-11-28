@@ -30,6 +30,12 @@ public:
         void            kickUser              (QListWidgetItem* pListWidgetItem);
 
 
+    // Archive text
+
+        void            archiveText           (wchar_t* pText, size_t iWChars);
+        void            showOldText           ();
+
+
     // Settings
 
         void            saveNewSettings       (SettingsFile* pSettingsFile);

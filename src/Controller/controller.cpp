@@ -57,7 +57,12 @@ bool Controller::start()
     if (pSettingsManager ->getCurrentSettings())
     {
         if (bServerStarted) stop();
-        else bServerStarted = pServerService->startWinSock();
+        else
+        {
+            pLogManager ->eraseTempFile();
+
+            bServerStarted = pServerService->startWinSock();
+        }
 
         return false;
     }
@@ -82,6 +87,26 @@ void Controller::stop()
 void Controller::kickUser(QListWidgetItem *pListWidgetItem)
 {
     pServerService ->kickUser(pListWidgetItem);
+}
+
+void Controller::archiveText(wchar_t *pText, size_t iWChars)
+{
+    if (pLogManager)
+    {
+        pLogManager ->archiveText(pText, iWChars);
+    }
+    else
+    {
+        delete[] pText;
+    }
+}
+
+void Controller::showOldText()
+{
+    if (pLogManager)
+    {
+        pLogManager ->showOldText();
+    }
 }
 
 void Controller::saveNewSettings(SettingsFile* pSettingsFile)

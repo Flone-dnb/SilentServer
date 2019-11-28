@@ -318,329 +318,393 @@ void ServerService::listenForNewTCPConnections()
     memset(connectedWith.sin_zero, 0, sizeof(connectedWith.sin_zero));
     int iLen = sizeof(connectedWith);
 
+    bool bConnectionFinished = true;
+
     // Accept new connection
     while (bTextListen)
     {
-        bool bConnectionFinished = false;
+        if (bConnectionFinished == false)
+        {
+            pLogManager ->printAndLog("The user was not connected.\n", true);
+
+            bConnectionFinished = true;
+        }
+
+        // Wait for users to disconnect.
+        mtxConnectDisconnect .lock();
+        mtxConnectDisconnect .unlock();
+
 
         SOCKET newConnectedSocket;
         newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
 
-        while (newConnectedSocket != INVALID_SOCKET)
+
+        if (newConnectedSocket == INVALID_SOCKET)
         {
-            pLogManager ->printAndLog("Someone is connecting...", true);
-
-            // Disable Nagle algorithm for Connected Socket
-            BOOL bOptVal = true;
-            int bOptLen = sizeof(BOOL);
-            if (setsockopt(newConnectedSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&bOptVal), bOptLen) == SOCKET_ERROR)
-            {
-                pLogManager ->printAndLog("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: " + std::to_string(WSAGetLastError()) + ".\nSending FIN to this new user.\n",true);
-
-                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-                closethread.detach();
-            }
-            else
-            {
-                // Receive version, user name and password (optional)
-                char nameBuffer[MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2];
-                memset(nameBuffer, 0, MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2);
-
-                if (recv(newConnectedSocket, nameBuffer, MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2, 0) > 1)
-                {
-                    // Received version, user name and password
-
-                    // Check if client version is the same with the server version
-                    char clientVersionSize = nameBuffer[0];
-
-                    char* pVersion = new char[ static_cast<size_t>(clientVersionSize + 1) ];
-                    memset( pVersion, 0, static_cast<size_t>(clientVersionSize + 1) );
-
-                    std::memcpy(pVersion, nameBuffer + 1, static_cast<size_t>(clientVersionSize));
-
-                    std::string clientVersion(pVersion);
-                    delete[] pVersion;
-
-                    if ( clientVersion != clientLastSupportedVersion )
-                    {
-                        pLogManager ->printAndLog("Client version \"" + clientVersion + "\" does not match with the last supported client version "
-                                                  + clientLastSupportedVersion + ".\n", true);
-                        char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
-                        memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
-
-                        answerBuffer[0] = CM_WRONG_CLIENT;
-                        answerBuffer[1] = static_cast<char>(clientLastSupportedVersion.size());
-                        std::memcpy(answerBuffer + 2, clientLastSupportedVersion.c_str(), clientLastSupportedVersion.size());
-
-                        send(newConnectedSocket, answerBuffer, static_cast<int>(2 + clientLastSupportedVersion.size()), 0);
-                        std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-                        closethread.detach();
-
-                        continue;
-                    }
-
-                    // Check if this user name is free
-
-                    char vBuffer[MAX_NAME_LENGTH + 2];
-                    memset(vBuffer, 0, MAX_NAME_LENGTH + 2);
-
-                    std::memcpy(vBuffer, nameBuffer + 2 + clientVersionSize, static_cast <size_t> (nameBuffer[1 + clientVersionSize]));
-
-                    //std::string userNameStr(nameBuffer + 1 + clientVersionSize);
-                    std::string userNameStr(vBuffer);
-                    bool bUserNameFree = true;
-
-                    for (unsigned int i = 0; i<users.size(); i++)
-                    {
-                        if (users[i]->userName == userNameStr)
-                        {
-                            bUserNameFree = false;
-                            break;
-                        }
-                    }
-
-                    if (bUserNameFree == false)
-                    {
-                        pLogManager ->printAndLog("User name " + userNameStr + " is already taken.",true);
-                        char command = CM_USERNAME_INUSE;
-                        send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
-                        std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-                        closethread.detach();
-                    }
-                    else
-                    {
-                        if (pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != L"")
-                        {
-                            wchar_t vPassBuffer[UCHAR_MAX + 1];
-                            memset(vPassBuffer, 0, (UCHAR_MAX * 2) + 2);
-
-                            char cUserNameSize = nameBuffer[1 + clientVersionSize];
-                            unsigned char cPasswordSize = static_cast <unsigned char> (nameBuffer[2 + clientVersionSize + cUserNameSize]);
-
-                            std::memcpy(vPassBuffer, nameBuffer + 3 + clientVersionSize + cUserNameSize,
-                                        static_cast<size_t>(cPasswordSize) * 2);
-
-                            std::wstring sPassword(vPassBuffer);
-
-                            if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
-                            {
-                                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.\n",true);
-                                char command = CM_NEED_PASSWORD;
-                                send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
-                                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-                                closethread.detach();
-
-                                if (bTextListen)
-                                {
-                                    newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
-                                    continue;
-                                }
-                                else
-                                {
-                                    return;
-                                }
-                            }
-                        }
-
-                        // Show with whom connected
-                        char connectedWithIP[16];
-                        memset(&connectedWithIP,0,16);
-                        inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
-
-                        char tempData[MAX_BUFFER_SIZE];
-                        memset(tempData, 0, MAX_BUFFER_SIZE);
-
-                        // we ++ new user (if something will go wrong later we will -- this user
-                        iUsersConnectedCount++;
-
-
-                        // Prepare online info to user.
-                        // Prepared data format (amount of bytes in '()'):
-
-                        // (1) Is user name free (if not then all other stuff is not included)
-                        // (2) Packet size minus "free name" byte
-                        // (4) Amount of users in main lobby (online)
-                        // [
-                        //      (1) Size in bytes of user name online
-                        //      (usernamesize) user name
-                        // ]
-
-                        int iBytesWillSend = 0;
-                        char command = CM_SERVER_INFO;
-                        std::memcpy(tempData, &command, 1);
-                        iBytesWillSend++;
-
-                        // We will put here packet size
-                        iBytesWillSend += 2;
-
-                        std::memcpy(tempData + iBytesWillSend, &iUsersConnectedCount, 4);
-                        iBytesWillSend += 4;
-                        for (unsigned int j = 0; j < users.size(); j++)
-                        {
-                            unsigned char nameSize = static_cast<unsigned char>(users[j]->userName.size()) + 1;
-                            std::memcpy(tempData + iBytesWillSend, &nameSize, 1);
-                            iBytesWillSend++;
-
-                            std::memcpy(tempData + iBytesWillSend, users[j]->userName.c_str(), nameSize);
-                            iBytesWillSend += nameSize;
-                        }
-
-                        // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes))
-                        unsigned short int iPacketSize = static_cast<unsigned short>(iBytesWillSend - 3);
-                        std::memcpy(tempData + 1, &iPacketSize, 2);
-
-                        if (iBytesWillSend > MAX_BUFFER_SIZE)
-                        {
-                            // This should happen when you got like >50 users online (when all users have name long 20 chars) if my calculations are correct.
-                            // Not the main problem right now, tell me if you are suffering from this lol.
-
-                            pLogManager ->printAndLog("Server is full.\n", true);
-
-                            char serverIsFullCommand = CM_SERVER_FULL;
-                            send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
-                            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-                            closethread.detach();
-
-                            continue;
-                        }
-
-                        // SEND
-                        int iBytesWereSent = send(newConnectedSocket, tempData, iBytesWillSend, 0);
-
-                        if (iBytesWereSent != iBytesWillSend)
-                        {
-                            pLogManager ->printAndLog("WARNING:\n" + std::to_string(iBytesWereSent)+" bytes were sent of total "
-                                                      + std::to_string(iBytesWillSend) + " to new user.\n", true);
-                        }
-                        if (iBytesWereSent == -1)
-                        {
-                            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send()) (online info) failed and returned: "
-                                                      + std::to_string(WSAGetLastError()) + ".", true);
-
-                            if (recv(newConnectedSocket, tempData, MAX_BUFFER_SIZE, 0) == 0)
-                            {
-                                pLogManager ->printAndLog("Received FIN from this new user who didn't receive online info.", true);
-
-                                shutdown(newConnectedSocket, SD_SEND);
-                                if (closesocket(newConnectedSocket) != SOCKET_ERROR)
-                                {
-                                    pLogManager ->printAndLog("Closed this socket with success.", true);
-                                }
-                                else
-                                {
-                                    pLogManager ->printAndLog("Can't close this socket... You better reboot the server.", true);
-                                }
-                            }
-                            iUsersConnectedCount--;
-                        }
-                        else
-                        {
-                            // Translate new connected socket to non-blocking mode
-                            u_long arg = true;
-                            if (ioctlsocket(newConnectedSocket, static_cast<long>(FIONBIO), &arg) == SOCKET_ERROR)
-                            {
-                                pLogManager ->printAndLog("ServerService::listenForNewConnections()::ioctsocket() (non-blocking mode) failed and returned: " + std::to_string(WSAGetLastError()) + ".", true);
-
-                                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-                                closethread.detach();
-                            }
-                            else
-                            {
-                                if (users.size() != 0)
-                                {
-                                    // Tell other users about new user
-
-                                    char newUserInfo[MAX_NAME_LENGTH + 11];
-                                    memset(newUserInfo, 0, MAX_NAME_LENGTH + 11);
-
-                                    unsigned char sizeOfUserName = static_cast<unsigned char>(userNameStr.size());
-
-                                    unsigned char iSendSize = 0;
-
-                                    unsigned char commandType = SM_NEW_USER;
-                                    std::memcpy(newUserInfo, &commandType, 1);
-                                    iSendSize++;
-
-                                    // Put packet size
-                                    unsigned char iPacketSize = 4 + 1 + sizeOfUserName;
-                                    std::memcpy(newUserInfo + 1, &iPacketSize, 1);
-                                    iSendSize++;
-
-                                    std::memcpy(newUserInfo + 2, &iUsersConnectedCount, 4);
-                                    iSendSize += 4;
-
-                                    std::memcpy(newUserInfo + 6, &sizeOfUserName, 1);
-                                    iSendSize++;
-                                    std::memcpy(newUserInfo + 7, userNameStr.c_str(), sizeOfUserName);
-                                    iSendSize += sizeOfUserName;
-
-                                    // Send this data
-                                    for (unsigned int i = 0; i < users.size(); i++)
-                                    {
-                                        if ( send(users[i]->userTCPSocket, newUserInfo, iSendSize, 0) != iSendSize)
-                                        {
-                                            pLogManager ->printAndLog("ServerService::listenForNewTCPConnections::send() failed (info about new user).", true );
-                                        }
-                                    }
-                                }
-
-
-                                // Fill UserStruct for new user
-
-                                UserStruct* pNewUser          = new UserStruct();
-                                pNewUser->userTCPSocket       = newConnectedSocket;
-                                pNewUser->userName            = userNameStr;
-                                pNewUser->pDataFromUser       = new char[MAX_BUFFER_SIZE];
-                                pNewUser->userIP              = std::string(connectedWithIP);
-                                pNewUser->userTCPPort         = ntohs(connectedWith.sin_port);
-                                pNewUser->keepAliveTimer      = clock();
-                                pNewUser->lastTimeMessageSent = clock();
-
-                                memset(pNewUser->userUDPAddr.sin_zero, 0, sizeof(pNewUser->userUDPAddr.sin_zero));
-                                pNewUser->userUDPAddr.sin_family = AF_INET;
-                                pNewUser->userUDPAddr.sin_addr   = connectedWith.sin_addr;
-                                pNewUser->userUDPAddr.sin_port   = 0;
-                                pNewUser->iCurrentPing           = 0;
-
-                                pNewUser->bConnectedToTextChat   = false;
-                                pNewUser->bConnectedToVOIP       = false;
-                                pNewUser->bFirstPingCheckPassed  = false;
-
-                                users.push_back(pNewUser);
-
-                                // Ready to send and receive data
-
-                                pLogManager ->printAndLog("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + pNewUser->userName + ".",true);
-                                pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
-                                pNewUser->pListItem = pMainWindow->addNewUserToList(pNewUser->userName);
-
-                                std::thread listenThread(&ServerService::listenForMessage, this, pNewUser);
-                                listenThread.detach();
-
-                                bConnectionFinished = true;
-                            }
-                        }
-                    }
-                }
-            }
-
             if (bTextListen)
             {
-                newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
+                std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_TCP_ACCEPT_MS));
+
+                continue;
             }
             else
             {
                 return;
             }
+        }
 
 
-            if (bConnectionFinished == false)
+
+
+        pLogManager ->printAndLog("Someone is connecting...", true);
+
+
+
+
+        // Disable Nagle algorithm for Connected Socket
+
+        BOOL bOptVal = true;
+        int bOptLen = sizeof(BOOL);
+        if (setsockopt(newConnectedSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&bOptVal), bOptLen) == SOCKET_ERROR)
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: " + std::to_string(WSAGetLastError()) + ".\nSending FIN to this new user.\n",true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+
+
+        // Receive version, user name and password (optional)
+
+        const size_t iBufferLength = MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2;
+        char nameBuffer[iBufferLength];
+        memset(nameBuffer, 0, iBufferLength);
+
+        recv(newConnectedSocket, nameBuffer, iBufferLength, 0);
+
+
+
+
+        // Received version, user name and password
+
+        // Check if client version is the same with the server version
+        char clientVersionSize = nameBuffer[0];
+
+        char* pVersion = new char[ static_cast<size_t>(clientVersionSize + 1) ];
+        memset( pVersion, 0, static_cast<size_t>(clientVersionSize + 1) );
+
+        std::memcpy(pVersion, nameBuffer + 1, static_cast<size_t>(clientVersionSize));
+
+        std::string clientVersion(pVersion);
+        delete[] pVersion;
+
+
+
+        if ( clientVersion != clientLastSupportedVersion )
+        {
+            pLogManager ->printAndLog("Client version \"" + clientVersion + "\" does not match with the last supported client version "
+                                      + clientLastSupportedVersion + ".\n", true);
+            char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
+            memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
+
+            answerBuffer[0] = CM_WRONG_CLIENT;
+            answerBuffer[1] = static_cast<char>(clientLastSupportedVersion.size());
+            std::memcpy(answerBuffer + 2, clientLastSupportedVersion.c_str(), clientLastSupportedVersion.size());
+
+            send(newConnectedSocket, answerBuffer, static_cast<int>(2 + clientLastSupportedVersion.size()), 0);
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+
+
+
+        // Check if this user name is free
+
+        char vBuffer[MAX_NAME_LENGTH + 2];
+        memset(vBuffer, 0, MAX_NAME_LENGTH + 2);
+
+        std::memcpy(vBuffer, nameBuffer + 2 + clientVersionSize, static_cast <size_t> (nameBuffer[1 + clientVersionSize]));
+
+        //std::string userNameStr(nameBuffer + 1 + clientVersionSize);
+        std::string userNameStr(vBuffer);
+        bool bUserNameFree = true;
+
+
+        mtxConnectDisconnect .lock();
+
+
+        for (unsigned int i = 0;   i< users .size();   i++)
+        {
+            if (users[i]->userName == userNameStr)
             {
-                pLogManager ->printAndLog("The user was not connected.\n", true);
+                bUserNameFree = false;
+                break;
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_TCP_ACCEPT_MS));
+
+        mtxConnectDisconnect .unlock();
+
+
+        if (bUserNameFree == false)
+        {
+            pLogManager ->printAndLog("User name " + userNameStr + " is already taken.",true);
+            char command = CM_USERNAME_INUSE;
+            send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+
+        // Check if the password is right.
+
+        if (pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != L"")
+        {
+            wchar_t vPassBuffer[UCHAR_MAX + 1];
+            memset(vPassBuffer, 0, (UCHAR_MAX * 2) + 2);
+
+            char cUserNameSize = nameBuffer[1 + clientVersionSize];
+            unsigned char cPasswordSize = static_cast <unsigned char> (nameBuffer[2 + clientVersionSize + cUserNameSize]);
+
+            std::memcpy(vPassBuffer, nameBuffer + 3 + clientVersionSize + cUserNameSize,
+                        static_cast<size_t>(cPasswordSize) * 2);
+
+            std::wstring sPassword(vPassBuffer);
+
+            if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
+            {
+                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.\n",true);
+                char command = CM_NEED_PASSWORD;
+                send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
+                std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+                closethread.detach();
+
+
+                bConnectionFinished = false;
+
+                continue;
+            }
+        }
+
+
+
+        // Show with whom connected
+
+        char connectedWithIP[16];
+        memset(&connectedWithIP,0,16);
+        inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
+
+        char tempData[MAX_BUFFER_SIZE];
+        memset(tempData, 0, MAX_BUFFER_SIZE);
+
+        // we ++ new user (if something will go wrong later we will -- this user
+        iUsersConnectedCount++;
+
+
+        // Prepare online info to user.
+        // Prepared data format (amount of bytes in '()'):
+
+        // (1) Is user name free (if not then all other stuff is not included)
+        // (2) Packet size minus "free name" byte
+        // (4) Amount of users in main lobby (online)
+        // [
+        //      (1) Size in bytes of user name online
+        //      (usernamesize) user name
+        // ]
+
+        int iBytesWillSend = 0;
+        char command = CM_SERVER_INFO;
+        std::memcpy(tempData, &command, 1);
+        iBytesWillSend++;
+
+        // We will put here packet size
+        iBytesWillSend += 2;
+
+        std::memcpy(tempData + iBytesWillSend, &iUsersConnectedCount, 4);
+        iBytesWillSend += 4;
+        for (unsigned int j = 0; j < users.size(); j++)
+        {
+            unsigned char nameSize = static_cast<unsigned char>(users[j]->userName.size()) + 1;
+            std::memcpy(tempData + iBytesWillSend, &nameSize, 1);
+            iBytesWillSend++;
+
+            std::memcpy(tempData + iBytesWillSend, users[j]->userName.c_str(), nameSize);
+            iBytesWillSend += nameSize;
+        }
+
+        // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes))
+        unsigned short int iPacketSize = static_cast<unsigned short>(iBytesWillSend - 3);
+        std::memcpy(tempData + 1, &iPacketSize, 2);
+
+
+        if (iBytesWillSend > MAX_BUFFER_SIZE)
+        {
+            // This should happen when you got like >50 users online (when all users have name long 20 chars) if my calculations are correct.
+            // Not the main problem right now, tell me if you are suffering from this lol.
+
+            pLogManager ->printAndLog("Server is full.\n", true);
+
+            char serverIsFullCommand = CM_SERVER_FULL;
+            send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+
+        // SEND
+        int iBytesWereSent = send(newConnectedSocket, tempData, iBytesWillSend, 0);
+
+        if (iBytesWereSent != iBytesWillSend)
+        {
+            pLogManager ->printAndLog("WARNING:\n" + std::to_string(iBytesWereSent)+" bytes were sent of total "
+                                      + std::to_string(iBytesWillSend) + " to new user.\n", true);
+        }
+        if (iBytesWereSent == -1)
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send()) (online info) failed and returned: "
+                                      + std::to_string(WSAGetLastError()) + ".", true);
+
+            if (recv(newConnectedSocket, tempData, MAX_BUFFER_SIZE, 0) == 0)
+            {
+                pLogManager ->printAndLog("Received FIN from this new user who didn't receive online info.", true);
+
+                shutdown(newConnectedSocket, SD_SEND);
+                if (closesocket(newConnectedSocket) != SOCKET_ERROR)
+                {
+                    pLogManager ->printAndLog("Closed this socket with success.", true);
+                }
+                else
+                {
+                    pLogManager ->printAndLog("Can't close this socket... You better reboot the server.", true);
+                }
+            }
+
+            iUsersConnectedCount--;
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+
+        // Translate new connected socket to non-blocking mode
+        u_long arg = true;
+        if (ioctlsocket(newConnectedSocket, static_cast<long>(FIONBIO), &arg) == SOCKET_ERROR)
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::ioctsocket() (non-blocking mode) failed and returned: " + std::to_string(WSAGetLastError()) + ".", true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+        mtxConnectDisconnect .lock();
+
+
+        if (users.size() != 0)
+        {
+            // Tell other users about new user
+
+            char newUserInfo[MAX_NAME_LENGTH + 11];
+            memset(newUserInfo, 0, MAX_NAME_LENGTH + 11);
+
+            unsigned char sizeOfUserName = static_cast<unsigned char>(userNameStr.size());
+
+            unsigned char iSendSize = 0;
+
+            unsigned char commandType = SM_NEW_USER;
+            std::memcpy(newUserInfo, &commandType, 1);
+            iSendSize++;
+
+            // Put packet size
+            unsigned char iPacketSize = 4 + 1 + sizeOfUserName;
+            std::memcpy(newUserInfo + 1, &iPacketSize, 1);
+            iSendSize++;
+
+            std::memcpy(newUserInfo + 2, &iUsersConnectedCount, 4);
+            iSendSize += 4;
+
+            std::memcpy(newUserInfo + 6, &sizeOfUserName, 1);
+            iSendSize++;
+            std::memcpy(newUserInfo + 7, userNameStr.c_str(), sizeOfUserName);
+            iSendSize += sizeOfUserName;
+
+            // Send this data
+            for (unsigned int i = 0; i < users.size(); i++)
+            {
+                if ( send(users[i]->userTCPSocket, newUserInfo, iSendSize, 0) != iSendSize)
+                {
+                    pLogManager ->printAndLog("ServerService::listenForNewTCPConnections::send() failed (info about new user).", true );
+                }
+            }
+        }
+
+
+        // Fill UserStruct for new user
+
+        UserStruct* pNewUser          = new UserStruct();
+        pNewUser->userTCPSocket       = newConnectedSocket;
+        pNewUser->userName            = userNameStr;
+        pNewUser->pDataFromUser       = new char[MAX_BUFFER_SIZE];
+        pNewUser->userIP              = std::string(connectedWithIP);
+        pNewUser->userTCPPort         = ntohs(connectedWith.sin_port);
+        pNewUser->keepAliveTimer      = clock();
+        pNewUser->lastTimeMessageSent = clock();
+
+        memset(pNewUser->userUDPAddr.sin_zero, 0, sizeof(pNewUser->userUDPAddr.sin_zero));
+        pNewUser->userUDPAddr.sin_family = AF_INET;
+        pNewUser->userUDPAddr.sin_addr   = connectedWith.sin_addr;
+        pNewUser->userUDPAddr.sin_port   = 0;
+        pNewUser->iCurrentPing           = 0;
+
+        pNewUser->bConnectedToTextChat   = false;
+        pNewUser->bConnectedToVOIP       = false;
+        pNewUser->bFirstPingCheckPassed  = false;
+
+        users.push_back(pNewUser);
+
+        // Ready to send and receive data
+
+        pLogManager ->printAndLog("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + pNewUser->userName + ".",true);
+        pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
+        pNewUser->pListItem = pMainWindow->addNewUserToList(pNewUser->userName);
+
+        std::thread listenThread(&ServerService::listenForMessage, this, pNewUser);
+        listenThread.detach();
+
+
+        mtxConnectDisconnect .unlock();
     }
 }
 
@@ -813,7 +877,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
 void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 {
     // Preparation cycle
-    while(userToListen ->bConnectedToTextChat)
+    while( (userToListen ->bConnectedToTextChat) && (bTextListen) )
     {
         mtxUDPPackets .lock();
 
@@ -824,6 +888,19 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
             continue;
+        }
+        else
+        {
+            mtxUsersDelete .lock();
+
+            if (userToListen ->bConnectedToTextChat == false)
+            {
+                mtxUDPPackets .unlock();
+
+                return;
+            }
+
+            mtxUsersDelete .unlock();
         }
 
 
@@ -875,39 +952,65 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
             else
             {
-                if ( pPacket ->checkRejected(userToListen ->userName) == false )
+                mtxUsersDelete .lock();
+
+                if ( (userToListen ->bConnectedToTextChat)
+                     &&
+                     (pPacket ->checkRejected(userToListen ->userName) == false) )
                 {
                     pPacket ->rejectPacket( userToListen ->userName );
 
                     eraseUDPPacket();
                 }
 
+                mtxUsersDelete .unlock();
+
                 mtxUDPPackets .unlock();
 
-                std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+                if (userToListen ->bConnectedToTextChat)
+                {
+                    std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
-                continue;
+                    continue;
+                }
+                else
+                {
+                    return;
+                }
             }
         }
         else
         {
-            if ( pPacket ->checkRejected(userToListen ->userName) == false )
+            mtxUsersDelete .lock();
+
+            if ( (userToListen ->bConnectedToTextChat)
+                 &&
+                 (pPacket ->checkRejected(userToListen ->userName) == false) )
             {
                 pPacket ->rejectPacket( userToListen ->userName );
 
                 eraseUDPPacket();
             }
 
+            mtxUsersDelete .unlock();
+
             mtxUDPPackets .unlock();
 
-            std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+            if (userToListen ->bConnectedToTextChat)
+            {
+                std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
-            continue;
+                continue;
+            }
+            else
+            {
+                return;
+            }
         }
     }
 
 
-    while (userToListen->bConnectedToVOIP)
+    while ( (userToListen ->bConnectedToVOIP) && (bTextListen) )
     {
         mtxUDPPackets .lock();
 
@@ -915,11 +1018,24 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         {
             mtxUDPPackets .unlock();
 
-            if (userToListen->bConnectedToVOIP == false) return;
+            if (userToListen ->bConnectedToVOIP == false) return;
 
             std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
             continue;
+        }
+        else
+        {
+            mtxUsersDelete .lock();
+
+            if (userToListen ->bConnectedToVOIP == false)
+            {
+                mtxUDPPackets .unlock();
+
+                return;
+            }
+
+            mtxUsersDelete .unlock();
         }
 
 
@@ -1024,12 +1140,18 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         {
             // Not our packet
 
-            if ( pPacket ->checkRejected(userToListen ->userName) == false )
+            mtxUsersDelete .lock();
+
+            if ( (userToListen ->bConnectedToVOIP)
+                 &&
+                 (pPacket ->checkRejected(userToListen ->userName) == false) )
             {
                 pPacket ->rejectPacket( userToListen ->userName );
 
                 eraseUDPPacket();
             }
+
+            mtxUsersDelete .unlock();
 
             mtxUDPPackets .unlock();
         }
@@ -1375,23 +1497,27 @@ void ServerService::sendFINtoSocket(SOCKET socketToClose)
 
 void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
+    mtxUsersDelete .lock();
+
+    userToClose ->bConnectedToVOIP     = false;
+    userToClose ->bConnectedToTextChat = false;
+    iUsersConnectedToVOIP--;
+
+    mtxUsersDelete .unlock();
+
+
+    // Wait for listenForMessage() to end.
+    std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
+
+
     if (userToClose->bConnectedToVOIP)
     {
-        mtxUsersDelete .lock();
-
-        userToClose->bConnectedToVOIP     = false;
-        userToClose->bConnectedToTextChat = false;
-        iUsersConnectedToVOIP--;
-
-        mtxUsersDelete .unlock();
-
-        // Wait for listenForVoiceMessage() and listenForMessage() to end.
+        // Wait for listenForVoiceMessage() to end.
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
-        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
 
         mtxUDPPackets .lock();
 
-        for (int i = 0; i < vUDPPackets .size(); i++)
+        for (int i = 0; i < static_cast <int>(vUDPPackets .size()); i++)
         {
             if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
                  && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
@@ -1407,6 +1533,10 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 
         mtxUDPPackets .unlock();
     }
+
+
+    mtxConnectDisconnect .lock();
+
 
     if (!bUserLost)
     {
@@ -1532,6 +1662,8 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     }
 
     mtxUsersDelete .unlock();
+
+    mtxConnectDisconnect .unlock();
 }
 
 void ServerService::kickUser(QListWidgetItem *pListWidgetItem)
@@ -1563,6 +1695,8 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
 
     pLogManager ->printAndLog("Kicked the user \"" + userToClose ->userName + "\" from the server.\n");
 
+
+    mtxConnectDisconnect .lock();
 
     if (userToClose->bConnectedToVOIP)
     {
@@ -1660,6 +1794,9 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
 
 
     mtxUsersDelete .unlock();
+
+
+    mtxConnectDisconnect .unlock();
 }
 
 void ServerService::shutdownAllUsers()

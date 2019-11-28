@@ -10,6 +10,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QListWidgetItem>
+#include <QScrollBar>
 
 // Custom
 #include "../src/Controller/controller.h"
@@ -59,11 +60,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 
+    // Slider
+    connect(ui ->plainTextEdit ->verticalScrollBar(), &QScrollBar::valueChanged, this, &MainWindow::slotSliderMoved);
+
+    bInternalTextWork = false;
+
+
+
     // This to This
     connect(this, &MainWindow::signalTypeOnOutput,    this, &MainWindow::typeSomeOnOutputLog);
     connect(this, &MainWindow::signalClearChatWindow, this, &MainWindow::slotClearChatWindow);
     connect(this, &MainWindow::signalSetPingToUser,   this, &MainWindow::slotSetPingToUser);
     connect(this, &MainWindow::signalShowMessageBox,  this, &MainWindow::slotShowMessageBox);
+    connect(this, &MainWindow::signalShowOldText,     this, &MainWindow::slotShowOldText);
 }
 
 
@@ -79,6 +88,8 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
         ui ->plainTextEdit ->appendPlainText( QString::fromStdString(errorText) );
 
         mtxPrintOutput .unlock ();
+
+        checkTextSize();
     }
     else
     {
@@ -106,7 +117,7 @@ void MainWindow::showMessageBox(bool bErrorBox, const std::wstring &sMessage, bo
 
 void MainWindow::updateOnlineUsersCount(int iNewAmount)
 {
-    ui->label_2->setText("Connected: " + QString::number(iNewAmount));
+    ui ->label_2 ->setText("Connected: " + QString::number(iNewAmount));
 }
 
 QListWidgetItem* MainWindow::addNewUserToList(std::string userName)
@@ -135,11 +146,11 @@ void MainWindow::changeStartStopActionText(bool bStop)
 {
     if (bStop)
     {
-        ui->actionStart->setText("Stop Server");
+        ui ->actionStart ->setText("Stop Server");
     }
     else
     {
-        ui->actionStart->setText("Start Server");
+        ui ->actionStart ->setText("Start Server");
     }
 }
 
@@ -148,22 +159,27 @@ void MainWindow::clearChatWindow()
     emit signalClearChatWindow();
 }
 
+void MainWindow::showOldText(wchar_t *pText)
+{
+    emit signalShowOldText(pText);
+}
+
 void MainWindow::hideEvent(QHideEvent *event)
 {
     Q_UNUSED(event)
 
     hide();
-    pTrayIcon->show();
+    pTrayIcon ->show();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (pController->isServerRunning())
+    if (pController ->isServerRunning())
     {
         pController ->stop();
         event       ->ignore();
 
-        ui->plainTextEdit->appendPlainText("Press Exit again to close.");
+        ui ->plainTextEdit ->appendPlainText("Press Exit again to close.");
     }
 }
 
@@ -186,11 +202,41 @@ void MainWindow::typeSomeOnOutputLog(QString text)
     ui ->plainTextEdit ->appendPlainText (text);
 
     mtxPrintOutput .unlock ();
+
+    checkTextSize();
+}
+
+void MainWindow::slotShowOldText(wchar_t *pText)
+{
+    mtxPrintOutput .lock();
+
+
+    std::wstring sText(pText);
+
+    delete[] pText;
+
+
+    QString sNewText = "";
+    sNewText += QString::fromStdWString(sText);
+
+    sNewText += ui ->plainTextEdit ->toPlainText() .right( ui ->plainTextEdit ->toPlainText() .size() - 10 ); // 10: ".........."
+
+
+    bInternalTextWork = true;
+
+    ui ->plainTextEdit ->clear();
+
+    ui ->plainTextEdit ->appendPlainText(sNewText);
+
+    bInternalTextWork = false;
+
+
+    mtxPrintOutput .unlock();
 }
 
 void MainWindow::slotTrayIconActivated()
 {
-    pTrayIcon->hide();
+    pTrayIcon ->hide();
     raise();
     activateWindow();
     showNormal();
@@ -234,17 +280,17 @@ void MainWindow::slotSetPingToUser(QListWidgetItem* pListItem, int ping)
 
         // Set color
 
-        if      (ping <= pController->getPingNormalBelow())
+        if      (ping <= pController ->getPingNormalBelow())
         {
-            pListItem->setForeground(QColor(PING_NORMAL_R, PING_NORMAL_G, PING_NORMAL_B));
+            pListItem ->setForeground( QColor(PING_NORMAL_R, PING_NORMAL_G, PING_NORMAL_B) );
         }
-        else if (ping <= pController->getPingWarningBelow())
+        else if (ping <= pController ->getPingWarningBelow())
         {
-            pListItem->setForeground(QColor(PING_WARNING_R, PING_WARNING_G, PING_WARNING_B));
+            pListItem ->setForeground( QColor(PING_WARNING_R, PING_WARNING_G, PING_WARNING_B) );
         }
         else
         {
-            pListItem->setForeground(QColor(PING_BAD_R, PING_BAD_G, PING_BAD_B));
+            pListItem ->setForeground( QColor(PING_BAD_R, PING_BAD_G, PING_BAD_B) );
         }
     }
 
@@ -253,12 +299,16 @@ void MainWindow::slotSetPingToUser(QListWidgetItem* pListItem, int ping)
 
 void MainWindow::slotClearChatWindow()
 {
+    mtxPrintOutput .lock();
+
     ui->plainTextEdit->clear();
+
+    mtxPrintOutput .unlock();
 }
 
 void MainWindow::on_actionStart_triggered()
 {
-    if ( pController->start() )
+    if ( pController ->start() )
     {
         ui ->plainTextEdit ->appendPlainText("Could not start the server.");
     }
@@ -288,16 +338,27 @@ void MainWindow::on_actionSettings_triggered()
     pSettingsWindow ->show();
 }
 
+void MainWindow::slotSliderMoved(int iValue)
+{
+    if ( bInternalTextWork == false )
+    {
+        if ( iValue == 0 )
+        {
+            pController ->showOldText();
+        }
+    }
+}
+
 
 void MainWindow::on_listWidget_users_customContextMenuRequested(const QPoint &pos)
 {
-    QListWidgetItem* pItem = ui->listWidget_users->itemAt(pos);
+    QListWidgetItem* pItem = ui ->listWidget_users ->itemAt(pos);
 
     if (pItem)
     {
-        QPoint globalPos = ui->listWidget_users->mapToGlobal(pos);
+        QPoint globalPos = ui ->listWidget_users ->mapToGlobal(pos);
 
-        pMenuContextMenu->exec(globalPos);
+        pMenuContextMenu ->exec(globalPos);
     }
 }
 
@@ -306,6 +367,45 @@ void MainWindow::kickUser()
     if ( ui ->listWidget_users ->currentRow() >= 0 )
     {
         pController ->kickUser( ui ->listWidget_users ->currentItem() );
+    }
+}
+
+void MainWindow::checkTextSize()
+{
+    if ( ui ->plainTextEdit ->verticalScrollBar() ->value() >= ARCHIVE_HALF_TEXT_SLIDER_VALUE )
+    {
+        mtxPrintOutput .lock();
+
+
+        QString sText = ui ->plainTextEdit ->toPlainText();
+
+        QString sNewText = "..........";
+        sNewText += sText .right( sText .size() / 2 );
+
+
+        bInternalTextWork = true;
+
+        ui->plainTextEdit->clear();
+
+        ui ->plainTextEdit ->appendPlainText (sNewText);
+
+
+        bInternalTextWork = false;
+
+        mtxPrintOutput .unlock();
+
+
+        std::wstring sOldWString = sText .left( sText .size() / 2 ) .toStdWString();
+
+        size_t iOldTextSizeInWChars = sOldWString .size() * 2;
+
+        wchar_t* pOldText = new wchar_t[ iOldTextSizeInWChars + 1 ];
+        memset(pOldText, 0, (iOldTextSizeInWChars * sizeof(wchar_t)) + sizeof(wchar_t));
+
+
+        std::memcpy(pOldText, sOldWString .c_str(), (iOldTextSizeInWChars * sizeof(wchar_t)));
+
+        pController ->archiveText(pOldText, iOldTextSizeInWChars);
     }
 }
 
