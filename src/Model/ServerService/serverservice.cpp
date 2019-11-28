@@ -1506,10 +1506,6 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     mtxUsersDelete .unlock();
 
 
-    // Wait for listenForMessage() to end.
-    std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
-
-
     if (userToClose->bConnectedToVOIP)
     {
         // Wait for listenForVoiceMessage() to end.
@@ -1535,20 +1531,69 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     }
 
 
+    // Wait for listenForMessage() to end.
+    std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
+
     mtxConnectDisconnect .lock();
+
+
+    iUsersConnectedCount--;
+    pMainWindow ->updateOnlineUsersCount(iUsersConnectedCount);
+
+
+    // Clear 'users' massive
+
+    if ( (users .size() - 1) != 0)
+    {
+        // Tell other users that one is disconnected
+        char sendBuffer[MAX_NAME_LENGTH + 3 + 5];
+        memset(sendBuffer, 0, MAX_NAME_LENGTH + 3 + 5);
+
+
+        sendBuffer[0] = SM_SOMEONE_DISCONNECTED;
+
+        if (bUserLost)
+        {
+            sendBuffer[1] = UDR_LOST;
+        }
+        else
+        {
+            sendBuffer[1] = UDR_DISCONNECT;
+        }
+
+
+        unsigned char iPacketSize = static_cast <unsigned char> (7 + userToClose->userName.size());
+
+        std::memcpy(sendBuffer + 2, &iPacketSize, 1);
+
+        std::memcpy(sendBuffer + 3, &iUsersConnectedCount, 4);
+
+        std::memcpy(sendBuffer + 7, userToClose->userName.c_str(), userToClose->userName.size());
+
+        for (size_t j = 0; j < users.size(); j++)
+        {
+            if ( users[j] ->userName != userToClose ->userName )
+            {
+               send(users[j]->userTCPSocket, sendBuffer, iPacketSize, 0);
+            }
+        }
+    }
+
 
 
     if (!bUserLost)
     {
         // Client sent FIN
         // We are responding:
-        pLogManager ->printAndLog( userToClose->userName + " has sent FIN.", true );
+        pLogManager ->printAndLog( userToClose ->userName + " has sent FIN.", true );
 
         int returnCode = shutdown(userToClose->userTCPSocket, SD_SEND);
+
         if (returnCode == SOCKET_ERROR)
         {
             pLogManager ->printAndLog( "ServerService::responseToFIN()::shutdown() function failed and returned: "
                                        + std::to_string(WSAGetLastError()) + ".", true );
+
             returnCode = shutdown(userToClose->userTCPSocket, SD_SEND);
 
             if (returnCode == SOCKET_ERROR)
@@ -1603,63 +1648,26 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     }
 
 
-    iUsersConnectedCount--;
-    pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
-
-
-    // Clear 'users' massive
-
-    if (users.size() - 1 != 0)
-    {
-        // Tell other users that one is disconnected
-        char sendBuffer[MAX_NAME_LENGTH + 3 + 5];
-        memset(sendBuffer, 0, MAX_NAME_LENGTH + 3 + 5);
-
-
-        sendBuffer[0] = SM_SOMEONE_DISCONNECTED;
-
-        if (bUserLost)
-        {
-            sendBuffer[1] = UDR_LOST;
-        }
-        else
-        {
-            sendBuffer[1] = UDR_DISCONNECT;
-        }
-
-
-        unsigned char iPacketSize = static_cast <unsigned char> (7 + userToClose->userName.size());
-
-        std::memcpy(sendBuffer + 2, &iPacketSize, 1);
-
-        std::memcpy(sendBuffer + 3, &iUsersConnectedCount, 4);
-
-        std::memcpy(sendBuffer + 7, userToClose->userName.c_str(), userToClose->userName.size());
-
-        for (size_t j = 0; j < users.size(); j++)
-        {
-            if ( users[j] ->userName != userToClose ->userName )
-            {
-               send(users[j]->userTCPSocket, sendBuffer, iPacketSize, 0);
-            }
-        }
-    }
-
 
     mtxUsersDelete .lock();
 
-    // Erase user from massive
-    for (unsigned int i = 0; i < users.size(); i++)
+
+    // Erase user from vector.
+
+    for (unsigned int i = 0;   i < users .size();   i++)
     {
-        if (users[i]->userName == userToClose->userName)
+        if (users[i] ->userName == userToClose ->userName)
         {
-            delete[] userToClose->pDataFromUser;
-            pMainWindow->deleteUserFromList(userToClose->pListItem);
+            delete[] userToClose ->pDataFromUser;
+            pMainWindow ->deleteUserFromList( userToClose ->pListItem );
+
             delete users[i];
-            users.erase(users.begin() + i);
+            users .erase( users .begin() + i );
+
             break;
         }
     }
+
 
     mtxUsersDelete .unlock();
 
