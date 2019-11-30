@@ -5,6 +5,8 @@ Must be used with the Silent (client) application.<br>
 Made with Qt Framework, Winsock2 and Windows Multimedia System.
 
 # How to start your Silent Server
+All you need is to forward the UDP and TCP port 51337 (can be changed in the settings). If you don't know how to do that see the instruction below.<br>
+<br>
 1. Install Silent Server from the releases tab.<br>
 2. Open your router settings:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;2. 1. Press (Win + R) ('Run' window will be opened), type 'cmd' and press Enter.<br>
