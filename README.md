@@ -25,5 +25,10 @@ Made with Qt Framework, Winsock2 and Windows Multimedia System.
 5. Tell your friends your public IPv4 address.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;5. 1. You can find your public IPv4 address by googling something like 'what's my ip address'.<br>
 
+# License
+Please note that starting from version 2.20.0 the Silent Server is releasing under the Zlib license.<br>
+<br>
+All versions before 2.20.0 were released under the MIT license.
+
 # Build
 Silent is built with the MSVC 2017 64 bit compiler and Qt Framework (through Qt Creator).
