@@ -948,6 +948,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 delete pPacket;
 
 
+
                 break;
             }
             else
@@ -1302,18 +1303,19 @@ void ServerService::checkPing()
 
         clock_t currentTime = clock();
 
-        std::memcpy(sendBuffer + 1, &currentTime, sizeof(currentTime));
+        std::memcpy(sendBuffer + sizeof(sendBuffer[0]), &currentTime, sizeof(currentTime));
 
+        mtxConnectDisconnect .lock();
         mtxUsersDelete .lock();
 
         for (unsigned int i = 0; i < users.size(); i++)
         {
             if ( users[i]->bConnectedToVOIP && users[i]->bFirstPingCheckPassed )
             {
-                iSentSize = sendto(udpPingCheckSocket, sendBuffer, 5, 0,
+                iSentSize = sendto(udpPingCheckSocket, sendBuffer, sizeof(sendBuffer[0]) + sizeof(currentTime), 0,
                                    reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
 
-                if (iSentSize != 5)
+                if (iSentSize != sizeof(sendBuffer[0]) + sizeof(currentTime))
                 {
                     if (iSentSize == SOCKET_ERROR)
                     {
@@ -1330,6 +1332,7 @@ void ServerService::checkPing()
         }
 
         mtxUsersDelete .unlock();
+        mtxConnectDisconnect .unlock();
 
         for (size_t i = 0; i < PING_CHECK_INTERVAL_SEC; i++)
         {
@@ -1352,6 +1355,7 @@ void ServerService::sendPingToAll()
     // here (in index '1-2' we will insert packet size later)
     int iCurrentPos = 3;
 
+    mtxConnectDisconnect .lock();
     mtxUsersDelete .lock();
 
     size_t iAllUsers = users .size();
@@ -1432,6 +1436,7 @@ void ServerService::sendPingToAll()
 
 
     mtxUsersDelete .unlock();
+    mtxConnectDisconnect .unlock();
 }
 
 
@@ -1497,6 +1502,7 @@ void ServerService::sendFINtoSocket(SOCKET socketToClose)
 
 void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
+    mtxConnectDisconnect .lock();
     mtxUsersDelete .lock();
 
     userToClose ->bConnectedToVOIP     = false;
@@ -1530,6 +1536,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         mtxUDPPackets .unlock();
     }
 
+    mtxConnectDisconnect .unlock();
 
     // Wait for listenForMessage() to end.
     std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
