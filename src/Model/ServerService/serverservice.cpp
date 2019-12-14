@@ -335,6 +335,9 @@ void ServerService::listenForNewTCPConnections()
         mtxConnectDisconnect .unlock();
 
 
+        if (bTextListen == false) break;
+
+
         SOCKET newConnectedSocket;
         newConnectedSocket = accept(listenTCPSocket, reinterpret_cast<sockaddr*>(&connectedWith), &iLen);
 
@@ -727,7 +730,7 @@ void ServerService::prepareForVoiceConnection()
     sockaddr_in myAddr;
     memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
     myAddr.sin_family = AF_INET;
-    myAddr.sin_port = htons(SERVER_PORT);
+    myAddr.sin_port = htons(pSettingsManager ->getCurrentSettings() ->iPort);
     myAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 
@@ -829,8 +832,9 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             }
         }
 
-        clock_t timePassed = clock() - userToListen->keepAliveTimer;
+        clock_t timePassed        = clock() - userToListen->keepAliveTimer;
         float timePassedInSeconds = static_cast<float>(timePassed)/CLOCKS_PER_SEC;
+
         if (timePassedInSeconds > INTERVAL_KEEPALIVE_SEC)
         {
             // User was inactive for INTERVAL_KEEPALIVE_SEC seconds
@@ -870,7 +874,18 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS));
+        for (size_t i = 0;   i < INTERVAL_TCP_ACCEPT_MS / 25;   i++)
+        {
+            if (userToListen ->bConnectedToTextChat)
+            {
+               std::this_thread::sleep_for(std::chrono::milliseconds(25));
+            }
+            else
+            {
+                return;
+            }
+        }
+        //std::this_thread::sleep_for(std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS));
     }
 }
 
@@ -1536,12 +1551,13 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         mtxUDPPackets .unlock();
     }
 
-    mtxConnectDisconnect .unlock();
+    //mtxConnectDisconnect .unlock();
 
     // Wait for listenForMessage() to end.
-    std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
+    //std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
+    std::this_thread::sleep_for( std::chrono::milliseconds(25) ); // 25 because look end of listenForMessage().
 
-    mtxConnectDisconnect .lock();
+    //mtxConnectDisconnect .lock();
 
 
     iUsersConnectedCount--;
@@ -1818,6 +1834,8 @@ void ServerService::shutdownAllUsers()
 {
     if (users.size() != 0)
     {
+        mtxConnectDisconnect .lock();
+
         pLogManager ->printAndLog( "Shutting down...\n");
 
         pMainWindow->updateOnlineUsersCount(0);
@@ -2003,6 +2021,8 @@ void ServerService::shutdownAllUsers()
                 bWinSockStarted = false;
             }
         }
+
+        mtxConnectDisconnect .unlock();
     }
     else
     {

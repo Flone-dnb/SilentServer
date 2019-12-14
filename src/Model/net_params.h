@@ -10,7 +10,7 @@
 
 // TCP / UDP
 #define  INTERVAL_TCP_ACCEPT_MS              300
-#define  INTERVAL_TCP_MESSAGE_MS             120
+#define  INTERVAL_TCP_MESSAGE_MS             150 // must be a multiple of 25, see listenForMessage().
 #define  INTERVAL_UDP_MESSAGE_MS             2
 #define  ANTI_SPAM_MINIMUM_TIME_SEC          2.0f
 #define  INTERVAL_REFRESH_WRONG_PACKETS_SEC  30
