@@ -7,7 +7,7 @@
 #include <QMessageBox>
 
 // Custom
-#include "../src/Model/SettingsManager/SettingsFile.h"
+#include "Model/SettingsManager/SettingsFile.h"
 
 SettingsWindow::SettingsWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::SettingsWindow)
 {

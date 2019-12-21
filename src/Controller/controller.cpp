@@ -3,9 +3,9 @@
 
 
 // Custom
-#include "../src/Model/ServerService/serverservice.h"
-#include "../src/Model/SettingsManager/settingsmanager.h"
-#include "../src/Model/LogManager/logmanager.h"
+#include "Model/ServerService/serverservice.h"
+#include "Model/SettingsManager/settingsmanager.h"
+#include "Model/LogManager/logmanager.h"
 
 
 Controller::Controller(MainWindow* pMainWindow)

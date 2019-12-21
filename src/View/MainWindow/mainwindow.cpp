@@ -13,11 +13,11 @@
 #include <QScrollBar>
 
 // Custom
-#include "../src/Controller/controller.h"
-#include "../src/View/AboutWindow/aboutwindow.h"
-#include "../src/View/SettingsWindow/settingswindow.h"
-#include "../src/View/PingColorParams.h"
-#include "../src/Model/SettingsManager/SettingsFile.h"
+#include "Controller/controller.h"
+#include "View/AboutWindow/aboutwindow.h"
+#include "View/SettingsWindow/settingswindow.h"
+#include "View/PingColorParams.h"
+#include "Model/SettingsManager/SettingsFile.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :

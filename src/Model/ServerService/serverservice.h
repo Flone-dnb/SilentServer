@@ -16,7 +16,7 @@
 #pragma comment(lib,"Ws2_32.lib")
 
 // Custom
-#include "../src/Model/userstruct.h"
+#include "Model/userstruct.h"
 
 
 

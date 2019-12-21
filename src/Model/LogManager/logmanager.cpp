@@ -7,9 +7,9 @@
 #include <ctime>
 
 // Custom
-#include "../src/View/MainWindow/mainwindow.h"
-#include "../src/Model/SettingsManager/settingsmanager.h"
-#include "../src/Model/SettingsManager/SettingsFile.h"
+#include "View/MainWindow/mainwindow.h"
+#include "Model/SettingsManager/settingsmanager.h"
+#include "Model/SettingsManager/SettingsFile.h"
 
 // Other
 #include <Windows.h>

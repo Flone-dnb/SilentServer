@@ -1,9 +1,3 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2019-01-29T18:40:24
-#
-#-------------------------------------------------
-
 QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -61,6 +55,7 @@ win32
 
 RESOURCES += ../res/qt_rec_file.qrc
 
+INCLUDEPATH += "../src"
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -4,12 +4,12 @@
 #include <thread>
 
 //Custom
-#include "../src/View/MainWindow/mainwindow.h"
-#include "../src/Model/net_params.h"
-#include "../src/Model/SettingsManager/settingsmanager.h"
-#include "../src/Model/SettingsManager/SettingsFile.h"
-#include "../src/Model/LogManager/logmanager.h"
-#include "../src/Model/ServerService/UDPPacket.h"
+#include "View/MainWindow/mainwindow.h"
+#include "Model/net_params.h"
+#include "Model/SettingsManager/settingsmanager.h"
+#include "Model/SettingsManager/SettingsFile.h"
+#include "Model/LogManager/logmanager.h"
+#include "Model/ServerService/UDPPacket.h"
 
 
 enum CONNECT_MESSAGES

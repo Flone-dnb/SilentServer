@@ -6,8 +6,8 @@
 #include <shlobj.h>
 
 // Custom
-#include "../src/View/MainWindow/mainwindow.h"
-#include "../src/Model/SettingsManager/SettingsFile.h"
+#include "View/MainWindow/mainwindow.h"
+#include "Model/SettingsManager/SettingsFile.h"
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
