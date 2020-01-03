@@ -1,4 +1,9 @@
-﻿#include "controller.h"
+﻿// This file is part of the Silent Server.
+// Copyright Aleksandr "Flone" Tretyakov (github.com/Flone-dnb).
+// Licensed under the ZLib license.
+// Refer to the LICENSE file included.
+
+#include "controller.h"
 
 
 
