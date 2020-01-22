@@ -521,8 +521,11 @@ void ServerService::listenForNewTCPConnections()
         memset(&connectedWithIP,0,16);
         inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
 
-        char tempData[MAX_BUFFER_SIZE];
-        memset(tempData, 0, MAX_BUFFER_SIZE);
+
+        const int iMaxBufferSize = 4000;
+
+        char tempData[iMaxBufferSize];
+        memset(tempData, 0, iMaxBufferSize);
 
         // we ++ new user (if something will go wrong later we will -- this user
         iUsersConnectedCount++;
@@ -564,10 +567,9 @@ void ServerService::listenForNewTCPConnections()
         std::memcpy(tempData + 1, &iPacketSize, 2);
 
 
-        if (iBytesWillSend > MAX_BUFFER_SIZE)
+        if (iBytesWillSend > iMaxBufferSize)
         {
-            // This should happen when you got like >50 users online (when all users have name long 20 chars) if my calculations are correct.
-            // Not the main problem right now, tell me if you are suffering from this lol.
+            // This should happen when you got like >200 users online (and all users have name long 20 chars) if my calculations are correct.
 
             pLogManager ->printAndLog("Server is full.\n", true);
 
@@ -589,7 +591,7 @@ void ServerService::listenForNewTCPConnections()
 
         if (iBytesWereSent != iBytesWillSend)
         {
-            pLogManager ->printAndLog("WARNING:\n" + std::to_string(iBytesWereSent)+" bytes were sent of total "
+            pLogManager ->printAndLog("WARNING:\n" + std::to_string(iBytesWereSent) + " bytes were sent of total "
                                       + std::to_string(iBytesWillSend) + " to new user.\n", true);
         }
         if (iBytesWereSent == -1)
