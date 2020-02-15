@@ -17,6 +17,10 @@
 #include <QListWidgetItem>
 #include <QScrollBar>
 
+#if _WIN32
+using std::memcpy;
+#endif
+
 // Custom
 #include "Controller/controller.h"
 #include "View/AboutWindow/aboutwindow.h"
@@ -101,21 +105,33 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
         emit signalTypeOnOutput(QString::fromStdString(errorText));
     }
 }
-void MainWindow::showMessageBox(bool bErrorBox, const std::wstring &sMessage, bool bEmitSignal)
+void MainWindow::showMessageBox(bool bErrorBox, const S16String &sMessage, bool bEmitSignal)
 {
     if (bEmitSignal)
     {
+#if _WIN32
         emit signalShowMessageBox( bErrorBox, QString::fromStdWString(sMessage) );
+#elif __linux__
+        emit signalShowMessageBox( bErrorBox, QString::fromStdU16String(sMessage) );
+#endif
     }
     else
     {
         if (bErrorBox)
         {
+#if _WIN32
             QMessageBox::warning( this, "Error", QString::fromStdWString( sMessage ) );
+#elif __linux__
+            QMessageBox::warning( this, "Error", QString::fromStdU16String( sMessage ) );
+#endif
         }
         else
         {
+#if _WIN32
             QMessageBox::information( this, "Information", QString::fromStdWString( sMessage ) );
+#elif __linux__
+            QMessageBox::information( this, "Information", QString::fromStdU16String( sMessage ) );
+#endif
         }
     }
 }
@@ -164,7 +180,7 @@ void MainWindow::clearChatWindow()
     emit signalClearChatWindow();
 }
 
-void MainWindow::showOldText(wchar_t *pText)
+void MainWindow::showOldText(S16Char *pText)
 {
     emit signalShowOldText(pText);
 }
@@ -211,18 +227,22 @@ void MainWindow::typeSomeOnOutputLog(QString text)
     checkTextSize();
 }
 
-void MainWindow::slotShowOldText(wchar_t *pText)
+void MainWindow::slotShowOldText(S16Char *pText)
 {
     mtxPrintOutput .lock();
 
 
-    std::wstring sText(pText);
+    S16String sText(pText);
 
     delete[] pText;
 
 
     QString sNewText = "";
+#if _WIN32
     sNewText += QString::fromStdWString(sText);
+#elif __linux__
+    sNewText += QString::fromStdU16String(sText);
+#endif
 
     sNewText += ui ->plainTextEdit ->toPlainText() .right( ui ->plainTextEdit ->toPlainText() .size() - 10 ); // 10: ".........."
 
@@ -263,7 +283,7 @@ void MainWindow::slotSetPingToUser(QListWidgetItem* pListItem, int ping)
         QString userNameWithNewPing = "";
         for (int i = 0; i < userNameWithOldPing.size(); i++)
         {
-            if (userNameWithOldPing[i] != " ")
+            if (userNameWithOldPing[i] != ' ')
             {
                 userNameWithNewPing += userNameWithOldPing[i];
             }
@@ -399,16 +419,19 @@ void MainWindow::checkTextSize()
 
         mtxPrintOutput .unlock();
 
-
-        std::wstring sOldWString = sText .left( sText .size() / 2 ) .toStdWString();
+#if _WIN32
+        S16String sOldWString = sText .left( sText .size() / 2 ) .toStdWString();
+#elif __linux__
+        S16String sOldWString = sText .left( sText .size() / 2 ) .toStdU16String();
+#endif
 
         size_t iOldTextSizeInWChars = sOldWString .size() * 2;
 
-        wchar_t* pOldText = new wchar_t[ iOldTextSizeInWChars + 1 ];
-        memset(pOldText, 0, (iOldTextSizeInWChars * sizeof(wchar_t)) + sizeof(wchar_t));
+        S16Char* pOldText = new S16Char[ iOldTextSizeInWChars + 1 ];
+        memset(pOldText, 0, (iOldTextSizeInWChars * sizeof(S16Char)) + sizeof(S16Char));
 
 
-        std::memcpy(pOldText, sOldWString .c_str(), (iOldTextSizeInWChars * sizeof(wchar_t)));
+        memcpy(pOldText, sOldWString .c_str(), (iOldTextSizeInWChars * sizeof(S16Char)));
 
         pController ->archiveText(pOldText, iOldTextSizeInWChars);
     }

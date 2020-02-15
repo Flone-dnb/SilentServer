@@ -6,11 +6,25 @@
 #pragma once
 
 
+#if _WIN32
 #include <winsock2.h>
+#elif __linux__
+#include <sys/socket.h>
+#include <netinet/in.h> // sockaddr_in
+#endif
+
+
 #include <string>
 #include <vector>
 #include <ctime>
+#include <chrono>
 
+
+#if _WIN32
+#define SSocket SOCKET
+#elif __linux__
+#define SSocket int
+#endif
 
 
 class QListWidgetItem;
@@ -19,14 +33,14 @@ class QListWidgetItem;
 
 struct UserStruct
 {
-    SOCKET           userTCPSocket;
+    SSocket           userTCPSocket;
 
 
     sockaddr_in      userUDPAddr;
 
 
-    clock_t          keepAliveTimer;
-    clock_t          lastTimeMessageSent;
+    std::chrono::time_point<std::chrono::steady_clock> keepAliveTimer;
+    std::chrono::time_point<std::chrono::steady_clock> lastTimeMessageSent;
 
 
     char*            pDataFromUser;

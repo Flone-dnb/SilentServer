@@ -10,10 +10,16 @@
 #include <vector>
 #include <string>
 
+// Sockets
+#if _WIN32
+#include <Ws2def.h> // sockaddr_in
+#elif __linux__
+#include <netinet/in.h> // sockaddr_in
+#include <string.h> // for memset()
+#endif
+
 // Custom
 #include "../src/Model/net_params.h"
-#include <Ws2def.h> // sockaddr_in
-
 
 
 class ThreadReject
@@ -83,5 +89,9 @@ public:
 
     // Sender info.
     sockaddr_in senderInfo;
+#if _WIN32
     int         iLen;
+#elif __linux__
+    socklen_t   iLen;
+#endif
 };

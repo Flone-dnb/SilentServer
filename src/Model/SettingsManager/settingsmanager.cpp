@@ -8,7 +8,15 @@
 
 // STL
 #include <fstream>
+
+#if _WIN32
 #include <shlobj.h>
+#elif __linux__
+#define MAX_PATH 255
+#include <stdlib.h> // for getenv()
+#include <stdio.h>
+#include <unistd.h>
+#endif
 
 // Custom
 #include "View/MainWindow/mainwindow.h"
@@ -36,6 +44,7 @@ SettingsManager::SettingsManager(MainWindow* pMainWindow)
 
 void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 {
+#if _WIN32
     // Get the path to the Documents folder.
 
     TCHAR   my_documents[MAX_PATH];
@@ -51,15 +60,40 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
         return;
     }
 
-
-
-
     // Open the settings file.
 
     std::wstring sPathToOldSettings  = std::wstring(my_documents);
     std::wstring sPathToNewSettings  = std::wstring(my_documents);
+
     sPathToOldSettings  += L"\\" + std::wstring(SETTINGS_NAME);
     sPathToNewSettings  += L"\\" + std::wstring(SETTINGS_NAME) + L"~";
+#elif __linux__
+    char* pHomeDir = NULL;
+    pHomeDir = getenv("HOME");
+
+    std::string sPathToOldSettings(pHomeDir);
+    std::string sPathToNewSettings(pHomeDir);
+
+    if (pHomeDir)
+    {
+        sPathToOldSettings += "/" + std::string(SETTINGS_NAME);
+        sPathToNewSettings += "/" + std::string(SETTINGS_NAME) + "~";
+    }
+    else
+    {
+#if _WIN32
+        pMainWindow ->showMessageBox(true, L"ServerService::showSettings() failed. "
+                                           "Can't get path to HOME.");
+#elif __linux__
+        pMainWindow ->showMessageBox(true, u"ServerService::showSettings() failed. "
+                                           "Can't get path to HOME.");
+#endif
+
+        delete pSettingsFile;
+
+        return;
+    }
+#endif
 
     std::ifstream settingsFile (sPathToOldSettings, std::ios::binary);
     std::ofstream newSettingsFile;
@@ -92,8 +126,13 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     newSettingsFile .write
             ( reinterpret_cast<char*>(&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
 
+#if _WIN32
     newSettingsFile .write
             ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
+#elif __linux__
+    newSettingsFile .write
+            ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
+#endif
 
     // Log
     char cLog = pSettingsFile ->bLog;
@@ -106,13 +145,17 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
        newSettingsFile .write
                ( reinterpret_cast<char*>(&cLogFilePathLength), sizeof(cLogFilePathLength) );
 
+#if _WIN32
        newSettingsFile .write
                ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength * 2 );
+#elif __linux__
+       newSettingsFile .write
+               ( reinterpret_cast<char*>(  const_cast <char*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength );
+#endif
     }
 
     // NEW SETTINGS GO HERE
     // + don't forget to update "readSettings()"
-
 
 
 
@@ -123,9 +166,15 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
         settingsFile    .close();
         newSettingsFile .close();
 
+#if _WIN32
         _wremove( sPathToOldSettings .c_str() );
 
         _wrename( sPathToNewSettings .c_str(), sPathToOldSettings .c_str() );
+#elif __linux__
+        unlink(sPathToOldSettings .c_str());
+
+        rename(sPathToNewSettings .c_str(), sPathToOldSettings .c_str());
+#endif
     }
     else
     {
@@ -162,6 +211,7 @@ SettingsFile *SettingsManager::getCurrentSettings()
 
 SettingsFile *SettingsManager::readSettings()
 {
+#if _WIN32
     // Get the path to the Documents folder.
 
     TCHAR   my_documents[MAX_PATH];
@@ -169,11 +219,39 @@ SettingsFile *SettingsManager::readSettings()
 
     if (result != S_OK)
     {
-        pMainWindow ->showMessageBox(true, L"ServerService::showSettings::SHGetFolderPathW() failed. "
+        pMainWindow ->showMessageBox(true, L"ServerService::readSettings::SHGetFolderPathW() failed. "
                                            "Can't open the settings file.");
 
         return nullptr;
     }
+
+    // Open the settings file.
+
+    std::wstring adressToSettings = std::wstring(my_documents);
+    adressToSettings             += L"\\" + std::wstring(SETTINGS_NAME);
+#elif __linux__
+    char* pHomeDir = NULL;
+    pHomeDir = getenv("HOME");
+
+    std::string adressToSettings = std::string(pHomeDir);
+
+    if (pHomeDir)
+    {
+        adressToSettings             += "/" + std::string(SETTINGS_NAME);
+    }
+    else
+    {
+#if _WIN32
+        pMainWindow ->showMessageBox(true, L"ServerService::readSettings() failed. "
+                                           "Can't get path to HOME.");
+#elif __linux__
+        pMainWindow ->showMessageBox(true, u"ServerService::readSettings() failed. "
+                                           "Can't get path to HOME.");
+#endif
+
+        return nullptr;
+    }
+#endif
 
 
 
@@ -182,14 +260,6 @@ SettingsFile *SettingsManager::readSettings()
 
     SettingsFile* pSettingsFile = new SettingsFile();
 
-
-
-
-
-    // Open the settings file.
-
-    std::wstring adressToSettings = std::wstring(my_documents);
-    adressToSettings             += L"\\" + std::wstring(SETTINGS_NAME);
 
     std::ifstream settingsFile (adressToSettings, std::ios::binary);
 
@@ -238,7 +308,7 @@ SettingsFile *SettingsManager::readSettings()
         settingsFile .read( reinterpret_cast <char*> (&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
         iPos += sizeof(cPasswordToJoinLength);
 
-        wchar_t vBuffer[UCHAR_MAX + 1];
+        S16Char vBuffer[UCHAR_MAX + 1];
         memset(vBuffer, 0, UCHAR_MAX + 1);
 
         settingsFile .read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because wchar_t is 2 bytes each char
@@ -263,13 +333,22 @@ SettingsFile *SettingsManager::readSettings()
             iPos += sizeof(cLogFilePathLength);
 
 
-
+#if _WIN32
             memset(vBuffer, 0, UCHAR_MAX + 1);
             settingsFile .read
                    ( reinterpret_cast<char*>( vBuffer ), cLogFilePathLength * 2 );
             iPos += cLogFilePathLength * 2;
 
             pSettingsFile ->sPathToLogFile = vBuffer;
+#elif __linux__
+            char vLogBuffer[UCHAR_MAX + 1];
+            memset(vLogBuffer, 0, UCHAR_MAX + 1);
+            settingsFile .read
+                   ( reinterpret_cast<char*>( vLogBuffer ), cLogFilePathLength );
+            iPos += cLogFilePathLength;
+
+            pSettingsFile ->sPathToLogFile = vLogBuffer;
+#endif
         }
 
 

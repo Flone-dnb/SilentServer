@@ -27,7 +27,11 @@ void SettingsWindow::setSettings( SettingsFile* pSettingsFile )
 
     ui ->checkBox_HTML ->setChecked( pSettingsFile ->bAllowHTMLInMessages );
 
+#if _WIN32
     ui ->lineEdit_pass ->setText( QString::fromStdWString( pSettingsFile ->sPasswordToJoin ) );
+#elif __linux__
+    ui ->lineEdit_pass ->setText( QString::fromStdU16String( pSettingsFile ->sPasswordToJoin ) );
+#endif
 
     if ( pSettingsFile ->bLog )
     {
@@ -35,7 +39,11 @@ void SettingsWindow::setSettings( SettingsFile* pSettingsFile )
         ui ->lineEdit_log_file_path ->setEnabled(true);
         ui ->pushButton_log_file_select_path ->setEnabled(true);
 
+#if _WIN32
         ui ->lineEdit_log_file_path ->setText( QString::fromStdWString( pSettingsFile ->sPathToLogFile ) );
+#elif __linux__
+        ui ->lineEdit_log_file_path ->setText( QString::fromStdString( pSettingsFile ->sPathToLogFile ) );
+#endif
     }
 }
 
@@ -58,11 +66,19 @@ void SettingsWindow::on_pushButton_clicked()
             }
         }
 
+#if _WIN32
         emit signalApply( new SettingsFile( ui ->lineEdit ->text() .toUShort(),
                                             ui ->checkBox_HTML ->isChecked(),
                                             ui ->lineEdit_pass ->text() .toStdWString(),
                                             ui ->checkBox_log ->isChecked(),
                                             ui ->lineEdit_log_file_path ->text() .toStdWString() ));
+#elif __linux__
+        emit signalApply( new SettingsFile( ui ->lineEdit ->text() .toUShort(),
+                                            ui ->checkBox_HTML ->isChecked(),
+                                            ui ->lineEdit_pass ->text() .toStdU16String(),
+                                            ui ->checkBox_log ->isChecked(),
+                                            ui ->lineEdit_log_file_path ->text() .toStdString() ));
+#endif
     }
 
     close();

@@ -31,6 +31,14 @@ namespace Ui {
 class MainWindow;
 }
 
+#if _WIN32
+#define S16String S16String
+#define S16Char   S16Char
+#elif __linux__
+#define S16String std::u16string
+#define S16Char   char16_t
+#endif
+
 
 #define ARCHIVE_HALF_TEXT_SLIDER_VALUE 100
 
@@ -55,10 +63,10 @@ public:
 
     // Updating / Printing / Showing
 
-        void             showMessageBox             (bool bErrorBox,         const std::wstring& sMessage, bool bEmitSignal = false);
+        void             showMessageBox             (bool bErrorBox,         const S16String& sMessage, bool bEmitSignal = false);
         void             printOutput                (std::string errorText,  bool bEmitSignal = false);
         void             updateOnlineUsersCount     (int iNewAmount);
-        void             showOldText                (wchar_t* pText);
+        void             showOldText                (S16Char* pText);
         void             clearChatWindow            ();
 
 
@@ -86,7 +94,7 @@ signals:
         void             signalShowMessageBox        (bool bErrorBox,              const QString& sMessage);
         void             signalSetPingToUser         (QListWidgetItem* pListItem,  int ping);
         void             signalTypeOnOutput          (QString text);
-        void             signalShowOldText           (wchar_t* pText);
+        void             signalShowOldText           (S16Char* pText);
         void             signalClearChatWindow       ();
 
 protected:
@@ -102,7 +110,7 @@ private slots:
         void             slotShowMessageBox          (bool bErrorBox,              const QString& sMessage);
         void             slotSetPingToUser           (QListWidgetItem* pListItem,  int ping);
         void             typeSomeOnOutputLog         (QString text);
-        void             slotShowOldText             (wchar_t* pText);
+        void             slotShowOldText             (S16Char* pText);
         void             slotClearChatWindow         ();
 
 

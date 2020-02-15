@@ -14,8 +14,11 @@ class MainWindow;
 class SettingsFile;
 
 
-
+#if _WIN32
 #define SETTINGS_NAME L"SilentServerSettings.data"
+#elif __linux__
+#define SETTINGS_NAME "SilentServerSettings.data"
+#endif
 
 
 // ------------------------------------------------------------------------------------------------

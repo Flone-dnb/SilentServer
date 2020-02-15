@@ -14,6 +14,14 @@ class SettingsManager;
 class SettingsFile;
 class LogManager;
 
+#if _WIN32
+#define S16String std::wstring
+#define S16Char   S16Char
+#elif __linux__
+#define S16String std::u16string
+#define S16Char   char16_t
+#endif
+
 
 class Controller
 {
@@ -37,7 +45,7 @@ public:
 
     // Archive text
 
-        void            archiveText           (wchar_t* pText, size_t iWChars);
+        void            archiveText           (S16Char* pText, size_t iWChars);
         void            showOldText           ();
 
 

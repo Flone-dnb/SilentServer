@@ -10,6 +10,7 @@
 #include <fstream>
 #include <thread>
 #include <ctime>
+#include <vector>
 
 // Custom
 #include "View/MainWindow/mainwindow.h"
@@ -17,7 +18,16 @@
 #include "Model/SettingsManager/SettingsFile.h"
 
 // Other
+#if _WIN32
 #include <Windows.h>
+using std::memcpy;
+#elif __linux__
+#include <stdlib.h> // for getenv()
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#define MAX_PATH 255
+#endif
 
 
 
@@ -44,8 +54,11 @@ LogManager::LogManager(MainWindow* pMainWindow, SettingsManager* pSettingsManage
         {
             logFile .close();
 
-
+#if _WIN32
             _wremove( pSettingsManager ->getCurrentSettings() ->sPathToLogFile .c_str() );
+#elif __linux__
+            unlink(pSettingsManager ->getCurrentSettings() ->sPathToLogFile .c_str());
+#endif
         }
     }
 }
@@ -63,7 +76,7 @@ void LogManager::printAndLog(std::string sText, bool bEmitSignal)
     }
 }
 
-void LogManager::archiveText(wchar_t *pText, size_t iWChars)
+void LogManager::archiveText(S16Char *pText, size_t iWChars)
 {
     std::thread tArchive (&LogManager::archiveThread, this, pText, iWChars);
     tArchive .detach();
@@ -97,7 +110,12 @@ void LogManager::logThread(std::string sText)
     time_t tTimeNow = time(nullptr);
 
     tm now;
+#if _WIN32
     ::localtime_s(&now, &tTimeNow);
+#elif __linux__
+    now = *localtime(&tTimeNow);
+#endif
+
     std::string sTimeString = "";
 
     sTimeString += "[" + std::to_string(now .tm_year + 1900) + '.' + std::to_string(now .tm_mon + 1)
@@ -118,14 +136,14 @@ void LogManager::logThread(std::string sText)
     mtxLogWrite .unlock();
 }
 
-void LogManager::archiveThread(wchar_t *pText, size_t iWChars)
+void LogManager::archiveThread(S16Char *pText, size_t iWChars)
 {
     mtxLogWrite .lock();
 
 
     // Prepare the buffer.
 
-    wchar_t vBuffer[MAX_PATH + 1];
+    S16Char vBuffer[MAX_PATH + 1];
     memset(vBuffer, 0, MAX_PATH + 1);
 
 
@@ -133,19 +151,15 @@ void LogManager::archiveThread(wchar_t *pText, size_t iWChars)
 
     // Get the path to the TEMP.
 
+#if _WIN32
     if ( GetTempPathW(MAX_PATH, vBuffer) == 0 )
     {
         mtxLogWrite .unlock();
 
         printAndLog("Can't get the path to the TEMP directory.\n", true);
 
-        delete[] pText;
-
         return;
     }
-
-
-
 
     // Convert the buffer to the std::wstring and add filename.
 
@@ -154,12 +168,50 @@ void LogManager::archiveThread(wchar_t *pText, size_t iWChars)
     sPathToOldFile += L"\\";
     sPathToOldFile += TEMP_FILE_NAME;
 
+    std::wstring sPathToNewFile = sPathToOldFile + L"~";
+#elif __linux__
+
+    char* pTempDir = NULL;
+
+    std::vector<std::string> vTemp = {"TMPDIR", "TMP", "TEMP", "TEMPDIR"};
+
+    for (size_t i = 0; i < vTemp.size(); i++)
+    {
+        pTempDir = getenv(vTemp[i].c_str());
+        if (pTempDir != NULL) break;
+    }
+
+//    if (pTempDir == NULL)
+//    {
+//        mtxLogWrite .unlock();
+
+//        printAndLog("Can't get the path to the TEMP directory.\n", true);
+
+//        return;
+//    }
+
+    std::string sPathToOldFile = "";
+
+    if (pTempDir == NULL)
+    {
+        sPathToOldFile = "/tmp";
+    }
+    else
+    {
+        sPathToOldFile = pTempDir;
+    }
+
+    sPathToOldFile += "/";
+    sPathToOldFile += TEMP_FILE_NAME;
+
+    std::string sPathToNewFile = sPathToOldFile + "~";
+#endif
+
 
 
 
     // Write temp text to the new file.
 
-    std::wstring sPathToNewFile = sPathToOldFile + L"~";
     std::ofstream newTempFile(sPathToNewFile, std::ios::binary);
 
     const int iOneReadLengthInBytes = 1024 * 128;
@@ -178,7 +230,7 @@ void LogManager::archiveThread(wchar_t *pText, size_t iWChars)
         {
             // Not the last read.
 
-            std::memcpy(vReadBuffer, reinterpret_cast <char*>(pText) + iCurrentTextPosInBytes, iOneReadLengthInBytes);
+            memcpy(vReadBuffer, reinterpret_cast <char*>(pText) + iCurrentTextPosInBytes, iOneReadLengthInBytes);
 
             newTempFile .write( vReadBuffer, iOneReadLengthInBytes );
 
@@ -190,7 +242,7 @@ void LogManager::archiveThread(wchar_t *pText, size_t iWChars)
 
             size_t iLeftBytes = iStringSizeInBytes - iCurrentTextPosInBytes;
 
-            std::memcpy(vReadBuffer, reinterpret_cast <char*>(pText) + iCurrentTextPosInBytes, iLeftBytes);
+            memcpy(vReadBuffer, reinterpret_cast <char*>(pText) + iCurrentTextPosInBytes, iLeftBytes);
 
             newTempFile .write( vReadBuffer, static_cast <long long>(iLeftBytes) );
 
@@ -245,16 +297,22 @@ void LogManager::archiveThread(wchar_t *pText, size_t iWChars)
         newTempFile .close();
         oldTempFile .close();
 
-
+#if _WIN32
         _wremove(sPathToOldFile .c_str());
+#elif __linux__
+        unlink(sPathToOldFile .c_str());
+#endif
     }
     else
     {
         newTempFile .close();
     }
 
+#if _WIN32
     _wrename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
-
+#elif __linux__
+    rename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
+#endif
 
     delete[] pText;
 
@@ -269,7 +327,7 @@ void LogManager::showTextThread()
 
     // Prepare the buffer.
 
-    wchar_t vBuffer[MAX_PATH + 1];
+    S16Char vBuffer[MAX_PATH + 1];
     memset(vBuffer, 0, MAX_PATH + 1);
 
 
@@ -277,6 +335,7 @@ void LogManager::showTextThread()
 
     // Get the path to the TEMP.
 
+#if _WIN32
     if ( GetTempPathW(MAX_PATH, vBuffer) == 0 )
     {
         mtxLogWrite .unlock();
@@ -286,9 +345,6 @@ void LogManager::showTextThread()
         return;
     }
 
-
-
-
     // Convert the buffer to the std::wstring and add filename.
 
     std::wstring sPathToOldFile(vBuffer);
@@ -296,6 +352,43 @@ void LogManager::showTextThread()
     sPathToOldFile += L"\\";
     sPathToOldFile += TEMP_FILE_NAME;
 
+#elif __linux__
+
+    char* pTempDir = NULL;
+
+    std::vector<std::string> vTemp = {"TMPDIR", "TMP", "TEMP", "TEMPDIR"};
+
+    for (size_t i = 0; i < vTemp.size(); i++)
+    {
+        pTempDir = getenv(vTemp[i].c_str());
+        if (pTempDir != NULL) break;
+    }
+
+//    if (pTempDir == NULL)
+//    {
+//        pTempDir = "/tmp";
+
+//        mtxLogWrite .unlock();
+
+//        printAndLog("Can't get the path to the TEMP directory.\n", true);
+
+//        return;
+//    }
+
+    std::string sPathToOldFile = "";
+
+    if (pTempDir == NULL)
+    {
+        sPathToOldFile = "/tmp";
+    }
+    else
+    {
+        sPathToOldFile = pTempDir;
+    }
+
+    sPathToOldFile += "/";
+    sPathToOldFile += TEMP_FILE_NAME;
+#endif
 
 
 
@@ -319,11 +412,11 @@ void LogManager::showTextThread()
 
     tempFile .read(reinterpret_cast <char*>(&iSizeOfTextInWChars), sizeof(iSizeOfTextInWChars));
 
-    wchar_t* pText = new wchar_t[iSizeOfTextInWChars + 1];
-    memset(pText, 0, (iSizeOfTextInWChars * sizeof(wchar_t)) + sizeof(wchar_t));
+    S16Char* pText = new S16Char[iSizeOfTextInWChars + 1];
+    memset(pText, 0, (iSizeOfTextInWChars * sizeof(S16Char)) + sizeof(S16Char));
 
     tempFile .read( reinterpret_cast <char*>(pText), static_cast <long long>(iSizeOfTextInWChars)
-                    * static_cast <long long>(sizeof(wchar_t)) );
+                    * static_cast <long long>(sizeof(S16Char)) );
 
     tempFile .close();
 
@@ -354,7 +447,12 @@ void LogManager::showTextThread()
 
     // Move left text to the new file.
 
+#if _WIN32
     std::wstring sPathToNewFile = sPathToOldFile + L"~";
+#elif __linux__
+    std::string sPathToNewFile = sPathToOldFile + "~";
+#endif
+
     std::ofstream newTempFile(sPathToNewFile, std::ios::binary);
 
     const int iOneReadLengthBytes = 1024 * 128;
@@ -396,6 +494,7 @@ void LogManager::showTextThread()
     tempFile .close();
     newTempFile .close();
 
+#if _WIN32
     _wremove(sPathToOldFile .c_str());
 
     if (bFirstRead)
@@ -406,6 +505,18 @@ void LogManager::showTextThread()
     {
         _wrename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
     }
+#elif __linux__
+    unlink(sPathToOldFile .c_str());
+
+    if (bFirstRead)
+    {
+        unlink(sPathToNewFile .c_str());
+    }
+    else
+    {
+        rename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
+    }
+#endif
 
 
     mtxLogWrite .unlock();
@@ -417,7 +528,7 @@ void LogManager::eraseTempFile()
 
     // Prepare the buffer.
 
-    wchar_t vBuffer[MAX_PATH + 1];
+    S16Char vBuffer[MAX_PATH + 1];
     memset(vBuffer, 0, MAX_PATH + 1);
 
 
@@ -425,15 +536,15 @@ void LogManager::eraseTempFile()
 
     // Get the path to the TEMP.
 
+#if _WIN32
     if ( GetTempPathW(MAX_PATH, vBuffer) == 0 )
     {
+        mtxLogWrite .unlock();
+
         printAndLog("Can't get the path to the TEMP directory.\n", true);
 
         return;
     }
-
-
-
 
     // Convert the buffer to the std::wstring and add filename.
 
@@ -442,6 +553,41 @@ void LogManager::eraseTempFile()
     sPathToOldFile += L"\\";
     sPathToOldFile += TEMP_FILE_NAME;
 
+#elif __linux__
+
+    char* pTempDir = NULL;
+
+    std::vector<std::string> vTemp = {"TMPDIR", "TMP", "TEMP", "TEMPDIR"};
+
+    for (size_t i = 0; i < vTemp.size(); i++)
+    {
+        pTempDir = getenv(vTemp[i].c_str());
+        if (pTempDir != NULL) break;
+    }
+
+//    if (pTempDir == NULL)
+//    {
+//        mtxLogWrite .unlock();
+
+//        printAndLog("Can't get the path to the TEMP directory.\n", true);
+
+//        return;
+//    }
+
+    std::string sPathToOldFile = "";
+
+    if (pTempDir == NULL)
+    {
+        sPathToOldFile = "/tmp";
+    }
+    else
+    {
+        sPathToOldFile = pTempDir;
+    }
+
+    sPathToOldFile += "/";
+    sPathToOldFile += TEMP_FILE_NAME;
+#endif
 
 
     // Check if it exists.
@@ -453,6 +599,10 @@ void LogManager::eraseTempFile()
     {
         tempFile .close();
 
+#if _WIN32
         _wremove( sPathToOldFile .c_str() );
+#elif __linux__
+        unlink(sPathToOldFile.c_str());
+#endif
     }
 }

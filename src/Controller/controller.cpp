@@ -94,7 +94,7 @@ void Controller::kickUser(QListWidgetItem *pListWidgetItem)
     pServerService ->kickUser(pListWidgetItem);
 }
 
-void Controller::archiveText(wchar_t *pText, size_t iWChars)
+void Controller::archiveText(S16Char *pText, size_t iWChars)
 {
     if (pLogManager)
     {
