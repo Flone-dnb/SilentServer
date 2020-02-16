@@ -109,29 +109,17 @@ void MainWindow::showMessageBox(bool bErrorBox, const std::u16string &sMessage, 
 {
     if (bEmitSignal)
     {
-#if _WIN32
-        emit signalShowMessageBox( bErrorBox, QString::fromStdWString(sMessage) );
-#elif __linux__
         emit signalShowMessageBox( bErrorBox, QString::fromStdU16String(sMessage) );
-#endif
     }
     else
     {
         if (bErrorBox)
         {
-#if _WIN32
-            QMessageBox::warning( this, "Error", QString::fromStdWString( sMessage ) );
-#elif __linux__
             QMessageBox::warning( this, "Error", QString::fromStdU16String( sMessage ) );
-#endif
         }
         else
         {
-#if _WIN32
-            QMessageBox::information( this, "Information", QString::fromStdWString( sMessage ) );
-#elif __linux__
             QMessageBox::information( this, "Information", QString::fromStdU16String( sMessage ) );
-#endif
         }
     }
 }

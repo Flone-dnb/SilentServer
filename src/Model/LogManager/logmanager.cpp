@@ -48,14 +48,19 @@ LogManager::LogManager(MainWindow* pMainWindow, SettingsManager* pSettingsManage
 
     if (pSettingsManager ->getCurrentSettings() ->bLog)
     {
+#if _WIN32
+        std::wstring temp(pSettingsManager ->getCurrentSettings() ->sPathToLogFile.begin(), pSettingsManager ->getCurrentSettings() ->sPathToLogFile.end());
+        std::ofstream logFile (temp, std::ios::app);
+#elif __linux__
         std::ofstream logFile (pSettingsManager ->getCurrentSettings() ->sPathToLogFile, std::ios::app);
+#endif
 
         if ( logFile .is_open() )
         {
             logFile .close();
 
 #if _WIN32
-            _wremove( pSettingsManager ->getCurrentSettings() ->sPathToLogFile .c_str() );
+            _wremove( temp .c_str() );
 #elif __linux__
             unlink(pSettingsManager ->getCurrentSettings() ->sPathToLogFile .c_str());
 #endif
@@ -76,7 +81,7 @@ void LogManager::printAndLog(std::string sText, bool bEmitSignal)
     }
 }
 
-void LogManager::archiveText(S16Char *pText, size_t iWChars)
+void LogManager::archiveText(char16_t *pText, size_t iWChars)
 {
     std::thread tArchive (&LogManager::archiveThread, this, pText, iWChars);
     tArchive .detach();
@@ -102,7 +107,12 @@ void LogManager::logThread(std::string sText)
     mtxLogWrite .lock();
 
 
+#if _WIN32
+    std::wstring temp(pSettingsManager ->getCurrentSettings() ->sPathToLogFile.begin(), pSettingsManager ->getCurrentSettings() ->sPathToLogFile.end());
+    std::ofstream logFile (temp, std::ios::app);
+#elif __linux__
     std::ofstream logFile (pSettingsManager ->getCurrentSettings() ->sPathToLogFile, std::ios::app);
+#endif
 
 
 
@@ -136,14 +146,14 @@ void LogManager::logThread(std::string sText)
     mtxLogWrite .unlock();
 }
 
-void LogManager::archiveThread(S16Char *pText, size_t iWChars)
+void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 {
     mtxLogWrite .lock();
 
 
     // Prepare the buffer.
 
-    S16Char vBuffer[MAX_PATH + 1];
+    wchar_t vBuffer[MAX_PATH + 1];
     memset(vBuffer, 0, MAX_PATH + 1);
 
 
@@ -412,11 +422,11 @@ void LogManager::showTextThread()
 
     tempFile .read(reinterpret_cast <char*>(&iSizeOfTextInWChars), sizeof(iSizeOfTextInWChars));
 
-    S16Char* pText = new S16Char[iSizeOfTextInWChars + 1];
-    memset(pText, 0, (iSizeOfTextInWChars * sizeof(S16Char)) + sizeof(S16Char));
+    char16_t* pText = new char16_t[iSizeOfTextInWChars + 1];
+    memset(pText, 0, (iSizeOfTextInWChars * sizeof(char16_t)) + sizeof(char16_t));
 
     tempFile .read( reinterpret_cast <char*>(pText), static_cast <long long>(iSizeOfTextInWChars)
-                    * static_cast <long long>(sizeof(S16Char)) );
+                    * static_cast <long long>(sizeof(char16_t)) );
 
     tempFile .close();
 

@@ -1901,7 +1901,6 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
     mtxConnectDisconnect .unlock();
 }
 
-#ifdef __linux__
 void ServerService::sendFINtoSocket(SSocket socketToClose)
 {
     // Translate socket to blocking mode
@@ -1952,7 +1951,6 @@ void ServerService::sendFINtoSocket(SSocket socketToClose)
         }
     }
 }
-#endif
 
 void ServerService::shutdownAllUsers()
 {

@@ -62,8 +62,9 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 
     // Open the settings file.
 
-    std::u16string sPathToOldSettings  = std::u16string(my_documents);
-    std::u16string sPathToNewSettings  = std::u16string(my_documents);
+    std::wstring temp1 = std::wstring(my_documents);
+    std::u16string sPathToOldSettings(temp1.begin(), temp1.end());
+    std::u16string sPathToNewSettings(temp1.begin(), temp1.end());
 
     sPathToOldSettings  += u"\\" + std::u16string(SETTINGS_NAME);
     sPathToNewSettings  += u"\\" + std::u16string(SETTINGS_NAME) + u"~";
@@ -95,16 +96,31 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     }
 #endif
 
+#if _WIN32
+    std::wstring path (sPathToOldSettings.begin(), sPathToOldSettings.end());
+    std::ifstream settingsFile (path, std::ios::binary);
+#elif __linux__
     std::ifstream settingsFile (sPathToOldSettings, std::ios::binary);
+#endif
     std::ofstream newSettingsFile;
 
     if ( settingsFile .is_open() )
     {
+#if _WIN32
+        std::wstring path1 (sPathToNewSettings.begin(), sPathToNewSettings.end());
+        newSettingsFile .open(path1);
+#elif __linux__
         newSettingsFile .open(sPathToNewSettings);
+#endif
     }
     else
     {
+#if _WIN32
+        std::wstring path1 (sPathToOldSettings.begin(), sPathToOldSettings.end());
+        newSettingsFile .open(path1);
+#elif __linux__
         newSettingsFile .open(sPathToOldSettings);
+#endif
     }
 
 
@@ -162,9 +178,11 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
         newSettingsFile .close();
 
 #if _WIN32
-        _wremove( sPathToOldSettings .c_str() );
+        std::wstring path1 (sPathToOldSettings.begin(), sPathToOldSettings.end());
+        _wremove( path1 .c_str() );
 
-        _wrename( sPathToNewSettings .c_str(), sPathToOldSettings .c_str() );
+        std::wstring path2 (sPathToNewSettings.begin(), sPathToNewSettings.end());
+        _wrename( path2 .c_str(), path1 .c_str() );
 #elif __linux__
         unlink(sPathToOldSettings .c_str());
 
@@ -222,7 +240,9 @@ SettingsFile *SettingsManager::readSettings()
 
     // Open the settings file.
 
-    std::u16string adressToSettings = std::u16string(my_documents);
+
+    std::wstring temp = std::wstring(my_documents);
+    std::u16string adressToSettings(temp.begin(), temp.end());
     adressToSettings             += u"\\" + std::u16string(SETTINGS_NAME);
 #elif __linux__
     char* pHomeDir = NULL;
@@ -256,7 +276,12 @@ SettingsFile *SettingsManager::readSettings()
     SettingsFile* pSettingsFile = new SettingsFile();
 
 
+#if _WIN32
+    std::wstring path (adressToSettings.begin(), adressToSettings.end());
+    std::ifstream settingsFile (path, std::ios::binary);
+#elif __linux__
     std::ifstream settingsFile (adressToSettings, std::ios::binary);
+#endif
 
     // Get file size.
     settingsFile .seekg(0, std::ios::end);

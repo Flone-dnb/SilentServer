@@ -36,7 +36,7 @@ void SettingsWindow::setSettings( SettingsFile* pSettingsFile )
         ui ->pushButton_log_file_select_path ->setEnabled(true);
 
 #if _WIN32
-        ui ->lineEdit_log_file_path ->setText( QString::fromStdWString( pSettingsFile ->sPathToLogFile ) );
+        ui ->lineEdit_log_file_path ->setText( QString::fromStdU16String( pSettingsFile ->sPathToLogFile ) );
 #elif __linux__
         ui ->lineEdit_log_file_path ->setText( QString::fromStdString( pSettingsFile ->sPathToLogFile ) );
 #endif
@@ -67,7 +67,7 @@ void SettingsWindow::on_pushButton_clicked()
                                             ui ->checkBox_HTML ->isChecked(),
                                             ui ->lineEdit_pass ->text() .toStdU16String(),
                                             ui ->checkBox_log ->isChecked(),
-                                            ui ->lineEdit_log_file_path ->text() .toStdWString() ));
+                                            ui ->lineEdit_log_file_path ->text() .toStdU16String() ));
 #elif __linux__
         emit signalApply( new SettingsFile( ui ->lineEdit ->text() .toUShort(),
                                             ui ->checkBox_HTML ->isChecked(),

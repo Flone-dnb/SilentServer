@@ -45,7 +45,7 @@ public:
 
 
     void  printAndLog   (std::string sText, bool bEmitSignal = false);
-    void  archiveText   (S16Char* pText, size_t iWChars);
+    void  archiveText   (char16_t* pText, size_t iWChars);
     void  showOldText   ();
     void  eraseTempFile ();
 
@@ -56,7 +56,7 @@ public:
 private:
 
     void  logThread     (std::string sText);
-    void  archiveThread (S16Char* pText, size_t iWChars);
+    void  archiveThread (char16_t* pText, size_t iWChars);
     void  showTextThread();
 
 

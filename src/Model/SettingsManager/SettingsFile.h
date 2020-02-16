@@ -50,8 +50,8 @@ public:
 
 
     std::u16string     sPasswordToJoin;
-#if _WIN3
-    std::u16string       sPathToLogFile;
+#if _WIN32
+    std::u16string     sPathToLogFile;
 #elif __linux__
     std::string        sPathToLogFile;
 #endif
