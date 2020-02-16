@@ -177,7 +177,6 @@ void ServerService::catchUDPPackets()
             iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
         }
 
-
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS / 2) );
     }
 }
@@ -260,7 +259,7 @@ bool ServerService::setSocketBlocking(SSocket socket, bool bBlocking)
 
     if (bBlocking)
     {
-        flags = flags | ~O_NONBLOCK;
+        flags = flags & ~O_NONBLOCK;
     }
     else
     {
@@ -361,7 +360,7 @@ void ServerService::startToListenForConnection()
         memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
         myAddr .sin_family      = AF_INET;
         myAddr .sin_port        = htons( pSettingsManager ->getCurrentSettings() ->iPort );
-        myAddr .sin_addr.s_addr = htonl(INADDR_ANY);
+        myAddr .sin_addr.s_addr = INADDR_ANY;
 
         if (bind(listenTCPSocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
         {
@@ -843,7 +842,7 @@ void ServerService::prepareForVoiceConnection()
     memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
     myAddr.sin_family = AF_INET;
     myAddr.sin_port = htons(pSettingsManager ->getCurrentSettings() ->iPort);
-    myAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myAddr.sin_addr.s_addr = INADDR_ANY;
 
 
 
@@ -853,6 +852,7 @@ void ServerService::prepareForVoiceConnection()
 #elif __linux__
     int bMultAddr = 1;
 #endif
+
     if (setsockopt(UDPsocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&bMultAddr), sizeof(bMultAddr)) == SOCKET_ERROR)
     {
         pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::setsockopt() error: " + std::to_string(getLastError()), true );
@@ -971,7 +971,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
 
             keepAliveChar = 0;
             int returnCode = recv(userToListen->userTCPSocket, &keepAliveChar, 1, 0);
-            if (returnCode >= 0)
+            if ((keepAliveChar == 9) && returnCode >= 0)
             {
                 userToListen->keepAliveTimer = std::chrono::steady_clock::now();
 
