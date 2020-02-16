@@ -15,7 +15,7 @@ class SettingsFile;
 
 
 #if _WIN32
-#define SETTINGS_NAME L"SilentServerSettings.data"
+#define SETTINGS_NAME u"SilentServerSettings.data"
 #elif __linux__
 #define SETTINGS_NAME "SilentServerSettings.data"
 #endif

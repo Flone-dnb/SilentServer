@@ -105,7 +105,7 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
         emit signalTypeOnOutput(QString::fromStdString(errorText));
     }
 }
-void MainWindow::showMessageBox(bool bErrorBox, const S16String &sMessage, bool bEmitSignal)
+void MainWindow::showMessageBox(bool bErrorBox, const std::u16string &sMessage, bool bEmitSignal)
 {
     if (bEmitSignal)
     {
@@ -180,7 +180,7 @@ void MainWindow::clearChatWindow()
     emit signalClearChatWindow();
 }
 
-void MainWindow::showOldText(S16Char *pText)
+void MainWindow::showOldText(char16_t *pText)
 {
     emit signalShowOldText(pText);
 }
@@ -227,22 +227,18 @@ void MainWindow::typeSomeOnOutputLog(QString text)
     checkTextSize();
 }
 
-void MainWindow::slotShowOldText(S16Char *pText)
+void MainWindow::slotShowOldText(char16_t *pText)
 {
     mtxPrintOutput .lock();
 
 
-    S16String sText(pText);
+    std::u16string sText(pText);
 
     delete[] pText;
 
 
     QString sNewText = "";
-#if _WIN32
-    sNewText += QString::fromStdWString(sText);
-#elif __linux__
     sNewText += QString::fromStdU16String(sText);
-#endif
 
     sNewText += ui ->plainTextEdit ->toPlainText() .right( ui ->plainTextEdit ->toPlainText() .size() - 10 ); // 10: ".........."
 
@@ -419,19 +415,15 @@ void MainWindow::checkTextSize()
 
         mtxPrintOutput .unlock();
 
-#if _WIN32
-        S16String sOldWString = sText .left( sText .size() / 2 ) .toStdWString();
-#elif __linux__
-        S16String sOldWString = sText .left( sText .size() / 2 ) .toStdU16String();
-#endif
+        std::u16string sOldWString = sText .left( sText .size() / 2 ) .toStdU16String();
 
         size_t iOldTextSizeInWChars = sOldWString .size() * 2;
 
-        S16Char* pOldText = new S16Char[ iOldTextSizeInWChars + 1 ];
-        memset(pOldText, 0, (iOldTextSizeInWChars * sizeof(S16Char)) + sizeof(S16Char));
+        char16_t* pOldText = new char16_t[ iOldTextSizeInWChars + 1 ];
+        memset(pOldText, 0, (iOldTextSizeInWChars * sizeof(char16_t)) + sizeof(char16_t));
 
 
-        memcpy(pOldText, sOldWString .c_str(), (iOldTextSizeInWChars * sizeof(S16Char)));
+        memcpy(pOldText, sOldWString .c_str(), (iOldTextSizeInWChars * sizeof(char16_t)));
 
         pController ->archiveText(pOldText, iOldTextSizeInWChars);
     }

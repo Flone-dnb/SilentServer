@@ -12,14 +12,6 @@
 // Custom
 #include "../src/Model/net_params.h"
 
-#if _WIN32
-#define S16String std::wstring
-#define S16Char   wchar_t
-#elif __linux__
-#define S16String std::u16string
-#define S16Char   char16_t
-#endif
-
 
 class SettingsFile
 {
@@ -28,9 +20,9 @@ public:
 #if _WIN32
     SettingsFile(unsigned short int iPort     = SERVER_PORT,
                  bool bAllowHTMLInMessages    = false,
-                 std::wstring sPasswordToJoin = L"",
+                 std::u16string sPasswordToJoin = u"",
                  bool bLog                    = false,
-                 std::wstring sPathToLogFile  = L"")
+                 std::u16string sPathToLogFile  = u"")
     {
         this ->iPort                = iPort;
         this ->bAllowHTMLInMessages = bAllowHTMLInMessages;
@@ -57,9 +49,9 @@ public:
     // -------------------------
 
 
-    S16String          sPasswordToJoin;
+    std::u16string     sPasswordToJoin;
 #if _WIN3
-    std::wstring       sPathToLogFile;
+    std::u16string       sPathToLogFile;
 #elif __linux__
     std::string        sPathToLogFile;
 #endif

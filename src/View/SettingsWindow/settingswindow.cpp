@@ -27,11 +27,7 @@ void SettingsWindow::setSettings( SettingsFile* pSettingsFile )
 
     ui ->checkBox_HTML ->setChecked( pSettingsFile ->bAllowHTMLInMessages );
 
-#if _WIN32
-    ui ->lineEdit_pass ->setText( QString::fromStdWString( pSettingsFile ->sPasswordToJoin ) );
-#elif __linux__
     ui ->lineEdit_pass ->setText( QString::fromStdU16String( pSettingsFile ->sPasswordToJoin ) );
-#endif
 
     if ( pSettingsFile ->bLog )
     {
@@ -69,7 +65,7 @@ void SettingsWindow::on_pushButton_clicked()
 #if _WIN32
         emit signalApply( new SettingsFile( ui ->lineEdit ->text() .toUShort(),
                                             ui ->checkBox_HTML ->isChecked(),
-                                            ui ->lineEdit_pass ->text() .toStdWString(),
+                                            ui ->lineEdit_pass ->text() .toStdU16String(),
                                             ui ->checkBox_log ->isChecked(),
                                             ui ->lineEdit_log_file_path ->text() .toStdWString() ));
 #elif __linux__

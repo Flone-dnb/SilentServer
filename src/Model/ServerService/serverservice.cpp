@@ -591,13 +591,9 @@ void ServerService::listenForNewTCPConnections()
 
         // Check if the password is right.
 
-#if _WIN32
-        if (pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != L"")
-#elif __linux__
         if (pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != u"")
-#endif
         {
-            wchar_t vPassBuffer[UCHAR_MAX + 1];
+            char16_t vPassBuffer[UCHAR_MAX + 1];
             memset(vPassBuffer, 0, (UCHAR_MAX * 2) + 2);
 
             char cUserNameSize = nameBuffer[1 + clientVersionSize];
@@ -606,7 +602,7 @@ void ServerService::listenForNewTCPConnections()
             memcpy(vPassBuffer, nameBuffer + 3 + clientVersionSize + cUserNameSize,
                         static_cast<size_t>(cPasswordSize) * 2);
 
-            std::wstring sPassword(vPassBuffer);
+            std::u16string sPassword(vPassBuffer);
 
             if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
             {
@@ -1322,7 +1318,7 @@ void ServerService::processMessage(UserStruct *userToListen)
     if ( timePassedInSeconds < ANTI_SPAM_MINIMUM_TIME_SEC )
     {
         // Receive user message.
-        wchar_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
+        char16_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
         memset(vMessageBuffer, 0, MAX_BUFFER_SIZE / 2);
 
         recv(userToListen->userTCPSocket, reinterpret_cast <char*> (vMessageBuffer), iMessageSize, 0);
@@ -1390,14 +1386,14 @@ void ServerService::processMessage(UserStruct *userToListen)
 
 
     // Receive user message to send
-    wchar_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
+    char16_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
     memset(vMessageBuffer, 0, MAX_BUFFER_SIZE / 2);
 
 
     //recv(userToListen->userTCPSocket, pSendToAllBuffer + 3 + timeString.size(), iMessageSize, 0);
     recv(userToListen->userTCPSocket, reinterpret_cast <char*> (vMessageBuffer), iMessageSize, 0);
 
-    std::wstring sUserMessage (vMessageBuffer);
+    std::u16string sUserMessage (vMessageBuffer);
 
     if (pSettingsManager ->getCurrentSettings() ->bAllowHTMLInMessages == false)
     {

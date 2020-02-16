@@ -52,7 +52,7 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 
     if (result != S_OK)
     {
-        pMainWindow ->showMessageBox(true, L"ServerService::showSettings::SHGetFolderPathW() failed. "
+        pMainWindow ->showMessageBox(true, u"ServerService::showSettings::SHGetFolderPathW() failed. "
                                            "Can't open the settings file.");
 
         delete pSettingsFile;
@@ -62,11 +62,11 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 
     // Open the settings file.
 
-    std::wstring sPathToOldSettings  = std::wstring(my_documents);
-    std::wstring sPathToNewSettings  = std::wstring(my_documents);
+    std::u16string sPathToOldSettings  = std::u16string(my_documents);
+    std::u16string sPathToNewSettings  = std::u16string(my_documents);
 
-    sPathToOldSettings  += L"\\" + std::wstring(SETTINGS_NAME);
-    sPathToNewSettings  += L"\\" + std::wstring(SETTINGS_NAME) + L"~";
+    sPathToOldSettings  += u"\\" + std::u16string(SETTINGS_NAME);
+    sPathToNewSettings  += u"\\" + std::u16string(SETTINGS_NAME) + u"~";
 #elif __linux__
     char* pHomeDir = NULL;
     pHomeDir = getenv("HOME");
@@ -82,7 +82,7 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     else
     {
 #if _WIN32
-        pMainWindow ->showMessageBox(true, L"ServerService::showSettings() failed. "
+        pMainWindow ->showMessageBox(true, u"ServerService::showSettings() failed. "
                                            "Can't get path to HOME.");
 #elif __linux__
         pMainWindow ->showMessageBox(true, u"ServerService::showSettings() failed. "
@@ -126,13 +126,8 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
     newSettingsFile .write
             ( reinterpret_cast<char*>(&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
 
-#if _WIN32
-    newSettingsFile .write
-            ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
-#elif __linux__
     newSettingsFile .write
             ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
-#endif
 
     // Log
     char cLog = pSettingsFile ->bLog;
@@ -147,7 +142,7 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 
 #if _WIN32
        newSettingsFile .write
-               ( reinterpret_cast<char*>(  const_cast <wchar_t*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength * 2 );
+               ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength * 2 );
 #elif __linux__
        newSettingsFile .write
                ( reinterpret_cast<char*>(  const_cast <char*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength );
@@ -219,7 +214,7 @@ SettingsFile *SettingsManager::readSettings()
 
     if (result != S_OK)
     {
-        pMainWindow ->showMessageBox(true, L"ServerService::readSettings::SHGetFolderPathW() failed. "
+        pMainWindow ->showMessageBox(true, u"ServerService::readSettings::SHGetFolderPathW() failed. "
                                            "Can't open the settings file.");
 
         return nullptr;
@@ -227,8 +222,8 @@ SettingsFile *SettingsManager::readSettings()
 
     // Open the settings file.
 
-    std::wstring adressToSettings = std::wstring(my_documents);
-    adressToSettings             += L"\\" + std::wstring(SETTINGS_NAME);
+    std::u16string adressToSettings = std::u16string(my_documents);
+    adressToSettings             += u"\\" + std::u16string(SETTINGS_NAME);
 #elif __linux__
     char* pHomeDir = NULL;
     pHomeDir = getenv("HOME");
@@ -242,7 +237,7 @@ SettingsFile *SettingsManager::readSettings()
     else
     {
 #if _WIN32
-        pMainWindow ->showMessageBox(true, L"ServerService::readSettings() failed. "
+        pMainWindow ->showMessageBox(true, u"ServerService::readSettings() failed. "
                                            "Can't get path to HOME.");
 #elif __linux__
         pMainWindow ->showMessageBox(true, u"ServerService::readSettings() failed. "
@@ -308,10 +303,10 @@ SettingsFile *SettingsManager::readSettings()
         settingsFile .read( reinterpret_cast <char*> (&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
         iPos += sizeof(cPasswordToJoinLength);
 
-        S16Char vBuffer[UCHAR_MAX + 1];
+        char16_t vBuffer[UCHAR_MAX + 1];
         memset(vBuffer, 0, UCHAR_MAX + 1);
 
-        settingsFile .read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because wchar_t is 2 bytes each char
+        settingsFile .read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because char16_t is 2 bytes each char
         iPos += cPasswordToJoinLength * 2;
 
         pSettingsFile ->sPasswordToJoin = vBuffer;
