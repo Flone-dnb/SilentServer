@@ -176,7 +176,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
     std::wstring sPathToOldFile(vBuffer);
 
     sPathToOldFile += L"\\";
-    sPathToOldFile += TEMP_FILE_NAME;
+    sPathToOldFile += TEMP_FILE_NAME + std::to_wstring(pSettingsManager->getCurrentSettings()->iPort);
 
     std::wstring sPathToNewFile = sPathToOldFile + L"~";
 #elif __linux__
@@ -212,7 +212,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
     }
 
     sPathToOldFile += "/";
-    sPathToOldFile += TEMP_FILE_NAME;
+    sPathToOldFile += TEMP_FILE_NAME + std::to_string(pSettingsManager->getCurrentSettings()->iPort);
 
     std::string sPathToNewFile = sPathToOldFile + "~";
 #endif
@@ -397,7 +397,7 @@ void LogManager::showTextThread()
     }
 
     sPathToOldFile += "/";
-    sPathToOldFile += TEMP_FILE_NAME;
+    sPathToOldFile += TEMP_FILE_NAME + std::to_string(pSettingsManager->getCurrentSettings()->iPort);
 #endif
 
 
@@ -596,7 +596,7 @@ void LogManager::eraseTempFile()
     }
 
     sPathToOldFile += "/";
-    sPathToOldFile += TEMP_FILE_NAME;
+    sPathToOldFile += TEMP_FILE_NAME + std::to_string(pSettingsManager->getCurrentSettings()->iPort);
 #endif
 
 
