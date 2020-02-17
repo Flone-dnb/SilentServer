@@ -140,7 +140,6 @@ private:
     // Users
     SSocket                  listenTCPSocket;
     SSocket                  UDPsocket;
-    SSocket                  udpPingCheckSocket;
     std::vector<UserStruct*> users;
     std::vector<UDPPacket*>  vUDPPackets;
 

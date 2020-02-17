@@ -140,7 +140,6 @@ void ServerService::catchUDPPackets()
     std::thread tWrongPacketRefresher (&ServerService::refreshWrongUDPPackets, this);
     tWrongPacketRefresher .detach();
 
-
     while (bVoiceListen)
     {
         // Peeks at the incoming data. The data is copied into the buffer but is not removed from the input queue.
@@ -831,13 +830,6 @@ void ServerService::prepareForVoiceConnection()
         return;
     }
 
-    udpPingCheckSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (udpPingCheckSocket == INVALID_SOCKET)
-    {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::socket() error: " + std::to_string(getLastError()), true );
-        return;
-    }
-
     sockaddr_in myAddr;
     memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
     myAddr.sin_family = AF_INET;
@@ -860,13 +852,6 @@ void ServerService::prepareForVoiceConnection()
         return;
     }
 
-    if (setsockopt(udpPingCheckSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&bMultAddr), sizeof(bMultAddr)) == SOCKET_ERROR)
-    {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::setsockopt() error: " + std::to_string(getLastError()), true );
-        closeSocket(udpPingCheckSocket);
-        return;
-    }
-
 
 
 
@@ -877,13 +862,6 @@ void ServerService::prepareForVoiceConnection()
         return;
     }
 
-    if (bind(udpPingCheckSocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
-    {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::bind() error: " + std::to_string(getLastError()), true );
-        closeSocket(udpPingCheckSocket);
-        return;
-    }
-
 
 
     // Translate listen socket to non-blocking mode
@@ -891,13 +869,6 @@ void ServerService::prepareForVoiceConnection()
     {
         pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::setSocketBlocking() error: " + std::to_string(getLastError()), true );
         closeSocket(UDPsocket);
-        return;
-    }
-
-    if (setSocketBlocking(udpPingCheckSocket, false))
-    {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::setSocketBlocking() error: " + std::to_string(getLastError()), true );
-        closeSocket(udpPingCheckSocket);
         return;
     }
 
@@ -1451,7 +1422,7 @@ void ServerService::checkPing()
         {
             if ( users[i]->bConnectedToVOIP && users[i]->bFirstPingCheckPassed )
             {
-                iSentSize = sendto(udpPingCheckSocket, sendBuffer, sizeof(char), 0,
+                iSentSize = sendto(UDPsocket, sendBuffer, sizeof(char), 0,
                                    reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
 
                 if (iSentSize != sizeof(char))
@@ -1984,7 +1955,6 @@ void ServerService::shutdownAllUsers()
 
         closeSocket(listenTCPSocket);
         closeSocket(UDPsocket);
-        closeSocket(udpPingCheckSocket);
 
         iUsersConnectedToVOIP = 0;
 
@@ -2152,7 +2122,6 @@ void ServerService::shutdownAllUsers()
 
         closeSocket(listenTCPSocket);
         closeSocket(UDPsocket);
-        closeSocket(udpPingCheckSocket);
     }
 
 
