@@ -1,5 +1,5 @@
 # Silent Server
-Silent is an extremely lightweight, high quality - low latency voice chat made for gaming.<br>
+Silent is an extremely lightweight, high quality - low latency voice chat made for gaming. Runs on Windows and Linux.<br>
 Must be used with the Silent (client) application.<br> 
 <br>
 Made with Qt Framework, Winsock2 and Windows Multimedia System.
@@ -33,4 +33,5 @@ Please note that starting from version 2.20.0 the Silent Server is releasing und
 All versions before 2.20.0 were released under the MIT license.
 
 # Build
-Silent is built with the MSVC 2017 64 bit compiler and Qt Framework (through Qt Creator).
+Silent is built using Qt Framework (through Qt Creator).
+The server can run on Windows and Linux.
