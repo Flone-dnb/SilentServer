@@ -6,7 +6,7 @@
 #pragma once
 
 
-// C++
+// STL
 #include <vector>
 #include <string>
 #include <ctime>
@@ -28,7 +28,7 @@
 #endif
 
 #ifdef _WIN32
-// Winsock 2 Library
+// Winsock 2
 #pragma comment(lib,"Ws2_32.lib")
 #endif
 
@@ -51,8 +51,8 @@ class UDPPacket;
 
 
 // should be shorter than MAX_VERSION_STRING_LENGTH
-#define SERVER_VERSION           "2.20.2"
-#define CLIENT_SUPPORTED_VERSION "2.23.2"
+#define SERVER_VERSION           "2.21.0"
+#define CLIENT_SUPPORTED_VERSION "2.23.3"
 
 
 
