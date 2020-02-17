@@ -53,9 +53,9 @@ struct UserStruct
 
     unsigned short   userTCPPort;
     unsigned short   iCurrentPing;
+    unsigned short   iPrevPing;
 
 
     bool             bConnectedToTextChat;
     bool             bConnectedToVOIP;
-    bool             bFirstPingCheckPassed;
 };

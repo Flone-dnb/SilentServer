@@ -337,7 +337,7 @@ void LogManager::showTextThread()
 
     // Prepare the buffer.
 
-    S16Char vBuffer[MAX_PATH + 1];
+    wchar_t vBuffer[MAX_PATH + 1];
     memset(vBuffer, 0, MAX_PATH + 1);
 
 
@@ -360,7 +360,7 @@ void LogManager::showTextThread()
     std::wstring sPathToOldFile(vBuffer);
 
     sPathToOldFile += L"\\";
-    sPathToOldFile += TEMP_FILE_NAME;
+    sPathToOldFile += TEMP_FILE_NAME + std::to_wstring(pSettingsManager->getCurrentSettings()->iPort);
 
 #elif __linux__
 
@@ -538,7 +538,7 @@ void LogManager::eraseTempFile()
 
     // Prepare the buffer.
 
-    S16Char vBuffer[MAX_PATH + 1];
+    wchar_t vBuffer[MAX_PATH + 1];
     memset(vBuffer, 0, MAX_PATH + 1);
 
 
@@ -561,7 +561,7 @@ void LogManager::eraseTempFile()
     std::wstring sPathToOldFile(vBuffer);
 
     sPathToOldFile += L"\\";
-    sPathToOldFile += TEMP_FILE_NAME;
+    sPathToOldFile += TEMP_FILE_NAME + std::to_wstring(pSettingsManager->getCurrentSettings()->iPort);
 
 #elif __linux__
 

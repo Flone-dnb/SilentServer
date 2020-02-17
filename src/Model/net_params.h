@@ -23,7 +23,8 @@
 
 
 // Ping / Keepalive
-#define  PING_CHECK_INTERVAL_SEC             5 // also change in the client
+#define  PING_CHECK_INTERVAL_SEC             50 // also change in the client
+#define  PING_ANSWER_WAIT_TIME_SEC           10
 // when changing change client's INTERVAL_KEEPALIVE_SEC macro too
 #define  INTERVAL_KEEPALIVE_SEC              20
 #define  MAX_TIMEOUT_TIME_MS                 10000

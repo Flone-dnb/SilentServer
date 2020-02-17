@@ -15,14 +15,6 @@
 class MainWindow;
 class SettingsManager;
 
-#if _WIN32
-#define S16String std::wstring
-#define S16Char   wchar_t
-#elif __linux__
-#define S16String std::u16string
-#define S16Char   char16_t
-#endif
-
 
 #if _WIN32
 #define TEMP_FILE_NAME L"SilentServerTempText.temp~"

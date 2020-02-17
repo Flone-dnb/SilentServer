@@ -60,7 +60,9 @@ enum USER_DISCONNECT_REASON
 enum UDP_SERVER_MESSAGE
 {
     UDP_SM_PREPARE          = -1,
-    UDP_SM_PING             = 0
+    UDP_SM_PING             = 0,
+    UDP_SM_FIRST_PING       = -2,
+    UDP_SM_USER_READY       = -3
 };
 
 
@@ -761,8 +763,8 @@ void ServerService::listenForNewTCPConnections()
             iSendSize++;
 
             // Put packet size
-            unsigned char iPacketSize = 4 + 1 + sizeOfUserName;
-            memcpy(newUserInfo + 1, &iPacketSize, 1);
+            unsigned char iPacketSize1 = 4 + 1 + sizeOfUserName;
+            memcpy(newUserInfo + 1, &iPacketSize1, 1);
             iSendSize++;
 
             memcpy(newUserInfo + 2, &iUsersConnectedCount, 4);
@@ -800,10 +802,10 @@ void ServerService::listenForNewTCPConnections()
         pNewUser->userUDPAddr.sin_addr   = connectedWith.sin_addr;
         pNewUser->userUDPAddr.sin_port   = 0;
         pNewUser->iCurrentPing           = 0;
+        pNewUser->iPrevPing              = 0;
 
         pNewUser->bConnectedToTextChat   = false;
         pNewUser->bConnectedToVOIP       = false;
-        pNewUser->bFirstPingCheckPassed  = false;
 
         users.push_back(pNewUser);
 
@@ -1057,7 +1059,6 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 delete pPacket;
 
 
-
                 break;
             }
             else
@@ -1120,6 +1121,12 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
     }
 
 
+
+
+    std::chrono::time_point<std::chrono::steady_clock> firstPingCheckSendTime;
+
+
+
     while ( (userToListen ->bConnectedToVOIP) && (bTextListen) )
     {
         mtxUDPPackets .lock();
@@ -1175,6 +1182,31 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 // it's ping check
                 userToListen ->iCurrentPing = std::chrono::duration_cast<std::chrono::milliseconds>
                         (std::chrono::steady_clock::now() - pingCheckSendTime).count();
+            }
+            else if (pPacket ->vPacketData[0] == UDP_SM_USER_READY)
+            {
+                // Send first ping check.
+
+                char pingPacket = UDP_SM_FIRST_PING;
+                firstPingCheckSendTime = std::chrono::steady_clock::now();
+
+                int iSendPacketSize = sendto(UDPsocket, &pingPacket, sizeof(pingPacket), 0,
+                                             reinterpret_cast<sockaddr*>(&userToListen->userUDPAddr), sizeof(userToListen->userUDPAddr));
+
+                if (iSendPacketSize != sizeof(pingPacket))
+                {
+                    pLogManager ->printAndLog( userToListen->userName + "'s first ping check was not sent! "
+                                               "ServerService::listenForVoiceMessage()::sendto() failed and returned: "
+                                               + std::to_string(getLastError()) + ".\n", true);
+                }
+            }
+            else if (pPacket ->vPacketData[0] == UDP_SM_FIRST_PING)
+            {
+                userToListen ->iCurrentPing = std::chrono::duration_cast<std::chrono::milliseconds>
+                        (std::chrono::steady_clock::now() - firstPingCheckSendTime).count();
+
+                pMainWindow->setPingToUser(userToListen->pListItem, userToListen->iCurrentPing);
+                sendPingToAll(userToListen);
             }
             else
             {
@@ -1408,6 +1440,13 @@ void ServerService::checkPing()
 {
     while ( bVoiceListen && users.size() > 0 )
     {
+        for (size_t i = 0; i < PING_CHECK_INTERVAL_SEC; i++)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            if (bVoiceListen == false) return;
+        }
+
         int iSentSize = 0;
 
         char sendBuffer[sizeof(char)];
@@ -1420,7 +1459,7 @@ void ServerService::checkPing()
 
         for (unsigned int i = 0; i < users.size(); i++)
         {
-            if ( users[i]->bConnectedToVOIP && users[i]->bFirstPingCheckPassed )
+            if ( users[i]->bConnectedToVOIP )
             {
                 iSentSize = sendto(UDPsocket, sendBuffer, sizeof(char), 0,
                                    reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
@@ -1444,20 +1483,20 @@ void ServerService::checkPing()
         mtxUsersDelete .unlock();
         mtxConnectDisconnect .unlock();
 
-        for (size_t i = 0; i < PING_CHECK_INTERVAL_SEC; i++)
+
+        for (size_t i = 0; i < PING_ANSWER_WAIT_TIME_SEC; i++)
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
 
             if (bVoiceListen == false) return;
         }
 
-        //std::this_thread::sleep_for(std::chrono::seconds(PING_CHECK_INTERVAL_SEC));
 
         if (bVoiceListen) sendPingToAll();
     }
 }
 
-void ServerService::sendPingToAll()
+void ServerService::sendPingToAll(UserStruct* userToSend)
 {
     char sendBuffer[MAX_BUFFER_SIZE];
 
@@ -1477,8 +1516,6 @@ void ServerService::sendPingToAll()
         if ( (iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size())
                              - static_cast<int>(sizeof(users[i]->iCurrentPing))))
              &&
-             (users[i]->bFirstPingCheckPassed)
-             &&
              (users[i]->bConnectedToVOIP) )
         {
             // Copy size of name
@@ -1495,17 +1532,33 @@ void ServerService::sendPingToAll()
                 users[i]->iCurrentPing = 0;
             }
 
-            memcpy(sendBuffer + iCurrentPos, &users[i]->iCurrentPing, sizeof(users[i]->iCurrentPing));
-            iCurrentPos += sizeof(users[i]->iCurrentPing);
+            if (userToSend)
+            {
+                if (users[i]->userName == userToSend->userName)
+                {
+                    memcpy(sendBuffer + iCurrentPos, &users[i]->iCurrentPing, sizeof(users[i]->iCurrentPing));
 
-            pMainWindow->setPingToUser(users[i]->pListItem, users[i]->iCurrentPing);
+                    users[i]->iPrevPing = users[i]->iCurrentPing;
+                    users[i]->iCurrentPing = 0;
+                }
+                else
+                {
+                    memcpy(sendBuffer + iCurrentPos, &users[i]->iPrevPing, sizeof(users[i]->iPrevPing));
+                }
 
-            // Reset ping
-            users[i]->iCurrentPing = 0;
-        }
-        else if (users[i]->bFirstPingCheckPassed == false)
-        {
-            users[i]->bFirstPingCheckPassed = true;
+                iCurrentPos += sizeof(users[i]->iCurrentPing);
+            }
+            else
+            {
+                memcpy(sendBuffer + iCurrentPos, &users[i]->iCurrentPing, sizeof(users[i]->iCurrentPing));
+                iCurrentPos += sizeof(users[i]->iCurrentPing);
+
+                pMainWindow->setPingToUser(users[i]->pListItem, users[i]->iCurrentPing);
+
+                // Reset ping
+                users[i]->iPrevPing = users[i]->iCurrentPing;
+                users[i]->iCurrentPing = 0;
+            }
         }
         else if (users[i]->bConnectedToVOIP == false)
         {
@@ -1543,6 +1596,7 @@ void ServerService::sendPingToAll()
             }
         }
     }
+
 
 
     mtxUsersDelete .unlock();
