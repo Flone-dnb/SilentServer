@@ -920,8 +920,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             }
         }
 
-        std::chrono::time_point<std::chrono::steady_clock> timePassed = std::chrono::steady_clock::now();
-        float timePassedInSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(timePassed - userToListen->keepAliveTimer).count() / 1000.0f;
+        float timePassedInSeconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - userToListen->keepAliveTimer).count();
 
         if (timePassedInSeconds > INTERVAL_KEEPALIVE_SEC)
         {
