@@ -947,7 +947,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             timeout.tv_sec = MAX_TIMEOUT_TIME_MS / 1000;
             timeout.tv_usec = 0;
 
-            if (setsockopt(userToListen->userTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(time)
+            if (setsockopt(userToListen->userTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout))
                            < 0)
             {
                 pLogManager->printAndLog("ServerService::listenForMessage::setsockopt() failed.", true);
