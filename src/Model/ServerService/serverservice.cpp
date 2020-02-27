@@ -465,7 +465,7 @@ void ServerService::listenForNewTCPConnections()
 
 
 
-        pLogManager ->printAndLog("Someone is connecting...", true);
+        pLogManager ->printAndLog("\nSomeone is connecting...", true);
 
 
 
@@ -606,7 +606,7 @@ void ServerService::listenForNewTCPConnections()
 
             if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
             {
-                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.\n",true);
+                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.",true);
                 char command = CM_NEED_PASSWORD;
                 send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
                 std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);

@@ -11,6 +11,7 @@
 #include "Model/ServerService/serverservice.h"
 #include "Model/SettingsManager/settingsmanager.h"
 #include "Model/LogManager/logmanager.h"
+#include "Model/SettingsManager/SettingsFile.h"
 
 
 Controller::Controller(MainWindow* pMainWindow)
@@ -116,6 +117,14 @@ void Controller::showOldText()
 
 void Controller::saveNewSettings(SettingsFile* pSettingsFile)
 {
+    if (bServerStarted == false
+        && pSettingsManager->getCurrentSettings()->iPort != pSettingsFile->iPort)
+    {
+        // If changed port then delete old temp files
+        // because they have port in the names.
+        pLogManager->eraseTempFile();
+    }
+
     pSettingsManager ->saveSettings(pSettingsFile);
 }
 
