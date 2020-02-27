@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>351</width>
+    <width>346</width>
     <height>465</height>
    </rect>
   </property>
@@ -112,7 +112,7 @@ color: white;</string>
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="35,30,35">
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="40,20,40">
       <item>
        <spacer name="horizontalSpacer_3">
         <property name="orientation">
@@ -181,7 +181,7 @@ QPushButton:pressed
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>351</width>
+     <width>346</width>
      <height>30</height>
     </rect>
    </property>
