@@ -51,7 +51,7 @@ class UDPPacket;
 
 
 // should be shorter than MAX_VERSION_STRING_LENGTH
-#define SERVER_VERSION           "2.21.0"
+#define SERVER_VERSION           "2.21.1"
 #define CLIENT_SUPPORTED_VERSION "2.23.3"
 
 
