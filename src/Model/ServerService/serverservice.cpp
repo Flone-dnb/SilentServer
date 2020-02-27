@@ -481,7 +481,8 @@ void ServerService::listenForNewTCPConnections()
 #endif
         if (setsockopt(newConnectedSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&bOptVal), bOptLen) == SOCKET_ERROR)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: " + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
@@ -628,7 +629,7 @@ void ServerService::listenForNewTCPConnections()
         inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
 
 
-        const int iMaxBufferSize = 4000;
+        const int iMaxBufferSize = MAX_TCP_BUFFER_SIZE;
 
         char tempData[iMaxBufferSize];
         memset(tempData, 0, iMaxBufferSize);
@@ -801,8 +802,7 @@ void ServerService::listenForNewTCPConnections()
         pNewUser->userUDPAddr.sin_family = AF_INET;
         pNewUser->userUDPAddr.sin_addr   = connectedWith.sin_addr;
         pNewUser->userUDPAddr.sin_port   = 0;
-        pNewUser->iCurrentPing           = 0;
-        pNewUser->iPrevPing              = 0;
+        pNewUser->iPing                  = 0;
 
         pNewUser->bConnectedToTextChat   = false;
         pNewUser->bConnectedToVOIP       = false;
@@ -936,10 +936,24 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             // Set recv() time out time to 10 seconds
 #if _WIN32
             DWORD time = MAX_TIMEOUT_TIME_MS;
+
+            if (setsockopt(userToListen->userTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&time), sizeof(time))
+                    < 0)
+            {
+                pLogManager->printAndLog("ServerService::listenForMessage::setsockopt() failed.", true);
+            }
 #elif __linux__
-            int time = MAX_TIMEOUT_TIME_MS;
+            struct timeval timeout;
+            timeout.tv_sec = MAX_TIMEOUT_TIME_MS / 1000;
+            timeout.tv_usec = 0;
+
+            if (setsockopt(userToListen->userTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(time)
+                           < 0)
+            {
+                pLogManager->printAndLog("ServerService::listenForMessage::setsockopt() failed.", true);
+            }
 #endif
-            setsockopt(userToListen->userTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&time), sizeof(time));
+
 
             keepAliveChar = 0;
             int returnCode = recv(userToListen->userTCPSocket, &keepAliveChar, 1, 0);
@@ -1179,8 +1193,8 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             if (pPacket ->vPacketData[0] == UDP_SM_PING)
             {
                 // it's ping check
-                userToListen ->iCurrentPing = std::chrono::duration_cast<std::chrono::milliseconds>
-                        (std::chrono::steady_clock::now() - pingCheckSendTime).count();
+                userToListen ->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
+                        (std::chrono::steady_clock::now() - pingCheckSendTime).count());
             }
             else if (pPacket ->vPacketData[0] == UDP_SM_USER_READY)
             {
@@ -1201,10 +1215,9 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
             else if (pPacket ->vPacketData[0] == UDP_SM_FIRST_PING)
             {
-                userToListen ->iCurrentPing = std::chrono::duration_cast<std::chrono::milliseconds>
-                        (std::chrono::steady_clock::now() - firstPingCheckSendTime).count();
+                userToListen ->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
+                        (std::chrono::steady_clock::now() - firstPingCheckSendTime).count());
 
-                pMainWindow->setPingToUser(userToListen->pListItem, userToListen->iCurrentPing);
                 sendPingToAll(userToListen);
             }
             else
@@ -1495,9 +1508,9 @@ void ServerService::checkPing()
     }
 }
 
-void ServerService::sendPingToAll(UserStruct* userToSend)
+void ServerService::sendPingToAll(UserStruct* pNewUser)
 {
-    char sendBuffer[MAX_BUFFER_SIZE];
+    char sendBuffer[MAX_TCP_BUFFER_SIZE];
 
     sendBuffer[0] = SM_PING;
     // here (in index '1-2' we will insert packet size later)
@@ -1513,7 +1526,7 @@ void ServerService::sendPingToAll(UserStruct* userToSend)
         // Check if we are able to add another user to 'sendBuffer'.
 
         if ( (iCurrentPos <= (MAX_BUFFER_SIZE - 1 - static_cast<int>(users[i]->userName.size())
-                             - static_cast<int>(sizeof(users[i]->iCurrentPing))))
+                             - static_cast<int>(sizeof(users[i]->iPing))))
              &&
              (users[i]->bConnectedToVOIP) )
         {
@@ -1526,38 +1539,10 @@ void ServerService::sendPingToAll(UserStruct* userToSend)
             iCurrentPos += static_cast <int> (users[i]->userName.size());
 
             // Copy ping
-            if (users[i]->iCurrentPing > 2000)
-            {
-                users[i]->iCurrentPing = 0;
-            }
+            memcpy(sendBuffer + iCurrentPos, &users[i]->iPing, sizeof(users[i]->iPing));
+            iCurrentPos += sizeof(users[i]->iPing);
 
-            if (userToSend)
-            {
-                if (users[i]->userName == userToSend->userName)
-                {
-                    memcpy(sendBuffer + iCurrentPos, &users[i]->iCurrentPing, sizeof(users[i]->iCurrentPing));
-
-                    users[i]->iPrevPing = users[i]->iCurrentPing;
-                    users[i]->iCurrentPing = 0;
-                }
-                else
-                {
-                    memcpy(sendBuffer + iCurrentPos, &users[i]->iPrevPing, sizeof(users[i]->iPrevPing));
-                }
-
-                iCurrentPos += sizeof(users[i]->iCurrentPing);
-            }
-            else
-            {
-                memcpy(sendBuffer + iCurrentPos, &users[i]->iCurrentPing, sizeof(users[i]->iCurrentPing));
-                iCurrentPos += sizeof(users[i]->iCurrentPing);
-
-                pMainWindow->setPingToUser(users[i]->pListItem, users[i]->iCurrentPing);
-
-                // Reset ping
-                users[i]->iPrevPing = users[i]->iCurrentPing;
-                users[i]->iCurrentPing = 0;
-            }
+            pMainWindow->setPingToUser(users[i]->pListItem, users[i]->iPing);
         }
         else if (users[i]->bConnectedToVOIP == false)
         {
@@ -1566,21 +1551,25 @@ void ServerService::sendPingToAll(UserStruct* userToSend)
         else
         {
             pLogManager ->printAndLog( "ServerService::sendPingToAll() sendBuffer is full. " + std::to_string(i)
-                                       + "/" + std::to_string(iAllUsers) + " users was added to buffer.", true );
+                                       + "/" + std::to_string(iAllUsers) + " users was added to the buffer.", true );
             break;
         }
     }
 
+
     unsigned short iPacketSize = static_cast<unsigned short>(iCurrentPos - 3);
+
     // Insert packet size
     memcpy(sendBuffer + 1, &iPacketSize, sizeof(unsigned short));
 
-    // Send to all
     int iSentSize = 0;
 
-    for (size_t i = 0; i < users.size(); i++)
+    if (pNewUser)
     {
-        iSentSize = send(users[i]->userTCPSocket, sendBuffer, iCurrentPos, 0);
+        // Send this packet (about all users) to new user.
+
+        iSentSize = send(pNewUser->userTCPSocket, sendBuffer, iCurrentPos, 0);
+
         if ( iSentSize != iCurrentPos )
         {
             if (iSentSize == SOCKET_ERROR)
@@ -1590,12 +1579,80 @@ void ServerService::sendPingToAll(UserStruct* userToSend)
             }
             else
             {
-                pLogManager ->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
+                pLogManager ->printAndLog( pNewUser->userName + "'s ping report wasn't fully sent. send() returned: "
                                            + std::to_string(iSentSize), true );
             }
         }
-    }
 
+
+        // And send this new user's ping to all.
+        char vSingleUserPingBuffer[MAX_BUFFER_SIZE];
+
+        vSingleUserPingBuffer[0] = SM_PING;
+        // here (in index '1-2' we will insert packet size later)
+        int iCurrentSignlePos = 3;
+
+
+        // Copy size of name
+        vSingleUserPingBuffer[iCurrentSignlePos] = static_cast<char>(pNewUser->userName.size());
+        iCurrentSignlePos++;
+
+        // Copy name
+        memcpy(vSingleUserPingBuffer + iCurrentSignlePos, pNewUser->userName.c_str(), pNewUser->userName.size());
+        iCurrentSignlePos += static_cast <int> (pNewUser->userName.size());
+
+        // Copy ping
+        memcpy(vSingleUserPingBuffer + iCurrentSignlePos, &pNewUser->iPing, sizeof(pNewUser->iPing));
+        iCurrentSignlePos += sizeof(pNewUser->iPing);
+
+        unsigned short iSinglePacketSize = static_cast<unsigned short>(iCurrentSignlePos - 3);
+
+        // Insert packet size
+        memcpy(vSingleUserPingBuffer + 1, &iSinglePacketSize, sizeof(unsigned short));
+
+
+        int iSingleSentSize = 0;
+
+        for (size_t i = 0; i < users.size(); i++)
+        {
+            iSingleSentSize = send(users[i]->userTCPSocket, vSingleUserPingBuffer, iCurrentSignlePos, 0);
+            if ( iSingleSentSize != iCurrentSignlePos )
+            {
+                if (iSingleSentSize == SOCKET_ERROR)
+                {
+                    pLogManager ->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
+                                               + std::to_string(getLastError()), true );
+                }
+                else
+                {
+                    pLogManager ->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
+                                               + std::to_string(iSentSize), true );
+                }
+            }
+        }
+    }
+    else
+    {
+        // Send to all.
+
+        for (size_t i = 0; i < users.size(); i++)
+        {
+            iSentSize = send(users[i]->userTCPSocket, sendBuffer, iCurrentPos, 0);
+            if ( iSentSize != iCurrentPos )
+            {
+                if (iSentSize == SOCKET_ERROR)
+                {
+                    pLogManager ->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
+                                               + std::to_string(getLastError()), true );
+                }
+                else
+                {
+                    pLogManager ->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
+                                               + std::to_string(iSentSize), true );
+                }
+            }
+        }
+    }
 
 
     mtxUsersDelete .unlock();

@@ -90,7 +90,7 @@ public:
     // Ping
 
         void  checkPing                   ();
-        void  sendPingToAll               (UserStruct* userToSend = nullptr);
+        void  sendPingToAll               (UserStruct* pNewUser = nullptr);
 
 
     // Closing

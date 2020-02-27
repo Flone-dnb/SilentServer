@@ -52,8 +52,7 @@ struct UserStruct
 
 
     unsigned short   userTCPPort;
-    unsigned short   iCurrentPing;
-    unsigned short   iPrevPing;
+    unsigned short   iPing;
 
 
     bool             bConnectedToTextChat;

@@ -10,6 +10,7 @@
 #define  MAX_NAME_LENGTH                     20
 #define  SERVER_PORT                         51337
 #define  MAX_BUFFER_SIZE                     1410
+#define  MAX_TCP_BUFFER_SIZE                 4000
 #define  MAX_VERSION_STRING_LENGTH           20
 
 
