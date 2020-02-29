@@ -114,7 +114,7 @@ border-radius: 6px;</string>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_3" stretch="45">
           <item>
-           <widget class="QListWidget" name="listWidget_users">
+           <widget class="SListWidget" name="listWidget_users">
             <property name="font">
              <font>
               <pointsize>10</pointsize>
@@ -280,6 +280,13 @@ QMenu::separator
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>SListWidget</class>
+   <extends>QListWidget</extends>
+   <header>View/CustomList/SListWidget/slistwidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

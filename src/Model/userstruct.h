@@ -27,7 +27,7 @@
 #endif
 
 
-class QListWidgetItem;
+class SListItemUser;
 
 
 
@@ -44,7 +44,7 @@ struct UserStruct
 
 
     char*            pDataFromUser;
-    QListWidgetItem* pListItem;
+    SListItemUser*   pUserInList;
 
 
     std::string      userName;

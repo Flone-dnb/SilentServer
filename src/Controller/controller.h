@@ -8,7 +8,7 @@
 #include <string>
 
 class MainWindow;
-class QListWidgetItem;
+class SListItemUser;
 class ServerService;
 class SettingsManager;
 class SettingsFile;
@@ -32,7 +32,7 @@ public:
 
     // Commands
 
-        void            kickUser              (QListWidgetItem* pListWidgetItem);
+        void            kickUser              (SListItemUser* pListWidgetItem);
 
 
     // Archive text
@@ -51,8 +51,6 @@ public:
         SettingsFile*   getSettingsFile       ();
         std::string     getServerVersion      ();
         std::string     getLastClientVersion  ();
-        unsigned short  getPingNormalBelow    ();
-        unsigned short  getPingWarningBelow   ();
         bool            isServerRunning       ();
 
 

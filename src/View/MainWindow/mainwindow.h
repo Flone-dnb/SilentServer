@@ -26,6 +26,7 @@ class QSystemTrayIcon;
 class SettingsFile;
 class QMenu;
 class QAction;
+class SListItemUser;
 
 namespace Ui {
 class MainWindow;
@@ -64,13 +65,13 @@ public:
 
     // Ping
 
-        void             setPingToUser              (QListWidgetItem* pListItem, int ping);
+        void             setPingToUser              (SListItemUser* pListItem, int ping);
 
 
     // Users
 
-        QListWidgetItem* addNewUserToList           (std::string userName);
-        void             deleteUserFromList         (QListWidgetItem* pListItem);
+        SListItemUser*   addNewUserToList           (std::string userName);
+        void             deleteUserFromList         (SListItemUser* pUser);
 
 
     // Menu
@@ -84,7 +85,7 @@ signals:
     // This-to-This signals
 
         void             signalShowMessageBox        (bool bErrorBox,              const QString& sMessage);
-        void             signalSetPingToUser         (QListWidgetItem* pListItem,  int ping);
+        void             signalSetPingToUser         (SListItemUser* pListItem,  int ping);
         void             signalTypeOnOutput          (QString text);
         void             signalShowOldText           (char16_t* pText);
         void             signalClearChatWindow       ();
@@ -100,7 +101,7 @@ private slots:
     // This-to-This slots
 
         void             slotShowMessageBox          (bool bErrorBox,              const QString& sMessage);
-        void             slotSetPingToUser           (QListWidgetItem* pListItem,  int ping);
+        void             slotSetPingToUser           (SListItemUser* pListItem,  int ping);
         void             typeSomeOnOutputLog         (QString text);
         void             slotShowOldText             (char16_t* pText);
         void             slotClearChatWindow         ();

@@ -28,8 +28,3 @@
 #define  PING_ANSWER_WAIT_TIME_SEC           10
 #define  INTERVAL_KEEPALIVE_SEC              20   // also change in the client
 #define  MAX_TIMEOUT_TIME_MS                 10000
-
-
-// Ping color
-#define  PING_NORMAL_BELOW                   300
-#define  PING_WARNING_BELOW                  500

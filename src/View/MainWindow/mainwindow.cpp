@@ -27,6 +27,7 @@ using std::memcpy;
 #include "View/SettingsWindow/settingswindow.h"
 #include "View/PingColorParams.h"
 #include "Model/SettingsManager/SettingsFile.h"
+#include "View/CustomList/SListItemUser/slistitemuser.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -129,24 +130,25 @@ void MainWindow::updateOnlineUsersCount(int iNewAmount)
     ui ->label_2 ->setText("Connected: " + QString::number(iNewAmount));
 }
 
-QListWidgetItem* MainWindow::addNewUserToList(std::string userName)
+SListItemUser* MainWindow::addNewUserToList(std::string userName)
 {
-    userName += " [-- ms]";
+    return ui->listWidget_users->addListUser(QString::fromStdString(userName));
 
-    ui ->listWidget_users        ->addItem ( QString::fromStdString(userName) );
-    return ui ->listWidget_users ->item    ( ui ->listWidget_users ->model() ->rowCount()-1 );
+    //ui ->listWidget_users        ->addItem ( QString::fromStdString(userName) );
+    //return ui ->listWidget_users ->item    ( ui ->listWidget_users ->model() ->rowCount()-1 );
 }
 
-void MainWindow::setPingToUser(QListWidgetItem* pListItem, int ping)
+void MainWindow::setPingToUser(SListItemUser* pListItem, int ping)
 {
     emit signalSetPingToUser(pListItem, ping);
 }
 
-void MainWindow::deleteUserFromList(QListWidgetItem* pListItem)
+void MainWindow::deleteUserFromList(SListItemUser* pUser)
 {
     mtxListUsers .lock();
 
-    delete pListItem;
+    ui ->listWidget_users->deleteUser(pUser);
+    //delete pListItem;
 
     mtxListUsers .unlock();
 }
@@ -256,51 +258,36 @@ void MainWindow::slotApplyNewSettings(SettingsFile* pSettingsFile)
     pController ->saveNewSettings(pSettingsFile);
 }
 
-void MainWindow::slotSetPingToUser(QListWidgetItem* pListItem, int ping)
+void MainWindow::slotSetPingToUser(SListItemUser* pListItem, int ping)
 {
     mtxListUsers .lock();
 
     if (pListItem != nullptr)
     {
-        QString userNameWithOldPing = pListItem->text();
+//        QString userNameWithOldPing = pListItem->text();
 
-        QString userNameWithNewPing = "";
-        for (int i = 0; i < userNameWithOldPing.size(); i++)
-        {
-            if (userNameWithOldPing[i] != ' ')
-            {
-                userNameWithNewPing += userNameWithOldPing[i];
-            }
-            else break;
-        }
+//        QString userNameWithNewPing = "";
+//        for (int i = 0; i < userNameWithOldPing.size(); i++)
+//        {
+//            if (userNameWithOldPing[i] != ' ')
+//            {
+//                userNameWithNewPing += userNameWithOldPing[i];
+//            }
+//            else break;
+//        }
 
-        if (ping != 0)
-        {
-            userNameWithNewPing += " [" + QString::number(ping) + " ms]";
-        }
-        else
-        {
-            userNameWithNewPing += " [-- ms]";
-        }
+//        if (ping != 0)
+//        {
+//            userNameWithNewPing += " [" + QString::number(ping) + " ms]";
+//        }
+//        else
+//        {
+//            userNameWithNewPing += " [-- ms]";
+//        }
 
-        pListItem->setText(userNameWithNewPing);
+//        pListItem->setText(userNameWithNewPing);
 
-
-
-        // Set color
-
-        if      (ping <= pController ->getPingNormalBelow())
-        {
-            pListItem ->setForeground( QColor(PING_NORMAL_R, PING_NORMAL_G, PING_NORMAL_B) );
-        }
-        else if (ping <= pController ->getPingWarningBelow())
-        {
-            pListItem ->setForeground( QColor(PING_WARNING_R, PING_WARNING_G, PING_WARNING_B) );
-        }
-        else
-        {
-            pListItem ->setForeground( QColor(PING_BAD_R, PING_BAD_G, PING_BAD_B) );
-        }
+        pListItem->setPing(ping);
     }
 
     mtxListUsers .unlock();
@@ -375,7 +362,7 @@ void MainWindow::kickUser()
 {
     if ( ui ->listWidget_users ->currentRow() >= 0 )
     {
-        pController ->kickUser( ui ->listWidget_users ->currentItem() );
+        pController ->kickUser( dynamic_cast<SListItemUser*>(ui ->listWidget_users ->currentItem()) );
     }
 }
 

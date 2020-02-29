@@ -95,7 +95,7 @@ public:
 
     // Closing
 
-        void  kickUser                    (QListWidgetItem* pListWidgetItem);
+        void  kickUser                    (SListItemUser* pUser);
         void  shutdownAllUsers            ();
 
 

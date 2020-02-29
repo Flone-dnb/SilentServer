@@ -22,6 +22,10 @@ SOURCES += \
     ../src/Model/LogManager/logmanager.cpp \
     ../src/Model/SettingsManager/settingsmanager.cpp \
         ../src/View/AboutWindow/aboutwindow.cpp \
+    ../src/View/CustomList/SListItem/slistitem.cpp \
+    ../src/View/CustomList/SListItemRoom/slistitemroom.cpp \
+    ../src/View/CustomList/SListItemUser/slistitemuser.cpp \
+    ../src/View/CustomList/SListWidget/slistwidget.cpp \
         ../src/View/SettingsWindow/settingswindow.cpp \
         ../src/main.cpp \
         ../src/View/MainWindow/mainwindow.cpp \
@@ -33,6 +37,10 @@ HEADERS += \
         ../src/Model/ServerService/UDPPacket.h \
         ../src/Model/SettingsManager/SettingsFile.h \
         ../src/Model/SettingsManager/settingsmanager.h \
+        ../src/View/CustomList/SListItem/slistitem.h \
+        ../src/View/CustomList/SListItemRoom/slistitemroom.h \
+        ../src/View/CustomList/SListItemUser/slistitemuser.h \
+        ../src/View/CustomList/SListWidget/slistwidget.h \
         ../src/View/PingColorParams.h \
         ../src/View/AboutWindow/aboutwindow.h \
         ../src/View/MainWindow/mainwindow.h \

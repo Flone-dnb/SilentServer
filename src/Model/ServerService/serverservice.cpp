@@ -85,10 +85,6 @@ ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettings
     clientLastSupportedVersion = CLIENT_SUPPORTED_VERSION;
 
 
-    iPingNormalBelow           = PING_NORMAL_BELOW;
-    iPingWarningBelow          = PING_WARNING_BELOW;
-
-
     iUsersConnectedCount       = 0;
     iUsersConnectedToVOIP      = 0;
     iWrongOrEmptyPacketCount   = 0;
@@ -813,7 +809,7 @@ void ServerService::listenForNewTCPConnections()
 
         pLogManager ->printAndLog("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + pNewUser->userName + ".",true);
         pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
-        pNewUser->pListItem = pMainWindow->addNewUserToList(pNewUser->userName);
+        pNewUser->pUserInList = pMainWindow->addNewUserToList(pNewUser->userName);
 
         std::thread listenThread(&ServerService::listenForMessage, this, pNewUser);
         listenThread.detach();
@@ -1542,7 +1538,7 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
             memcpy(sendBuffer + iCurrentPos, &users[i]->iPing, sizeof(users[i]->iPing));
             iCurrentPos += sizeof(users[i]->iPing);
 
-            pMainWindow->setPingToUser(users[i]->pListItem, users[i]->iPing);
+            pMainWindow->setPingToUser(users[i]->pUserInList, users[i]->iPing);
         }
         else if (users[i]->bConnectedToVOIP == false)
         {
@@ -1828,7 +1824,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         if (users[i] ->userName == userToClose ->userName)
         {
             delete[] userToClose ->pDataFromUser;
-            pMainWindow ->deleteUserFromList( userToClose ->pListItem );
+            pMainWindow ->deleteUserFromList( userToClose ->pUserInList );
 
             delete users[i];
             users .erase( users .begin() + i );
@@ -1843,11 +1839,11 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     mtxConnectDisconnect .unlock();
 }
 
-void ServerService::kickUser(QListWidgetItem *pListWidgetItem)
+void ServerService::kickUser(SListItemUser *pUser)
 {
     for (size_t i = 0; i < users .size(); i++)
     {
-        if ( users[i] ->pListItem == pListWidgetItem )
+        if ( users[i] ->pUserInList == pUser )
         {
             std::thread tKickThread(&ServerService::sendFINtoUser, this, users[i]);
             tKickThread .detach();
@@ -1971,7 +1967,7 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
         }
     }
 
-    pMainWindow->deleteUserFromList(userToClose->pListItem);
+    pMainWindow->deleteUserFromList(userToClose->pUserInList);
     delete[] userToClose->pDataFromUser;
     delete userToClose;
 
@@ -2088,7 +2084,7 @@ void ServerService::shutdownAllUsers()
                 // Delete user's read buffer & delete him from the list
                 delete[] users[i]->pDataFromUser;
 
-                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                pMainWindow->deleteUserFromList(users[i]->pUserInList);
                 delete users[i];
 
                 users.erase(users.begin() + static_cast<long long>(i));
@@ -2110,7 +2106,7 @@ void ServerService::shutdownAllUsers()
                 // Delete user's read buffer & delete him from list
                 delete[] users[i]->pDataFromUser;
 
-                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                pMainWindow->deleteUserFromList(users[i]->pUserInList);
                 delete users[i];
 
                 users.erase(users.begin() + static_cast<long long>(i));
@@ -2142,7 +2138,7 @@ void ServerService::shutdownAllUsers()
                 // Delete user's read buffer & delete him from list
                 delete[] users[i]->pDataFromUser;
 
-                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                pMainWindow->deleteUserFromList(users[i]->pUserInList);
                 delete users[i];
 
                 users.erase(users.begin() + static_cast<long long>(i));
@@ -2182,7 +2178,7 @@ void ServerService::shutdownAllUsers()
                 // Delete user's read buffer & delete him from list
                 delete[] users[i]->pDataFromUser;
 
-                pMainWindow->deleteUserFromList(users[i]->pListItem);
+                pMainWindow->deleteUserFromList(users[i]->pUserInList);
                 delete users[i];
 
                 users.erase(users.begin() + static_cast<long long>(i));
@@ -2198,7 +2194,7 @@ void ServerService::shutdownAllUsers()
         {
             delete[] users[i]->pDataFromUser;
 
-            pMainWindow->deleteUserFromList(users[i]->pListItem);
+            pMainWindow->deleteUserFromList(users[i]->pUserInList);
             delete users[i];
         }
 
