@@ -14,6 +14,8 @@ SListItemRoom::SListItemRoom(QString sName, SListWidget* pList)
     this->pList = pList;
 
     setText(sName);
+
+    sRoomName = sName;
 }
 
 void SListItemRoom::addUser(SListItemUser *pUser)
@@ -58,6 +60,23 @@ void SListItemRoom::deleteUser(SListItemUser *pUser)
             vUsers.erase( vUsers.begin() + i );
         }
     }
+}
+
+void SListItemRoom::setRoomName(QString sName)
+{
+    sRoomName = sName;
+
+    setText(sName);
+}
+
+std::vector<SListItemUser *> SListItemRoom::getUsers()
+{
+    return vUsers;
+}
+
+QString SListItemRoom::getRoomName()
+{
+    return sRoomName;
 }
 
 SListItemRoom::~SListItemRoom()

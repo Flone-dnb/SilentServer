@@ -10,6 +10,7 @@
 // Qt
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QKeyEvent>
 
 // Custom
 #include "Model/SettingsManager/SettingsFile.h"
@@ -119,4 +120,12 @@ void SettingsWindow::on_checkBox_log_stateChanged(int arg1)
 SettingsWindow::~SettingsWindow()
 {
     delete ui;
+}
+
+void SettingsWindow::keyPressEvent(QKeyEvent *event)
+{
+    if ( event->key() == Qt::Key_Return )
+    {
+        on_pushButton_clicked();
+    }
 }

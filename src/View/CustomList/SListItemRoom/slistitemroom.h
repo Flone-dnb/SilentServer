@@ -24,6 +24,14 @@ public:
     void addUser(SListItemUser* pUser);
     void deleteUser(SListItemUser* pUser);
 
+
+    void    setRoomName (QString sName);
+
+    std::vector<SListItemUser*> getUsers();
+    QString getRoomName ();
+
+
+
     ~SListItemRoom() override;
 
 private:
@@ -31,4 +39,6 @@ private:
     std::vector<SListItemUser*> vUsers;
 
     SListWidget* pList;
+
+    QString sRoomName;
 };

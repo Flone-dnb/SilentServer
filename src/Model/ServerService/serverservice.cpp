@@ -28,6 +28,8 @@ using std::memcpy;
 #include "Model/LogManager/logmanager.h"
 #include "Model/ServerService/UDPPacket.h"
 
+#include "View/CustomList/SListItemUser/slistitemuser.h"
+
 
 enum CONNECT_MESSAGES
 {
@@ -1234,7 +1236,8 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                 for (unsigned int i = 0; i < users.size(); i++)
                 {
-                    if ( users[i]->userName != userToListen->userName )
+                    if ( (userToListen->pUserInList->getRoom() == users[i]->pUserInList->getRoom())
+                         && (users[i]->userName != userToListen->userName) )
                     {
                         iSentSize = sendto(UDPsocket, vBuffer, iSize, 0, reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
                         if (iSentSize != iSize)
@@ -1427,16 +1430,19 @@ void ServerService::processMessage(UserStruct *userToListen)
     // Send message to all but not the sender
     for (unsigned int j = 0; j < users.size(); j++)
     {
-        returnCode = send(users[j]->userTCPSocket, pSendToAllBuffer, 3 + iPacketSize, 0);
-        if ( returnCode != (3 + iPacketSize) )
+        if (userToListen->pUserInList->getRoom() == users[j]->pUserInList->getRoom())
         {
-            if (returnCode == SOCKET_ERROR)
+            returnCode = send(users[j]->userTCPSocket, pSendToAllBuffer, 3 + iPacketSize, 0);
+            if ( returnCode != (3 + iPacketSize) )
             {
-                pLogManager ->printAndLog( "ServerService::getMessage::send() function failed and returned: " + std::to_string(getLastError()), true );
-            }
-            else
-            {
-                pLogManager ->printAndLog( userToListen->userName + "'s message wasn't fully sent. send() returned: " + std::to_string(returnCode), true );
+                if (returnCode == SOCKET_ERROR)
+                {
+                    pLogManager ->printAndLog( "ServerService::getMessage::send() function failed and returned: " + std::to_string(getLastError()), true );
+                }
+                else
+                {
+                    pLogManager ->printAndLog( userToListen->userName + "'s message wasn't fully sent. send() returned: " + std::to_string(returnCode), true );
+                }
             }
         }
     }

@@ -28,6 +28,8 @@ using std::memcpy;
 #include "View/PingColorParams.h"
 #include "Model/SettingsManager/SettingsFile.h"
 #include "View/CustomList/SListItemUser/slistitemuser.h"
+#include "View/CustomList/SListItemRoom/slistitemroom.h"
+#include "View/ChangeRoomNameWindow/changeroomnamewindow.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -58,15 +60,40 @@ MainWindow::MainWindow(QWidget *parent) :
     ui ->listWidget_users ->setContextMenuPolicy (Qt::CustomContextMenu);
     ui ->listWidget_users ->setViewMode          (QListView::ListMode);
 
-    pMenuContextMenu    = new QMenu(this);
 
-    pMenuContextMenu ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+    // Create menu for user.
 
-    pActionKick         = new QAction("Kick");
+    pMenuUser   = new QMenu(this);
+    connect(pMenuUser, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
 
-    pMenuContextMenu ->addAction(pActionKick);
+    pMenuUser ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+
+    pActionKick = new QAction("Kick");
+
+    pMenuUser ->addAction(pActionKick);
 
     connect(pActionKick, &QAction::triggered, this, &MainWindow::kickUser);
+
+
+
+    // Create menu for room.
+
+    pMenuRoom   = new QMenu(this);
+    connect(pMenuRoom, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
+
+    pMenuRoom ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+
+    pActionChangeName   = new QAction("Change Room Name");
+    pActionMoveRoomUp   = new QAction("Move Up");
+    pActionMoveRoomDown = new QAction("Move Down");
+
+    pMenuRoom ->addAction(pActionChangeName);
+    pMenuRoom ->addAction(pActionMoveRoomUp);
+    pMenuRoom ->addAction(pActionMoveRoomDown);
+
+    connect(pActionChangeName,   &QAction::triggered, this, &MainWindow::changeRoomName);
+    connect(pActionMoveRoomUp,   &QAction::triggered, this, &MainWindow::moveRoomUp);
+    connect(pActionMoveRoomDown, &QAction::triggered, this, &MainWindow::moveRoomDown);
 
 
 
@@ -132,7 +159,7 @@ void MainWindow::updateOnlineUsersCount(int iNewAmount)
 
 SListItemUser* MainWindow::addNewUserToList(std::string userName)
 {
-    return ui->listWidget_users->addListUser(QString::fromStdString(userName));
+    return ui->listWidget_users->addUser(QString::fromStdString(userName));
 
     //ui ->listWidget_users        ->addItem ( QString::fromStdString(userName) );
     //return ui ->listWidget_users ->item    ( ui ->listWidget_users ->model() ->rowCount()-1 );
@@ -348,13 +375,47 @@ void MainWindow::slotSliderMoved(int iValue)
 
 void MainWindow::on_listWidget_users_customContextMenuRequested(const QPoint &pos)
 {
-    QListWidgetItem* pItem = ui ->listWidget_users ->itemAt(pos);
+    SListItem* pItem = dynamic_cast<SListItem*>(ui ->listWidget_users ->itemAt(pos));
 
     if (pItem)
     {
         QPoint globalPos = ui ->listWidget_users ->mapToGlobal(pos);
 
-        pMenuContextMenu ->exec(globalPos);
+        if (pItem->isRoom())
+        {
+            SListItemRoom* pRoomItem = dynamic_cast<SListItemRoom*>(pItem);
+
+            if ( (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[1])
+                 || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+            {
+                pActionMoveRoomUp ->setVisible(false);
+            }
+            else
+            {
+                pActionMoveRoomUp ->setVisible(true);
+            }
+
+            if ( (pRoomItem->getRoomName() ==
+                                 ui ->listWidget_users ->getRoomNames()[ ui ->listWidget_users ->getRoomNames().size() - 1 ])
+                 || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+            {
+                pActionMoveRoomDown ->setVisible(false);
+            }
+            else
+            {
+                pActionMoveRoomDown ->setVisible(true);
+            }
+
+            pMenuRoom ->exec(globalPos);
+        }
+        else
+        {
+            pMenuUser ->exec(globalPos);
+        }
+    }
+    else
+    {
+        //TODO;
     }
 }
 
@@ -363,7 +424,68 @@ void MainWindow::kickUser()
     if ( ui ->listWidget_users ->currentRow() >= 0 )
     {
         pController ->kickUser( dynamic_cast<SListItemUser*>(ui ->listWidget_users ->currentItem()) );
+
+        ui ->listWidget_users ->clearSelection();
     }
+}
+
+void MainWindow::changeRoomName()
+{
+    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    {
+        ChangeRoomNameWindow* pWindow =
+                new ChangeRoomNameWindow(dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()),
+                                         ui->listWidget_users,
+                                         this);
+
+        pWindow->setWindowModality(Qt::WindowModality::WindowModal);
+
+        connect(pWindow, &ChangeRoomNameWindow::signalRenameRoom, this, &MainWindow::slotChangeRoomName);
+
+        pWindow->show();
+
+        ui ->listWidget_users ->clearSelection();
+    }
+}
+
+void MainWindow::moveRoomUp()
+{
+    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    {
+        ui ->listWidget_users ->moveRoomUp( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
+
+        pController ->moveRoom( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem())->getRoomName().toStdString(),
+                                true );
+
+        ui ->listWidget_users ->clearSelection();
+    }
+}
+
+void MainWindow::moveRoomDown()
+{
+    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    {
+        ui ->listWidget_users ->moveRoomDown( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
+
+        pController ->moveRoom( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem())->getRoomName().toStdString(),
+                                false );
+
+        ui ->listWidget_users ->clearSelection();
+    }
+}
+
+void MainWindow::slotChangeRoomName(SListItemRoom *pRoom, QString sNewName)
+{
+    QString sOldName = pRoom->getRoomName();
+
+    ui->listWidget_users->renameRoom(pRoom, sNewName);
+
+    pController->renameRoom(sOldName.toStdString(), sNewName.toStdString());
+}
+
+void MainWindow::slotMenuClose()
+{
+    ui ->listWidget_users ->clearSelection();
 }
 
 void MainWindow::checkTextSize()

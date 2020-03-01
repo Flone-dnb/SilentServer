@@ -27,6 +27,7 @@ class SettingsFile;
 class QMenu;
 class QAction;
 class SListItemUser;
+class SListItemRoom;
 
 namespace Ui {
 class MainWindow;
@@ -132,7 +133,15 @@ private slots:
     // Context Menu
 
         void on_listWidget_users_customContextMenuRequested(const QPoint &pos);
+
         void kickUser();
+        void changeRoomName();
+        void moveRoomUp();
+        void moveRoomDown();
+
+        void slotChangeRoomName(SListItemRoom* pRoom, QString sNewName);
+
+        void slotMenuClose();
 
 private:
 
@@ -146,8 +155,13 @@ private:
     Controller*      pController;
 
 
-    QMenu*           pMenuContextMenu;
+    QMenu*           pMenuUser;
     QAction*         pActionKick;
+
+    QMenu*           pMenuRoom;
+    QAction*         pActionChangeName;
+    QAction*         pActionMoveRoomUp;
+    QAction*         pActionMoveRoomDown;
 
 
     QSystemTrayIcon* pTrayIcon;

@@ -22,6 +22,7 @@ SOURCES += \
     ../src/Model/LogManager/logmanager.cpp \
     ../src/Model/SettingsManager/settingsmanager.cpp \
         ../src/View/AboutWindow/aboutwindow.cpp \
+    ../src/View/ChangeRoomNameWindow/changeroomnamewindow.cpp \
     ../src/View/CustomList/SListItem/slistitem.cpp \
     ../src/View/CustomList/SListItemRoom/slistitemroom.cpp \
     ../src/View/CustomList/SListItemUser/slistitemuser.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
         ../src/Model/ServerService/UDPPacket.h \
         ../src/Model/SettingsManager/SettingsFile.h \
         ../src/Model/SettingsManager/settingsmanager.h \
+        ../src/View/ChangeRoomNameWindow/changeroomnamewindow.h \
         ../src/View/CustomList/SListItem/slistitem.h \
         ../src/View/CustomList/SListItemRoom/slistitemroom.h \
         ../src/View/CustomList/SListItemUser/slistitemuser.h \
@@ -52,6 +54,7 @@ HEADERS += \
 
 FORMS += \
         ../src/View/AboutWindow/aboutwindow.ui \
+        ../src/View/ChangeRoomNameWindow/changeroomnamewindow.ui \
         ../src/View/MainWindow/mainwindow.ui \
         ../src/View/SettingsWindow/settingswindow.ui
 

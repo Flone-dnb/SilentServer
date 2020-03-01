@@ -85,6 +85,16 @@ void Controller::kickUser(SListItemUser *pListWidgetItem)
     pServerService ->kickUser(pListWidgetItem);
 }
 
+void Controller::renameRoom(const std::string &sOldName, const std::string &sNewName)
+{
+    //TODO;
+}
+
+void Controller::moveRoom(const std::string &sRoomName, bool bMoveUp)
+{
+    //TODO;
+}
+
 void Controller::archiveText(char16_t *pText, size_t iWChars)
 {
     if (pLogManager)

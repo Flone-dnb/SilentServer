@@ -33,6 +33,8 @@ public:
     // Commands
 
         void            kickUser              (SListItemUser* pListWidgetItem);
+        void            renameRoom            (const std::string& sOldName, const std::string& sNewName);
+        void            moveRoom              (const std::string& sRoomName, bool bMoveUp);
 
 
     // Archive text

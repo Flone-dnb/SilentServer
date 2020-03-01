@@ -21,17 +21,28 @@ class SListItemRoom;
 class SListItemUser;
 
 
+#define MAX_ROOMS 100
+
+
 class SListWidget : public QListWidget
 {
     Q_OBJECT
 
 public:
-    explicit SListWidget(QWidget *parent = nullptr);
+    explicit SListWidget       (QWidget *parent = nullptr);
 
-    void addListRoom(QString sRoomName);
-    SListItemUser* addListUser(QString sUserName, SListItemRoom* pRoom = nullptr);
 
-    void deleteUser(SListItemUser* pUser);
+    void           addRoom     (QString sRoomName);
+    SListItemUser* addUser     (QString sUserName, SListItemRoom* pRoom = nullptr);
+    void           deleteUser  (SListItemUser* pUser);
+
+    void           renameRoom  (SListItemRoom* pRoom, QString sNewName);
+
+    void           moveRoomUp  (SListItemRoom* pRoom);
+    void           moveRoomDown(SListItemRoom* pRoom);
+
+    std::vector<QString> getRoomNames();
+
 
     ~SListWidget();
 

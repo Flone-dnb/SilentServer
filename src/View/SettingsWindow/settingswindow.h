@@ -42,7 +42,8 @@ public:
 
 protected:
 
-    void closeEvent (QCloseEvent* ev);
+    void keyPressEvent (QKeyEvent* event);
+    void closeEvent    (QCloseEvent* ev);
 
 private slots:
 
