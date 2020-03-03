@@ -115,6 +115,9 @@ color: white;</string>
           <pointsize>12</pointsize>
          </font>
         </property>
+        <property name="maxLength">
+         <number>5</number>
+        </property>
        </widget>
       </item>
      </layout>

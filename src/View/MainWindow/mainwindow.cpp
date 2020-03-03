@@ -30,6 +30,7 @@ using std::memcpy;
 #include "View/CustomList/SListItemUser/slistitemuser.h"
 #include "View/CustomList/SListItemRoom/slistitemroom.h"
 #include "View/ChangeRoomNameWindow/changeroomnamewindow.h"
+#include "View/CreateRoomWindow/createroomwindow.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -501,7 +502,13 @@ void MainWindow::createRoom()
 {
     if (ui ->listWidget_users ->isAbleToCreateRoom())
     {
-        TODO;
+        CreateRoomWindow* pWindow = new CreateRoomWindow(ui->listWidget_users, this);
+
+        connect(pWindow, &CreateRoomWindow::signalCreateNewRoom, this, &MainWindow::slotCreateNewRoom);
+
+        pWindow->setWindowModality(Qt::WindowModality::WindowModal);
+
+        pWindow->show();
     }
 }
 
@@ -515,6 +522,11 @@ void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QS
 
     pController->changeRoomSettings(sOldName.toStdString(), sName.toStdString(), pRoom->getPassword().toStdU16String(),
                                     pRoom->getMaxUsers());
+}
+
+void MainWindow::slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers)
+{
+    ui->listWidget_users->addRoom(sName, sPassword, iMaxUsers);
 }
 
 void MainWindow::slotMenuClose()

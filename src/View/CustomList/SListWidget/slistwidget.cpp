@@ -23,7 +23,7 @@ SListWidget::SListWidget(QWidget *parent) :
     addRoom("Room 3");
 }
 
-void SListWidget::addRoom(QString sRoomName)
+void SListWidget::addRoom(QString sRoomName, QString sPassword, size_t iMaxUsers)
 {
     if (vRooms.size() == MAX_ROOMS)
     {
@@ -31,7 +31,7 @@ void SListWidget::addRoom(QString sRoomName)
     }
     else
     {
-        SListItemRoom* pNewItem = new SListItemRoom(sRoomName, this);
+        SListItemRoom* pNewItem = new SListItemRoom(sRoomName, this, sPassword, iMaxUsers);
         pNewItem->setItemType(true);
 
         vRooms.push_back(pNewItem);

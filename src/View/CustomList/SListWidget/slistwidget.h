@@ -32,7 +32,7 @@ public:
     explicit SListWidget       (QWidget *parent = nullptr);
 
 
-    void           addRoom     (QString sRoomName);
+    void           addRoom     (QString sRoomName, QString sPassword = "", size_t iMaxUsers = 0);
     SListItemUser* addUser     (QString sUserName, SListItemRoom* pRoom = nullptr);
     void           deleteUser  (SListItemUser* pUser);
 

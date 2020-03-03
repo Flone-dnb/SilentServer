@@ -141,6 +141,7 @@ private slots:
         void createRoom();
 
         void slotChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers);
+        void slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers);
 
         void slotMenuClose();
 

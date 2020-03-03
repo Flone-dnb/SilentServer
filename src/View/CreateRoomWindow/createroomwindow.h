@@ -12,14 +12,24 @@ namespace Ui
     class CreateRoomWindow;
 }
 
+class SListWidget;
+
 class CreateRoomWindow : public QMainWindow
 {
     Q_OBJECT
 
+signals:
+    void signalCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers);
 public:
-    explicit CreateRoomWindow(QWidget *parent = nullptr);
+    explicit CreateRoomWindow(SListWidget* pList, QWidget *parent = nullptr);
     ~CreateRoomWindow();
+protected:
+    void closeEvent(QCloseEvent* ev);
+    void keyPressEvent(QKeyEvent* ev);
+private slots:
+    void on_pushButton_clicked();
 
 private:
     Ui::CreateRoomWindow *ui;
+    SListWidget* pList;
 };
