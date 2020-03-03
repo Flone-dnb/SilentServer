@@ -42,6 +42,7 @@ public:
     void           moveRoomDown(SListItemRoom* pRoom);
 
     std::vector<QString> getRoomNames();
+    bool                 isAbleToCreateRoom();
 
 
     ~SListWidget();

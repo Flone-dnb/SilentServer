@@ -30,7 +30,27 @@ ChangeRoomNameWindow::ChangeRoomNameWindow(SListItemRoom* pRoom, SListWidget* pL
     this->pRoom = pRoom;
     this->pList = pList;
 
-    ui->label->setText("Enter a new name for the room \"" + pRoom->getRoomName() + "\":");
+    if (pList->row(pRoom) == 0)
+    {
+        ui ->lineEdit_name ->setText(pRoom ->getRoomName());
+
+        ui ->lineEdit_password ->setEnabled(false);
+        ui ->lineEdit_count ->setEnabled(false);
+    }
+    else
+    {
+        ui ->lineEdit_name ->setText(pRoom ->getRoomName());
+        ui ->lineEdit_password ->setText(pRoom ->getPassword());
+
+        if (pRoom ->getMaxUsers() != 0)
+        {
+            ui ->lineEdit_count ->setText(QString::number(pRoom ->getMaxUsers()));
+        }
+        else
+        {
+            ui ->lineEdit_count ->setText("");
+        }
+    }
 }
 
 
@@ -46,44 +66,48 @@ void ChangeRoomNameWindow::on_pushButton_clicked()
 {
     bool bASCII = true;
 
-    for (int i = 0; i < ui->lineEdit->text().size(); i++)
+    if (pRoom->getRoomName() != ui->lineEdit_name->text())
     {
-        if (ui->lineEdit->text()[i].unicode() > 127)
+        for (int i = 0; i < ui->lineEdit_name->text().size(); i++)
         {
-            bASCII = false;
+            if (ui->lineEdit_name->text()[i].unicode() > 127)
+            {
+                bASCII = false;
 
-            break;
+                break;
+            }
         }
-    }
 
-    if ( (ui->lineEdit->text().size() < 2) || (ui->lineEdit->text().size() > 20) )
-    {
-        QMessageBox::warning(nullptr, "Error", "A name for the room should be 2-20 characters long.");
-        return;
-    }
-
-
-    std::vector<QString> vRoomNames = pList->getRoomNames();
-
-    for (size_t i = 0; i < vRoomNames.size(); i++)
-    {
-        if (ui->lineEdit->text() == vRoomNames[i])
+        if ( (ui->lineEdit_name->text().size() < 2) || (ui->lineEdit_name->text().size() > 20) )
         {
-            QMessageBox::warning(nullptr, "Error", "The room name should be unique.");
+            QMessageBox::warning(nullptr, "Error", "A name for the room should be 2-20 characters long.");
             return;
         }
-    }
 
+
+        std::vector<QString> vRoomNames = pList->getRoomNames();
+
+        for (size_t i = 0; i < vRoomNames.size(); i++)
+        {
+            if (ui->lineEdit_name->text() == vRoomNames[i])
+            {
+                QMessageBox::warning(nullptr, "Error", "The room name should be unique.");
+                return;
+            }
+        }
+    }
 
     if (bASCII)
     {
-        emit signalRenameRoom(pRoom, ui->lineEdit->text());
+        emit signalChangeRoomSettings(pRoom, ui->lineEdit_name->text(), ui->lineEdit_password->text(),
+                                      static_cast<size_t>(ui->lineEdit_count->text().toInt()));
 
         close();
     }
     else
     {
         QMessageBox::warning(nullptr, "Error", "A name for the room should contain only ASCII characters.");
+        return;
     }
 }
 

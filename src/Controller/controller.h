@@ -33,7 +33,9 @@ public:
     // Commands
 
         void            kickUser              (SListItemUser* pListWidgetItem);
-        void            renameRoom            (const std::string& sOldName, const std::string& sNewName);
+        void            changeRoomSettings    (const std::string& sOldName, const std::string& sNewName,
+                                               const std::u16string& sPassword,
+                                               size_t iMaxUsers);
         void            moveRoom              (const std::string& sRoomName, bool bMoveUp);
 
 

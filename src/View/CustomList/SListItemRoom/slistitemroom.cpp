@@ -5,21 +5,31 @@
 
 #include "slistitemroom.h"
 
+#include <QMessageBox>
+
 #include "View/CustomList/SListWidget/slistwidget.h"
 #include "View/CustomList/SListItemUser/slistitemuser.h"
 
 
-SListItemRoom::SListItemRoom(QString sName, SListWidget* pList)
+SListItemRoom::SListItemRoom(QString sName, SListWidget* pList, QString sPassword, size_t iMaxUsers)
 {
     this->pList = pList;
 
-    setText(sName);
-
     sRoomName = sName;
+    this->sPassword = sPassword;
+    this->iMaxUsers = iMaxUsers;
+
+    setText(getRoomFullName());
 }
 
 void SListItemRoom::addUser(SListItemUser *pUser)
 {
+    if (vUsers.size() == iMaxUsers && iMaxUsers != 0)
+    {
+        QMessageBox::warning(nullptr, "Error", "Reached the maximum amount of users in this room.");
+        return;
+    }
+
     vUsers.push_back(pUser);
 
 
@@ -66,7 +76,21 @@ void SListItemRoom::setRoomName(QString sName)
 {
     sRoomName = sName;
 
-    setText(sName);
+    setText(getRoomFullName());
+}
+
+void SListItemRoom::setRoomPassword(QString sPassword)
+{
+    this->sPassword = sPassword;
+
+    setText(getRoomFullName());
+}
+
+void SListItemRoom::setRoomMaxUsers(size_t iMaxUsers)
+{
+    this->iMaxUsers = iMaxUsers;
+
+    setText(getRoomFullName());
 }
 
 std::vector<SListItemUser *> SListItemRoom::getUsers()
@@ -79,7 +103,36 @@ QString SListItemRoom::getRoomName()
     return sRoomName;
 }
 
+QString SListItemRoom::getPassword()
+{
+    return sPassword;
+}
+
+size_t SListItemRoom::getMaxUsers()
+{
+    return iMaxUsers;
+}
+
 SListItemRoom::~SListItemRoom()
 {
 
+}
+
+QString SListItemRoom::getRoomFullName()
+{
+    QString sFullName = sRoomName;
+
+    sFullName += "    ";
+
+    sFullName += "(";
+    if (iMaxUsers == 0)
+    {
+        sFullName += "0)";
+    }
+    else
+    {
+        sFullName += QString::number(vUsers.size()) + "/" + QString::number(iMaxUsers) + ")";
+    }
+
+    return sFullName;
 }

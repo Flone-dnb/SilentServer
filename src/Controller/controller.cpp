@@ -85,14 +85,15 @@ void Controller::kickUser(SListItemUser *pListWidgetItem)
     pServerService ->kickUser(pListWidgetItem);
 }
 
-void Controller::renameRoom(const std::string &sOldName, const std::string &sNewName)
+void Controller::changeRoomSettings(const std::string &sOldName, const std::string &sNewName, const std::u16string& sPassword,
+                                    size_t iMaxUsers)
 {
-    //TODO;
+    TODO;
 }
 
 void Controller::moveRoom(const std::string &sRoomName, bool bMoveUp)
 {
-    //TODO;
+    TODO;
 }
 
 void Controller::archiveText(char16_t *pText, size_t iWChars)

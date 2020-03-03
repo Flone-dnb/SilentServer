@@ -19,16 +19,21 @@ class SListItemRoom : public SListItem
 {
 public:
 
-    SListItemRoom(QString sName, SListWidget* pList);
+    SListItemRoom(QString sName, SListWidget* pList, QString sPassword = "", size_t iMaxUsers = 0);
 
     void addUser(SListItemUser* pUser);
     void deleteUser(SListItemUser* pUser);
 
 
-    void    setRoomName (QString sName);
+    void    setRoomName     (QString sName);
+    void    setRoomPassword (QString sPassword);
+    void    setRoomMaxUsers (size_t iMaxUsers);
+
 
     std::vector<SListItemUser*> getUsers();
     QString getRoomName ();
+    QString getPassword ();
+    size_t  getMaxUsers ();
 
 
 
@@ -36,9 +41,16 @@ public:
 
 private:
 
+    QString getRoomFullName();
+
+
+
     std::vector<SListItemUser*> vUsers;
 
     SListWidget* pList;
 
+
     QString sRoomName;
+    QString sPassword;
+    size_t  iMaxUsers;
 };

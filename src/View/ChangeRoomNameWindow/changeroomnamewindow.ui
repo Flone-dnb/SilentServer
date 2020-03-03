@@ -6,32 +6,32 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>537</width>
-    <height>168</height>
+    <width>445</width>
+    <height>314</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Change Room Name</string>
+   <string>Change Room Settings</string>
   </property>
   <property name="styleSheet">
    <string notr="true">background-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgba(7, 7, 7, 255), stop:1 rgba(25, 25, 25, 255));
 color: white;</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="20,60,20">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="15,15,15,15,20,20">
     <item>
      <widget class="QLabel" name="label">
       <property name="font">
        <font>
         <family>Segoe UI</family>
-        <pointsize>10</pointsize>
+        <pointsize>12</pointsize>
        </font>
       </property>
       <property name="styleSheet">
        <string notr="true">background-color: transparent;</string>
       </property>
       <property name="text">
-       <string>Enter a new name for the room</string>
+       <string>Room Name:</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
@@ -39,14 +39,85 @@ color: white;</string>
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEdit">
+     <widget class="QLineEdit" name="lineEdit_name">
       <property name="font">
        <font>
         <family>Segoe UI</family>
         <pointsize>12</pointsize>
        </font>
       </property>
+      <property name="maxLength">
+       <number>20</number>
+      </property>
      </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_2">
+      <property name="font">
+       <font>
+        <family>Segoe UI</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background: transparent;</string>
+      </property>
+      <property name="text">
+       <string>Room Password:</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="lineEdit_password">
+      <property name="font">
+       <font>
+        <family>Segoe UI</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="maxLength">
+       <number>255</number>
+      </property>
+      <property name="echoMode">
+       <enum>QLineEdit::Password</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="60,40">
+      <item>
+       <widget class="QLabel" name="label_3">
+        <property name="font">
+         <font>
+          <family>Segoe UI</family>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background: transparent;</string>
+        </property>
+        <property name="text">
+         <string>Max Users in Room:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEdit_count">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Segoe UI</family>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout" stretch="30,40,30">
@@ -126,7 +197,7 @@ QPushButton:hover
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>537</width>
+     <width>445</width>
      <height>30</height>
     </rect>
    </property>

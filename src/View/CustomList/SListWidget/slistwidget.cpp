@@ -185,6 +185,19 @@ std::vector<QString> SListWidget::getRoomNames()
     return vNames;
 }
 
+bool SListWidget::isAbleToCreateRoom()
+{
+    if (vRooms.size() == MAX_ROOMS)
+    {
+        QMessageBox::warning(nullptr, "Error", "Reached the maximum amount of rooms.");
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 SListWidget::~SListWidget()
 {
     delete ui;

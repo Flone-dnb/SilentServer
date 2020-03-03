@@ -135,11 +135,12 @@ private slots:
         void on_listWidget_users_customContextMenuRequested(const QPoint &pos);
 
         void kickUser();
-        void changeRoomName();
+        void changeRoomSettings();
         void moveRoomUp();
         void moveRoomDown();
+        void createRoom();
 
-        void slotChangeRoomName(SListItemRoom* pRoom, QString sNewName);
+        void slotChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers);
 
         void slotMenuClose();
 
@@ -159,9 +160,12 @@ private:
     QAction*         pActionKick;
 
     QMenu*           pMenuRoom;
-    QAction*         pActionChangeName;
+    QAction*         pActionChangeSettings;
     QAction*         pActionMoveRoomUp;
     QAction*         pActionMoveRoomDown;
+
+    QMenu*           pMenuEmpty;
+    QAction*         pActionCreateRoom;
 
 
     QSystemTrayIcon* pTrayIcon;

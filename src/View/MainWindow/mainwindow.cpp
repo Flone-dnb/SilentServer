@@ -83,18 +83,39 @@ MainWindow::MainWindow(QWidget *parent) :
 
     pMenuRoom ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
 
-    pActionChangeName   = new QAction("Change Room Name");
-    pActionMoveRoomUp   = new QAction("Move Up");
-    pActionMoveRoomDown = new QAction("Move Down");
+    pActionChangeSettings = new QAction("Change Room Settings");
+    pActionMoveRoomUp     = new QAction("Move Up");
+    pActionMoveRoomDown   = new QAction("Move Down");
 
-    pMenuRoom ->addAction(pActionChangeName);
+    pMenuRoom ->addAction(pActionChangeSettings);
     pMenuRoom ->addAction(pActionMoveRoomUp);
     pMenuRoom ->addAction(pActionMoveRoomDown);
 
-    connect(pActionChangeName,   &QAction::triggered, this, &MainWindow::changeRoomName);
+    connect(pActionChangeSettings,   &QAction::triggered, this, &MainWindow::changeRoomSettings);
     connect(pActionMoveRoomUp,   &QAction::triggered, this, &MainWindow::moveRoomUp);
     connect(pActionMoveRoomDown, &QAction::triggered, this, &MainWindow::moveRoomDown);
 
+
+    // Create menu when clicked on empty space.
+
+    pMenuEmpty = new QMenu(this);
+    connect(pMenuEmpty, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
+
+    pMenuEmpty ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+
+    pActionCreateRoom = new QAction("Create Room");
+
+    pMenuEmpty ->addAction(pActionCreateRoom);
+
+    connect(pActionCreateRoom, &QAction::triggered, this, &MainWindow::createRoom);
+
+
+    // Add pActionCreateRoom to all.
+
+    pMenuRoom ->addSeparator();
+    pMenuUser ->addSeparator();
+    pMenuRoom ->addAction(pActionCreateRoom);
+    pMenuUser ->addAction(pActionCreateRoom);
 
 
     // Slider
@@ -415,7 +436,9 @@ void MainWindow::on_listWidget_users_customContextMenuRequested(const QPoint &po
     }
     else
     {
-        //TODO;
+        QPoint globalPos = ui ->listWidget_users ->mapToGlobal(pos);
+
+        pMenuEmpty ->exec(globalPos);
     }
 }
 
@@ -429,7 +452,7 @@ void MainWindow::kickUser()
     }
 }
 
-void MainWindow::changeRoomName()
+void MainWindow::changeRoomSettings()
 {
     if ( ui ->listWidget_users ->currentRow() >= 0 )
     {
@@ -440,7 +463,7 @@ void MainWindow::changeRoomName()
 
         pWindow->setWindowModality(Qt::WindowModality::WindowModal);
 
-        connect(pWindow, &ChangeRoomNameWindow::signalRenameRoom, this, &MainWindow::slotChangeRoomName);
+        connect(pWindow, &ChangeRoomNameWindow::signalChangeRoomSettings, this, &MainWindow::slotChangeRoomSettings);
 
         pWindow->show();
 
@@ -474,13 +497,24 @@ void MainWindow::moveRoomDown()
     }
 }
 
-void MainWindow::slotChangeRoomName(SListItemRoom *pRoom, QString sNewName)
+void MainWindow::createRoom()
+{
+    if (ui ->listWidget_users ->isAbleToCreateRoom())
+    {
+        TODO;
+    }
+}
+
+void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QString sPassword, size_t iMaxUsers)
 {
     QString sOldName = pRoom->getRoomName();
 
-    ui->listWidget_users->renameRoom(pRoom, sNewName);
+    pRoom->setRoomName(sName);
+    pRoom->setRoomPassword(sPassword);
+    pRoom->setRoomMaxUsers(iMaxUsers);
 
-    pController->renameRoom(sOldName.toStdString(), sNewName.toStdString());
+    pController->changeRoomSettings(sOldName.toStdString(), sName.toStdString(), pRoom->getPassword().toStdU16String(),
+                                    pRoom->getMaxUsers());
 }
 
 void MainWindow::slotMenuClose()
@@ -528,6 +562,10 @@ void MainWindow::checkTextSize()
 
 MainWindow::~MainWindow()
 {
+    delete pMenuRoom;
+    delete pMenuUser;
+    delete pMenuEmpty;
+
     delete pController;
 
     delete ui;
