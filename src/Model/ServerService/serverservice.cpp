@@ -659,6 +659,10 @@ void ServerService::listenForNewTCPConnections()
 
 
         std::vector<std::string> vRooms = pMainWindow->getRoomNames();
+		
+		char roomsCount = vRooms.size();
+		memcpy(tempData + iBytesWillSend, &roomsCount, 1);
+		iBytesWillSend++;
 
         for (size_t i = 0; i < vRooms.size(); i++)
         {
