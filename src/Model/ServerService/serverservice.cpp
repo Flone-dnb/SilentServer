@@ -648,8 +648,7 @@ void ServerService::listenForNewTCPConnections()
         // ]
 
         int iBytesWillSend = 0;
-        char command = CM_SERVER_INFO;
-        memcpy(tempData, &command, 1);
+        tempData[0] = CM_SERVER_INFO;
         iBytesWillSend++;
 
         // We will put here packet size
