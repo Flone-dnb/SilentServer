@@ -4,19 +4,14 @@
 // Refer to the LICENSE file included.
 
 #include "slistwidget.h"
-#include "ui_slistwidget.h"
 
 #include <QMessageBox>
 
 #include "View/CustomList/SListItemUser/slistitemuser.h"
 #include "View/CustomList/SListItemRoom/slistitemroom.h"
 
-SListWidget::SListWidget(QWidget *parent) :
-    QListWidget(parent),
-    ui(new Ui::SListWidget)
+SListWidget::SListWidget(QWidget *parent) : QListWidget(parent)
 {
-    ui->setupUi(this);
-
     addRoom("Welcome Room");
     addRoom("Room 1");
     addRoom("Room 2");
@@ -226,5 +221,4 @@ bool SListWidget::isAbleToCreateRoom()
 
 SListWidget::~SListWidget()
 {
-    delete ui;
 }

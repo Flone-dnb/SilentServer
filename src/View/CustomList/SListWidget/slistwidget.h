@@ -11,12 +11,6 @@
 // STL
 #include <vector>
 
-namespace Ui
-{
-    class SListWidget;
-}
-
-
 class SListItemRoom;
 class SListItemUser;
 
@@ -50,9 +44,6 @@ public:
     ~SListWidget();
 
 private:
-
-    Ui::SListWidget *ui;
-
 
     std::vector<SListItemRoom*> vRooms;
 };
