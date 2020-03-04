@@ -205,6 +205,44 @@ void MainWindow::deleteUserFromList(SListItemUser* pUser)
     mtxListUsers .unlock();
 }
 
+std::vector<std::string> MainWindow::getRoomNames()
+{
+    std::vector<std::string> vRoomNames;
+
+    std::vector<QString> vRooms = ui ->listWidget_users ->getRoomNames();
+
+    for (size_t i = 0; i < vRooms.size(); i++)
+    {
+        vRoomNames.push_back(vRooms[i].toStdString());
+    }
+
+    return vRoomNames;
+}
+
+std::vector<std::string> MainWindow::getUsersOfRoomIndex(size_t i)
+{
+    std::vector<std::string> vUsers;
+
+    std::vector<SListItemUser*> vUserNames = ui ->listWidget_users ->getRoom(i) ->getUsers();
+
+    for (size_t i = 0; i < vUserNames.size(); i++)
+    {
+        vUsers.push_back(vUserNames[i]->getName().toStdString());
+    }
+
+    return vUsers;
+}
+
+std::u16string MainWindow::getRoomPassword(size_t iRoomIndex)
+{
+    return ui ->listWidget_users ->getRoom(iRoomIndex) ->getPassword() .toStdU16String();
+}
+
+unsigned short MainWindow::getRoomMaxUsers(size_t iRoomIndex)
+{
+    return static_cast<unsigned short>(ui ->listWidget_users ->getRoom(iRoomIndex) ->getMaxUsers());
+}
+
 void MainWindow::changeStartStopActionText(bool bStop)
 {
     if (bStop)

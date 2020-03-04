@@ -36,6 +36,11 @@ SListItemRoom *SListItemUser::getRoom()
     return pRoom;
 }
 
+QString SListItemUser::getName()
+{
+    return sName;
+}
+
 SListItemUser::~SListItemUser()
 {
 }

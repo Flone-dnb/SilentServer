@@ -158,6 +158,7 @@ private:
     std::mutex               mtxUDPPackets;
     std::mutex               mtxUsersDelete;
     std::mutex               mtxConnectDisconnect;
+    std::mutex               mtxRooms;
 
 
     std::string              serverVersion;

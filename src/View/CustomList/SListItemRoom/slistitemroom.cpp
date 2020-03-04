@@ -24,7 +24,8 @@ SListItemRoom::SListItemRoom(QString sName, SListWidget* pList, QString sPasswor
 
 void SListItemRoom::addUser(SListItemUser *pUser)
 {
-    if (vUsers.size() == iMaxUsers && iMaxUsers != 0)
+    if ( (vUsers.size() == iMaxUsers && iMaxUsers != 0)
+         || (vUsers.size() == USHRT_MAX))
     {
         QMessageBox::warning(nullptr, "Error", "Reached the maximum amount of users in this room.");
         return;

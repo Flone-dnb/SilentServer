@@ -654,17 +654,60 @@ void ServerService::listenForNewTCPConnections()
         // We will put here packet size
         iBytesWillSend += 2;
 
-        memcpy(tempData + iBytesWillSend, &iUsersConnectedCount, 4);
-        iBytesWillSend += 4;
-        for (unsigned int j = 0; j < users.size(); j++)
+
+        mtxRooms.lock();
+
+
+        std::vector<std::string> vRooms = pMainWindow->getRoomNames();
+
+        for (size_t i = 0; i < vRooms.size(); i++)
         {
-            unsigned char nameSize = static_cast<unsigned char>(users[j]->userName.size()) + 1;
-            memcpy(tempData + iBytesWillSend, &nameSize, 1);
+            char cRoomNameSize = static_cast<char>(vRooms[i].size());
+            memcpy(tempData + iBytesWillSend, &cRoomNameSize, 1);
             iBytesWillSend++;
 
-            memcpy(tempData + iBytesWillSend, users[j]->userName.c_str(), nameSize);
-            iBytesWillSend += nameSize;
+            memcpy(tempData + iBytesWillSend, vRooms[i].c_str(), static_cast<size_t>(cRoomNameSize));
+            iBytesWillSend += cRoomNameSize;
+
+            // Copy room's settings.
+
+            std::u16string sPassword = pMainWindow->getRoomPassword(i);
+
+            char cPassSize = static_cast<char>(sPassword.size());
+            memcpy(tempData + iBytesWillSend, &cPassSize, 1);
+            iBytesWillSend++;
+
+            memcpy(tempData + iBytesWillSend, sPassword.c_str(), static_cast<size_t>(cPassSize) * sizeof(char16_t));
+            iBytesWillSend += static_cast<size_t>(cPassSize) * sizeof(char16_t);
+
+
+            unsigned short iMaxUsers = pMainWindow->getRoomMaxUsers(i);
+
+            memcpy(tempData + iBytesWillSend, &iMaxUsers, 2);
+            iBytesWillSend += 2;
+
+
+
+            // Copy users in room.
+
+            std::vector<std::string> vUsers = pMainWindow->getUsersOfRoomIndex(i);
+
+            unsigned short iUsersInRoom = static_cast<unsigned short>(vUsers.size());
+            memcpy(tempData + iBytesWillSend, &iUsersInRoom, sizeof(iUsersInRoom));
+            iBytesWillSend += sizeof(iUsersInRoom);
+
+            for (size_t j = 0; j < vUsers.size(); j++)
+            {
+                char nameSize = static_cast<char>(vUsers[j].size());
+                memcpy(tempData + iBytesWillSend, &nameSize, 1);
+                iBytesWillSend++;
+
+                memcpy(tempData + iBytesWillSend, vUsers[j].c_str(), static_cast<size_t>(nameSize));
+                iBytesWillSend += nameSize;
+            }
         }
+
+        mtxRooms.unlock();
 
         // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes))
         unsigned short int iPacketSize = static_cast<unsigned short>(iBytesWillSend - 3);
@@ -687,7 +730,6 @@ void ServerService::listenForNewTCPConnections()
 
             continue;
         }
-
 
 
         // SEND

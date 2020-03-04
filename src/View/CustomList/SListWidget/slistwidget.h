@@ -31,6 +31,8 @@ public:
     void           deleteRoom  (SListItemRoom* pRoom);
     void           deleteUser  (SListItemUser* pUser);
 
+    SListItemRoom* getRoom     (size_t i);
+
     void           renameRoom  (SListItemRoom* pRoom, QString sNewName);
 
     void           moveRoomUp  (SListItemRoom* pRoom);

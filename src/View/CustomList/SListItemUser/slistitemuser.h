@@ -21,6 +21,7 @@ public:
     void setPing(int iPing);
 
     SListItemRoom* getRoom();
+    QString        getName();
 
 
     ~SListItemUser() override;
