@@ -62,39 +62,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui ->listWidget_users ->setViewMode          (QListView::ListMode);
 
 
-    // Create menu for user.
-
-    pMenuUser   = new QMenu(this);
-    connect(pMenuUser, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
-
-    pMenuUser ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
-
-    pActionKick = new QAction("Kick");
-
-    pMenuUser ->addAction(pActionKick);
-
-    connect(pActionKick, &QAction::triggered, this, &MainWindow::kickUser);
-
-
-
-    // Create menu for room.
-
-    pMenuRoom   = new QMenu(this);
-    connect(pMenuRoom, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
-
-    pMenuRoom ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
-
-    pActionChangeSettings = new QAction("Change Room Settings");
-    pActionMoveRoomUp     = new QAction("Move Up");
-    pActionMoveRoomDown   = new QAction("Move Down");
-
-    pMenuRoom ->addAction(pActionChangeSettings);
-    pMenuRoom ->addAction(pActionMoveRoomUp);
-    pMenuRoom ->addAction(pActionMoveRoomDown);
-
-    connect(pActionChangeSettings,   &QAction::triggered, this, &MainWindow::changeRoomSettings);
-    connect(pActionMoveRoomUp,   &QAction::triggered, this, &MainWindow::moveRoomUp);
-    connect(pActionMoveRoomDown, &QAction::triggered, this, &MainWindow::moveRoomDown);
 
 
     // Create menu when clicked on empty space.
@@ -111,12 +78,48 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(pActionCreateRoom, &QAction::triggered, this, &MainWindow::createRoom);
 
 
-    // Add pActionCreateRoom to all.
 
-    pMenuRoom ->addSeparator();
+
+    // Create menu for user.
+
+    pMenuUser   = new QMenu(this);
+    connect(pMenuUser, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
+
+    pMenuUser ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+
+    pActionKick = new QAction("Kick");
+
+    pMenuUser ->addAction(pActionKick);
     pMenuUser ->addSeparator();
-    pMenuRoom ->addAction(pActionCreateRoom);
     pMenuUser ->addAction(pActionCreateRoom);
+
+    connect(pActionKick, &QAction::triggered, this, &MainWindow::kickUser);
+
+
+
+    // Create menu for room.
+
+    pMenuRoom   = new QMenu(this);
+    connect(pMenuRoom, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
+
+    pMenuRoom ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+
+    pActionChangeSettings = new QAction("Change Room Settings");
+    pActionMoveRoomUp     = new QAction("Move Up");
+    pActionMoveRoomDown   = new QAction("Move Down");
+    pActionDeleteRoom     = new QAction("Delete Room");
+
+    pMenuRoom ->addAction(pActionChangeSettings);
+    pMenuRoom ->addAction(pActionMoveRoomUp);
+    pMenuRoom ->addAction(pActionMoveRoomDown);
+    pMenuRoom ->addAction(pActionCreateRoom);
+    pMenuRoom ->addAction(pActionDeleteRoom);
+
+    connect(pActionChangeSettings, &QAction::triggered, this, &MainWindow::changeRoomSettings);
+    connect(pActionMoveRoomUp,     &QAction::triggered, this, &MainWindow::moveRoomUp);
+    connect(pActionMoveRoomDown,   &QAction::triggered, this, &MainWindow::moveRoomDown);
+    connect(pActionDeleteRoom,     &QAction::triggered, this, &MainWindow::deleteRoom);
+
 
 
     // Slider
@@ -407,26 +410,44 @@ void MainWindow::on_listWidget_users_customContextMenuRequested(const QPoint &po
         {
             SListItemRoom* pRoomItem = dynamic_cast<SListItemRoom*>(pItem);
 
-            if ( (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[1])
-                 || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+            if (pRoomItem ->getRoomName() == ui ->listWidget_users ->getRoomNames()[0])
             {
-                pActionMoveRoomUp ->setVisible(false);
+                pActionDeleteRoom ->setVisible(false);
             }
             else
             {
-                pActionMoveRoomUp ->setVisible(true);
+                pActionDeleteRoom ->setVisible(true);
             }
 
-            if ( (pRoomItem->getRoomName() ==
-                                 ui ->listWidget_users ->getRoomNames()[ ui ->listWidget_users ->getRoomNames().size() - 1 ])
-                 || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+            if (ui ->listWidget_users ->getRoomCount() > 1)
             {
-                pActionMoveRoomDown ->setVisible(false);
+                if ( (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[1])
+                     || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+                {
+                    pActionMoveRoomUp ->setVisible(false);
+                }
+                else
+                {
+                    pActionMoveRoomUp ->setVisible(true);
+                }
+
+                if ( (pRoomItem->getRoomName() ==
+                                     ui ->listWidget_users ->getRoomNames()[ ui ->listWidget_users ->getRoomNames().size() - 1 ])
+                     || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+                {
+                    pActionMoveRoomDown ->setVisible(false);
+                }
+                else
+                {
+                    pActionMoveRoomDown ->setVisible(true);
+                }
             }
             else
             {
-                pActionMoveRoomDown ->setVisible(true);
+                pActionMoveRoomUp ->setVisible(false);
+                pActionMoveRoomDown ->setVisible(false);
             }
+
 
             pMenuRoom ->exec(globalPos);
         }
@@ -509,6 +530,25 @@ void MainWindow::createRoom()
         pWindow->setWindowModality(Qt::WindowModality::WindowModal);
 
         pWindow->show();
+    }
+}
+
+void MainWindow::deleteRoom()
+{
+    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    {
+        SListItemRoom* pRoom = dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem());
+
+        if (pRoom->getUsersCount() > 0)
+        {
+            QMessageBox::warning(nullptr, "Error", "Cannot delete the room because there are users in it.");
+        }
+        else
+        {
+            pController->deleteRoom(pRoom->getRoomName().toStdString());
+
+            ui ->listWidget_users ->deleteRoom(pRoom);
+        }
     }
 }
 

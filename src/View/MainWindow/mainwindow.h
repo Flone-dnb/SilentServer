@@ -139,6 +139,7 @@ private slots:
         void moveRoomUp();
         void moveRoomDown();
         void createRoom();
+        void deleteRoom();
 
         void slotChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers);
         void slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers);
@@ -164,6 +165,7 @@ private:
     QAction*         pActionChangeSettings;
     QAction*         pActionMoveRoomUp;
     QAction*         pActionMoveRoomDown;
+    QAction*         pActionDeleteRoom;
 
     QMenu*           pMenuEmpty;
     QAction*         pActionCreateRoom;

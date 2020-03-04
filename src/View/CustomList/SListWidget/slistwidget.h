@@ -34,6 +34,7 @@ public:
 
     void           addRoom     (QString sRoomName, QString sPassword = "", size_t iMaxUsers = 0);
     SListItemUser* addUser     (QString sUserName, SListItemRoom* pRoom = nullptr);
+    void           deleteRoom  (SListItemRoom* pRoom);
     void           deleteUser  (SListItemUser* pUser);
 
     void           renameRoom  (SListItemRoom* pRoom, QString sNewName);
@@ -42,6 +43,7 @@ public:
     void           moveRoomDown(SListItemRoom* pRoom);
 
     std::vector<QString> getRoomNames();
+    size_t               getRoomCount();
     bool                 isAbleToCreateRoom();
 
 

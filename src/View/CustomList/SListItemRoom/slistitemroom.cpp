@@ -98,6 +98,11 @@ std::vector<SListItemUser *> SListItemRoom::getUsers()
     return vUsers;
 }
 
+size_t SListItemRoom::getUsersCount()
+{
+    return vUsers.size();
+}
+
 QString SListItemRoom::getRoomName()
 {
     return sRoomName;

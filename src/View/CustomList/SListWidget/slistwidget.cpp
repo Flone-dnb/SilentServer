@@ -59,6 +59,27 @@ SListItemUser* SListWidget::addUser(QString sUserName, SListItemRoom* pRoom)
     return pNewItem;
 }
 
+void SListWidget::deleteRoom(SListItemRoom *pRoom)
+{
+    std::vector<SListItemUser*> vUsers = pRoom->getUsers();
+
+    for (size_t i = 0; i < vRooms.size(); i++)
+    {
+        if (vRooms[i]->getRoomName() == pRoom->getRoomName())
+        {
+            vRooms.erase(vRooms.begin() + i);
+            break;
+        }
+    }
+
+    delete pRoom;
+
+    for (size_t i = 0; i < vUsers.size(); i++)
+    {
+        delete vUsers[i];
+    }
+}
+
 void SListWidget::deleteUser(SListItemUser *pUser)
 {
     pUser->getRoom()->deleteUser(pUser);
@@ -183,6 +204,11 @@ std::vector<QString> SListWidget::getRoomNames()
     }
 
     return vNames;
+}
+
+size_t SListWidget::getRoomCount()
+{
+    return vRooms.size();
 }
 
 bool SListWidget::isAbleToCreateRoom()

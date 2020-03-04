@@ -31,6 +31,7 @@ public:
 
 
     std::vector<SListItemUser*> getUsers();
+    size_t  getUsersCount();
     QString getRoomName ();
     QString getPassword ();
     size_t  getMaxUsers ();

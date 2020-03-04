@@ -37,6 +37,7 @@ public:
                                                const std::u16string& sPassword,
                                                size_t iMaxUsers);
         void            createRoom            (const std::string& sName, const std::u16string& sPassword, size_t iMaxUsers);
+        void            deleteRoom            (const std::string& sName);
         void            moveRoom              (const std::string& sRoomName, bool bMoveUp);
 
 
