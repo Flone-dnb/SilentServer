@@ -23,6 +23,7 @@ public:
 
     void addUser(SListItemUser* pUser);
     void deleteUser(SListItemUser* pUser);
+    void eraseUserFromRoom(SListItemUser* pUser);
 
 
     void    setRoomName     (QString sName);

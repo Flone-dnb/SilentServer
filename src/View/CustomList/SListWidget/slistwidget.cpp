@@ -80,6 +80,19 @@ void SListWidget::deleteUser(SListItemUser *pUser)
     pUser->getRoom()->deleteUser(pUser);
 }
 
+void SListWidget::moveUser(SListItemUser *pUser, QString sToRoom)
+{
+    pUser->getRoom()->eraseUserFromRoom(pUser);
+
+    for (size_t i = 0; i < vRooms.size(); i++)
+    {
+        if (vRooms[i]->getRoomName() == sToRoom)
+        {
+            vRooms[i]->addUser(pUser);
+        }
+    }
+}
+
 SListItemRoom *SListWidget::getRoom(size_t i)
 {
     return vRooms[i];

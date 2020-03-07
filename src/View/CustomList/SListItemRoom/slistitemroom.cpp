@@ -58,6 +58,10 @@ void SListItemRoom::addUser(SListItemUser *pUser)
     {
         pList->insertItem(iInsertRowIndex, pUser);
     }
+
+
+    // Update info.
+    setText(getRoomFullName());
 }
 
 void SListItemRoom::deleteUser(SListItemUser *pUser)
@@ -71,6 +75,24 @@ void SListItemRoom::deleteUser(SListItemUser *pUser)
             vUsers.erase( vUsers.begin() + i );
         }
     }
+
+    // Update info.
+    setText(getRoomFullName());
+}
+
+void SListItemRoom::eraseUserFromRoom(SListItemUser *pUser)
+{
+    for (size_t i = 0; i < vUsers.size(); i++)
+    {
+        if (vUsers[i] == pUser)
+        {
+            vUsers.erase( vUsers.begin() + i );
+            pList->takeItem(pList->row(pUser));
+        }
+    }
+
+    // Update info.
+    setText(getRoomFullName());
 }
 
 void SListItemRoom::setRoomName(QString sName)
@@ -126,6 +148,11 @@ SListItemRoom::~SListItemRoom()
 
 QString SListItemRoom::getRoomFullName()
 {
+    QFont f = font();
+    f.setPointSize(11);
+    setFont(f);
+
+
     QString sFullName = sRoomName;
 
     sFullName += "    ";
@@ -133,7 +160,7 @@ QString SListItemRoom::getRoomFullName()
     sFullName += "(";
     if (iMaxUsers == 0)
     {
-        sFullName += "0)";
+        sFullName += QString::number(vUsers.size()) + ")";
     }
     else
     {

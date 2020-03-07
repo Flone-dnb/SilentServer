@@ -48,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     qRegisterMetaType<QTextCursor>("QTextCursor");
+    qRegisterMetaType<QVector<int>>("QVector<int>");
 
 
 
@@ -241,6 +242,49 @@ std::u16string MainWindow::getRoomPassword(size_t iRoomIndex)
 unsigned short MainWindow::getRoomMaxUsers(size_t iRoomIndex)
 {
     return static_cast<unsigned short>(ui ->listWidget_users ->getRoom(iRoomIndex) ->getMaxUsers());
+}
+
+void MainWindow::moveUserToRoom(SListItemUser *pUser, std::string sRoomName)
+{
+    ui ->listWidget_users ->moveUser(pUser, QString::fromStdString(sRoomName));
+}
+
+bool MainWindow::checkRoomSettings(std::string sRoomName, bool* pbPasswordNeeded, bool* pbRoomFull)
+{
+    std::vector<QString> vRooms = ui ->listWidget_users ->getRoomNames();
+
+    QString sRoomToEnter = QString::fromStdString(sRoomName);
+
+    bool bRoomFound = false;
+
+    SListItemRoom* pRoom = nullptr;
+
+    for (size_t i = 0; i < vRooms.size(); i++)
+    {
+        if (sRoomToEnter == vRooms[i])
+        {
+            bRoomFound = true;
+            pRoom = ui ->listWidget_users ->getRoom(i);
+            break;
+        }
+    }
+
+    if (bRoomFound == false)
+    {
+        return true;
+    }
+
+    if ( (pRoom->getUsersCount() == pRoom->getMaxUsers()) && (pRoom->getMaxUsers() != 0) )
+    {
+        *pbRoomFull = true;
+    }
+
+    if (pRoom->getPassword() != "")
+    {
+        *pbPasswordNeeded = true;
+    }
+
+    return false;
 }
 
 void MainWindow::changeStartStopActionText(bool bStop)

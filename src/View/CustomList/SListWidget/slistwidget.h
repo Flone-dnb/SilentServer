@@ -30,6 +30,7 @@ public:
     SListItemUser* addUser     (QString sUserName, SListItemRoom* pRoom = nullptr);
     void           deleteRoom  (SListItemRoom* pRoom);
     void           deleteUser  (SListItemUser* pUser);
+    void           moveUser    (SListItemUser* pUser, QString sToRoom);
 
     SListItemRoom* getRoom     (size_t i);
 

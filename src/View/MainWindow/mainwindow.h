@@ -73,10 +73,17 @@ public:
 
         SListItemUser*   addNewUserToList           (std::string userName);
         void             deleteUserFromList         (SListItemUser* pUser);
+
+    // Rooms
+
         std::vector<std::string> getRoomNames       ();
         std::vector<std::string> getUsersOfRoomIndex(size_t i);
         std::u16string           getRoomPassword    (size_t iRoomIndex);
         unsigned short           getRoomMaxUsers    (size_t iRoomIndex);
+
+        void                     moveUserToRoom     (SListItemUser* pUser, std::string sRoomName);
+
+        bool                     checkRoomSettings  (std::string sRoomName, bool* pbPasswordNeeded, bool* pbRoomFull);
 
 
     // Menu

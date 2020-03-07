@@ -83,7 +83,6 @@ public:
 
         void  listenForMessage            (UserStruct* userToListen);
         void  listenForVoiceMessage       (UserStruct* userToListen);
-        void  processMessage              (UserStruct* userToListen);
         void  listenForNewTCPConnections  ();
 
 
@@ -107,6 +106,12 @@ public:
         unsigned short getPingWarningBelow       ();
 
 private:
+
+    // TCP
+
+        void  processMessage                     (UserStruct* userToListen);
+        void  checkRoomSettings                  (UserStruct* userToListen);
+
 
     // UDP related
 

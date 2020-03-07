@@ -29,6 +29,7 @@ using std::memcpy;
 #include "Model/ServerService/UDPPacket.h"
 
 #include "View/CustomList/SListItemUser/slistitemuser.h"
+#include "View/CustomList/SListItemRoom/slistitemroom.h"
 
 
 enum CONNECT_MESSAGES
@@ -38,6 +39,13 @@ enum CONNECT_MESSAGES
     CM_WRONG_CLIENT    = 3,
     CM_SERVER_INFO     = 4,
     CM_NEED_PASSWORD   = 5
+};
+
+enum ROOM_COMMAND
+{
+    RC_ENTER_ROOM           = 15,
+    RC_CAN_ENTER_ROOM       = 20,
+    RC_USER_ENTERS_ROOM     = 25
 };
 
 enum TCP_SERVER_MESSAGE
@@ -660,7 +668,7 @@ void ServerService::listenForNewTCPConnections()
 
         std::vector<std::string> vRooms = pMainWindow->getRoomNames();
 		
-		char roomsCount = vRooms.size();
+        char roomsCount = static_cast<char>(vRooms.size());
 		memcpy(tempData + iBytesWillSend, &roomsCount, 1);
 		iBytesWillSend++;
 
@@ -959,6 +967,12 @@ void ServerService::listenForMessage(UserStruct* userToListen)
                     userToListen->keepAliveTimer = std::chrono::steady_clock::now();
 
                     processMessage(userToListen);
+                }
+                else if (userToListen->pDataFromUser[0] == RC_ENTER_ROOM)
+                {
+                    userToListen->keepAliveTimer = std::chrono::steady_clock::now();
+
+                    checkRoomSettings(userToListen);
                 }
             }
         }
@@ -1493,6 +1507,92 @@ void ServerService::processMessage(UserStruct *userToListen)
     }
 
     delete[] pSendToAllBuffer;
+}
+
+void ServerService::checkRoomSettings(UserStruct *userToListen)
+{
+    char cRoomNameSize = 0;
+
+    recv(userToListen->userTCPSocket, &cRoomNameSize, 1, 0);
+
+    char vBuffer[MAX_NAME_LENGTH + 1];
+    memset(vBuffer, 0, MAX_NAME_LENGTH + 1);
+
+    recv(userToListen->userTCPSocket, vBuffer, cRoomNameSize, 0);
+
+
+    bool bRoomFull = false;
+    bool bPasswordNeeded = false;
+
+    std::string sRoomNameStr = vBuffer;
+
+    mtxRooms.lock();
+
+    bool bResult = pMainWindow->checkRoomSettings(sRoomNameStr, &bPasswordNeeded, &bRoomFull);
+
+    if (bResult == false)
+    {
+        char vSendBuffer[MAX_NAME_LENGTH + 3];
+        memset(vSendBuffer, 0, MAX_NAME_LENGTH + 3);
+
+        if (bPasswordNeeded == false && bRoomFull == false)
+        {
+            vSendBuffer[0] = RC_CAN_ENTER_ROOM;
+            vSendBuffer[1] = static_cast<char>(sRoomNameStr.size());
+
+            std::memcpy(vSendBuffer + 2, sRoomNameStr.c_str(), sRoomNameStr.size());
+
+            send(userToListen->userTCPSocket, vSendBuffer, 2 + static_cast<int>(sRoomNameStr.size()), 0);
+
+            pMainWindow->moveUserToRoom(userToListen->pUserInList, sRoomNameStr);
+
+
+            // Tell others.
+
+            char vResendBuffer[MAX_NAME_LENGTH * 2 + 5];
+            memset(vResendBuffer, 0, MAX_NAME_LENGTH * 2 + 5);
+
+            size_t iIndex = 0;
+
+            vResendBuffer[0] = RC_USER_ENTERS_ROOM;
+            vResendBuffer[1] = static_cast<char>(userToListen->userName.size());
+
+            iIndex = 2;
+
+            std::memcpy(vResendBuffer + iIndex, userToListen->userName.c_str(), userToListen->userName.size());
+            iIndex += userToListen->userName.size();
+
+            vResendBuffer[iIndex] = static_cast<char>(sRoomNameStr.size());
+            iIndex += 1;
+
+            std::memcpy(vResendBuffer + iIndex, sRoomNameStr.c_str(), sRoomNameStr.size());
+            iIndex += sRoomNameStr.size();
+
+            for (size_t i = 0; i < users.size(); i++)
+            {
+                if (users[i] != userToListen)
+                {
+                    int iSentSize = send(users[i]->userTCPSocket, vResendBuffer, static_cast<int>(iIndex), 0);
+
+                    if (iSentSize != static_cast<int>(iIndex))
+                    {
+                        if (iSentSize == SOCKET_ERROR)
+                        {
+                            pLogManager ->printAndLog( "ServerService::checkRoomSettings::send() function failed and returned: "
+                                                       + std::to_string(getLastError()), true);
+                        }
+                        else
+                        {
+                            pLogManager ->printAndLog( users[i]->userName + "'s info about room change wasn't fully sent. send() returned: "
+                                                       + std::to_string(iSentSize), true );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    mtxRooms.unlock();
 }
 
 void ServerService::checkPing()
