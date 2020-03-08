@@ -99,10 +99,18 @@ void ChangeRoomNameWindow::on_pushButton_clicked()
 
     if (bASCII)
     {
-        emit signalChangeRoomSettings(pRoom, ui->lineEdit_name->text(), ui->lineEdit_password->text(),
-                                      static_cast<size_t>(ui->lineEdit_count->text().toInt()));
+        if ( (pRoom->getUsers().size() > ui->lineEdit_count->text().toUInt())
+             && ui->lineEdit_count->text().toUInt() != 0)
+        {
+            QMessageBox::warning(nullptr, "Error", "The max amount of users is lower than there are users right now in this room.");
+        }
+        else
+        {
+            emit signalChangeRoomSettings(pRoom, ui->lineEdit_name->text(), ui->lineEdit_password->text(),
+                                          static_cast<size_t>(ui->lineEdit_count->text().toInt()));
 
-        close();
+            close();
+        }
     }
     else
     {
