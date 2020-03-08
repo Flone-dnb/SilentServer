@@ -44,7 +44,10 @@ enum CONNECT_MESSAGES
 enum ROOM_COMMAND
 {
     RC_ENTER_ROOM           = 15,
+
     RC_CAN_ENTER_ROOM       = 20,
+    RC_ROOM_IS_FULL         = 21,
+
     RC_USER_ENTERS_ROOM     = 25
 };
 
@@ -1589,6 +1592,18 @@ void ServerService::checkRoomSettings(UserStruct *userToListen)
                     }
                 }
             }
+        }
+        else if (bRoomFull)
+        {
+            memset(vBuffer, 0, MAX_NAME_LENGTH + 1);
+
+            vBuffer[0] = RC_ROOM_IS_FULL;
+
+            send(userToListen->userTCPSocket, &vBuffer[0], 1, 0);
+        }
+        else
+        {
+
         }
     }
 
