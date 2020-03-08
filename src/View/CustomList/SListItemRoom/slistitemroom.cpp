@@ -33,6 +33,8 @@ void SListItemRoom::addUser(SListItemUser *pUser)
 
     vUsers.push_back(pUser);
 
+    pUser->setRoom(this);
+
 
     int iStartRow = pList->row(this);
 
