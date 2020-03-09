@@ -239,6 +239,11 @@ std::u16string MainWindow::getRoomPassword(size_t iRoomIndex)
     return ui ->listWidget_users ->getRoom(iRoomIndex) ->getPassword() .toStdU16String();
 }
 
+std::u16string MainWindow::getRoomPassword(std::string sRoomName)
+{
+    return ui ->listWidget_users ->getRoomPassword(QString::fromStdString(sRoomName)).toStdU16String();
+}
+
 unsigned short MainWindow::getRoomMaxUsers(size_t iRoomIndex)
 {
     return static_cast<unsigned short>(ui ->listWidget_users ->getRoom(iRoomIndex) ->getMaxUsers());

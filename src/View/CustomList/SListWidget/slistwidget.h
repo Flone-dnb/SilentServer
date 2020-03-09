@@ -32,16 +32,16 @@ public:
     void           deleteUser  (SListItemUser* pUser);
     void           moveUser    (SListItemUser* pUser, QString sToRoom);
 
-    SListItemRoom* getRoom     (size_t i);
-
     void           renameRoom  (SListItemRoom* pRoom, QString sNewName);
 
     void           moveRoomUp  (SListItemRoom* pRoom);
     void           moveRoomDown(SListItemRoom* pRoom);
 
-    std::vector<QString> getRoomNames();
-    size_t               getRoomCount();
-    bool                 isAbleToCreateRoom();
+    std::vector<QString> getRoomNames       ();
+    size_t               getRoomCount       ();
+    bool                 isAbleToCreateRoom ();
+    SListItemRoom*       getRoom            (size_t i);
+    QString              getRoomPassword    (QString sRoomName);
 
 
     ~SListWidget();

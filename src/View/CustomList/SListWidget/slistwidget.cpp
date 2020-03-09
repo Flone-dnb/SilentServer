@@ -98,6 +98,19 @@ SListItemRoom *SListWidget::getRoom(size_t i)
     return vRooms[i];
 }
 
+QString SListWidget::getRoomPassword(QString sRoomName)
+{
+    for (size_t i = 0; i < vRooms.size(); i++)
+    {
+        if (vRooms[i]->getRoomName() == sRoomName)
+        {
+            return vRooms[i]->getPassword();
+        }
+    }
+
+    return "";
+}
+
 void SListWidget::renameRoom(SListItemRoom *pRoom, QString sNewName)
 {
     pRoom->setRoomName(sNewName);

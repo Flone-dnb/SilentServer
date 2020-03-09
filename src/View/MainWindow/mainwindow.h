@@ -79,6 +79,7 @@ public:
         std::vector<std::string> getRoomNames       ();
         std::vector<std::string> getUsersOfRoomIndex(size_t i);
         std::u16string           getRoomPassword    (size_t iRoomIndex);
+        std::u16string           getRoomPassword    (std::string sRoomName);
         unsigned short           getRoomMaxUsers    (size_t iRoomIndex);
 
         void                     moveUserToRoom     (SListItemUser* pUser, std::string sRoomName);

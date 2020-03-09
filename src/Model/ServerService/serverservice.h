@@ -111,6 +111,7 @@ private:
 
         void  processMessage                     (UserStruct* userToListen);
         void  checkRoomSettings                  (UserStruct* userToListen);
+        void  userEntersRoom                     (UserStruct* userToListen, std::string sRoomName);
 
 
     // UDP related
