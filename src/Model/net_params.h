@@ -19,6 +19,7 @@
 #define  INTERVAL_TCP_MESSAGE_MS             150   // must be a multiple of 25, see listenForMessage().
 #define  INTERVAL_UDP_MESSAGE_MS             2
 #define  ANTI_SPAM_MINIMUM_TIME_SEC          2.0f
+#define  WRONG_PASSWORD_INTERVAL_SEC         5.0f
 #define  INTERVAL_REFRESH_WRONG_PACKETS_SEC  30
 #define  NOTIFY_WHEN_WRONG_PACKETS_MORE      50   // in INTERVAL_REFRESH_WRONG_PACKETS_SEC
 

@@ -41,6 +41,7 @@ struct UserStruct
 
     std::chrono::time_point<std::chrono::steady_clock> keepAliveTimer;
     std::chrono::time_point<std::chrono::steady_clock> lastTimeMessageSent;
+    std::chrono::time_point<std::chrono::steady_clock> lastTimeWrongPasswordEntered;
 
 
     char*            pDataFromUser;

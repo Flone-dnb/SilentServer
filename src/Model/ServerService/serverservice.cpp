@@ -63,7 +63,8 @@ enum TCP_SERVER_MESSAGE
     SM_PING                 = 8,
     SM_KEEPALIVE            = 9,
     SM_USERMESSAGE          = 10,
-    SM_KICKED               = 11
+    SM_KICKED               = 11,
+    SM_WRONG_PASSWORD_WAIT  = 12
 };
 
 enum USER_DISCONNECT_REASON
@@ -854,6 +855,7 @@ void ServerService::listenForNewTCPConnections()
         pNewUser->userTCPPort         = ntohs(connectedWith.sin_port);
         pNewUser->keepAliveTimer      = std::chrono::steady_clock::now();
         pNewUser->lastTimeMessageSent = std::chrono::steady_clock::now();
+        pNewUser->lastTimeWrongPasswordEntered = std::chrono::steady_clock::now();
 
         memset(pNewUser->userUDPAddr.sin_zero, 0, sizeof(pNewUser->userUDPAddr.sin_zero));
         pNewUser->userUDPAddr.sin_family = AF_INET;
@@ -1538,12 +1540,14 @@ void ServerService::checkRoomSettings(UserStruct *userToListen)
     if (bWithPassword)
     {
         char16_t vPasswordBuffer[MAX_NAME_LENGTH + 1];
-        memset(vPasswordBuffer, 0, MAX_NAME_LENGTH + 1);
+        memset(vPasswordBuffer, 0, (MAX_NAME_LENGTH + 1) * sizeof(char16_t));
 
         char cPasswordSize = 0;
         recv(userToListen->userTCPSocket, &cPasswordSize, 1, 0);
 
-        recv(userToListen->userTCPSocket, reinterpret_cast<char*>(vPasswordBuffer), cPasswordSize * 2, 0);
+        cPasswordSize *= 2;
+
+        recv(userToListen->userTCPSocket, reinterpret_cast<char*>(vPasswordBuffer), cPasswordSize, 0);
 
         sPassword = vPasswordBuffer;
     }
@@ -1578,17 +1582,31 @@ void ServerService::checkRoomSettings(UserStruct *userToListen)
         {
             if (sPassword != u"")
             {
-                std::u16string sRoomPassword = pMainWindow->getRoomPassword(sRoomNameStr);
+                float timePassedInSeconds = std::chrono::duration_cast<std::chrono::milliseconds>
+                        (std::chrono::steady_clock::now() - userToListen ->lastTimeWrongPasswordEntered).count() / 1000.0f;
 
-                if (sPassword == sRoomPassword)
+                if (timePassedInSeconds <= WRONG_PASSWORD_INTERVAL_SEC)
                 {
-                    userEntersRoom(userToListen, sRoomNameStr);
+                    char cRes = SM_WRONG_PASSWORD_WAIT;
+
+                    send(userToListen->userTCPSocket, &cRes, 1, 0);
                 }
                 else
                 {
-                    vSendBuffer[0] = RC_WRONG_PASSWORD;
+                    std::u16string sRoomPassword = pMainWindow->getRoomPassword(sRoomNameStr);
 
-                    send(userToListen->userTCPSocket, vSendBuffer, 1, 0);
+                    if (sPassword == sRoomPassword)
+                    {
+                        userEntersRoom(userToListen, sRoomNameStr);
+                    }
+                    else
+                    {
+                        vSendBuffer[0] = RC_WRONG_PASSWORD;
+
+                        send(userToListen->userTCPSocket, vSendBuffer, 1, 0);
+
+                        userToListen->lastTimeWrongPasswordEntered = std::chrono::steady_clock::now();
+                    }
                 }
             }
             else
