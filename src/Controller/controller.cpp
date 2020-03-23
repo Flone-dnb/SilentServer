@@ -98,7 +98,7 @@ void Controller::createRoom(const std::string &sName, const std::u16string &sPas
 
 void Controller::deleteRoom(const std::string &sName)
 {
-    //TODO;
+    pServerService->deleteRoom(sName);
 }
 
 void Controller::moveRoom(const std::string &sRoomName, bool bMoveUp)

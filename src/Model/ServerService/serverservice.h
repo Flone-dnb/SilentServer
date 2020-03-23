@@ -89,6 +89,7 @@ public:
     // Rooms
 
         void  moveRoom                    (const std::string &sRoomName, bool bMoveUp);
+        void  deleteRoom                  (const std::string &sRoomName);
 
 
     // Ping

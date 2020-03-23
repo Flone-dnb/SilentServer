@@ -52,7 +52,8 @@ enum ROOM_COMMAND
     RC_WRONG_PASSWORD       = 23,
 
     RC_USER_ENTERS_ROOM     = 25,
-    RC_SERVER_MOVED_ROOM    = 26
+    RC_SERVER_MOVED_ROOM    = 26,
+    RC_SERVER_DELETES_ROOM  = 27
 };
 
 enum TCP_SERVER_MESSAGE
@@ -1724,6 +1725,63 @@ void ServerService::moveRoom(const std::string &sRoomName, bool bMoveUp)
 
     mtxRooms.unlock();
     mtxUsersDelete.unlock();
+}
+
+void ServerService::deleteRoom(const std::string &sRoomName)
+{
+    std::vector<std::string> vRoomNames = pMainWindow->getRoomNames();
+
+    char vBuffer[2 + MAX_NAME_LENGTH + 2];
+    memset(vBuffer, 0, 4 + MAX_NAME_LENGTH);
+
+    vBuffer[0] = RC_SERVER_DELETES_ROOM;
+    vBuffer[1] = static_cast<char>(sRoomName.size());
+
+    std::memcpy(vBuffer + 2, sRoomName.c_str(), sRoomName.size());
+
+    int iSizeToSend = 2 + static_cast<int>(sRoomName.size());
+    int iSentSize   = 0;
+
+
+    for (size_t i = 0; i < vRoomNames.size(); i++)
+    {
+        if (vRoomNames[i] == sRoomName)
+        {
+            mtxRooms.lock();
+            mtxUsersDelete.lock();
+
+            if (pMainWindow->getUsersOfRoomIndex(i).size() == 0)
+            {
+                for (size_t i = 0; i < users.size(); i++)
+                {
+                    iSentSize = send(users[i]->userTCPSocket, vBuffer, iSizeToSend, 0);
+
+                    if (iSentSize != iSizeToSend)
+                    {
+                        if (iSentSize == SOCKET_ERROR)
+                        {
+                            pLogManager ->printAndLog( "ServerService::deleteRoom::send() function failed and returned: "
+                                                       + std::to_string(getLastError()), true);
+                        }
+                        else
+                        {
+                            pLogManager ->printAndLog( "ServerService::deleteRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                                                       + std::to_string(iSentSize), true );
+                        }
+                    }
+                }
+            }
+            else
+            {
+                pMainWindow->showMessageBox(true, u"Cannot delete the room because there are users in it.", true);
+            }
+
+            mtxUsersDelete.unlock();
+            mtxRooms.unlock();
+
+            break;
+        }
+    }
 }
 
 void ServerService::checkPing()
