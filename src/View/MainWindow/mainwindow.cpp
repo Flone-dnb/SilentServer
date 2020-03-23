@@ -653,6 +653,8 @@ void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QS
 
 void MainWindow::slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers)
 {
+    pController->createRoom(sName.toStdString(), sPassword.toStdU16String(), iMaxUsers);
+
     ui->listWidget_users->addRoom(sName, sPassword, iMaxUsers);
 }
 

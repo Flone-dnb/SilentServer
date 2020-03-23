@@ -53,7 +53,8 @@ enum ROOM_COMMAND
 
     RC_USER_ENTERS_ROOM     = 25,
     RC_SERVER_MOVED_ROOM    = 26,
-    RC_SERVER_DELETES_ROOM  = 27
+    RC_SERVER_DELETES_ROOM  = 27,
+    RC_SERVER_CREATES_ROOM  = 28
 };
 
 enum TCP_SERVER_MESSAGE
@@ -1782,6 +1783,60 @@ void ServerService::deleteRoom(const std::string &sRoomName)
             break;
         }
     }
+}
+
+void ServerService::createRoom(const std::string &sName, const std::u16string &sPassword, size_t iMaxUsers)
+{
+    char vBuffer[MAX_NAME_LENGTH * 4];
+    memset(vBuffer, 0, MAX_NAME_LENGTH * 4);
+
+    vBuffer[0] = RC_SERVER_CREATES_ROOM;
+
+
+    vBuffer[1] = static_cast<char>(sName.size());
+
+    std::memcpy(vBuffer + 2, sName.c_str(), sName.size());
+
+    int iIndex = 2 + static_cast<int>(sName.size());
+
+
+    vBuffer[iIndex] = static_cast<char>(sPassword.size());
+    iIndex++;
+
+    std::memcpy(vBuffer + iIndex, sPassword.c_str(), sPassword.size() * 2);
+    iIndex += sPassword.size() * 2;
+
+    unsigned int iMax = static_cast<unsigned int>(iMaxUsers);
+    std::memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
+    iIndex += static_cast<int>(sizeof(unsigned int));
+
+
+    int iSentSize   = 0;
+
+    mtxUsersDelete.lock();
+    mtxRooms.lock();
+
+    for (size_t i = 0; i < users.size(); i++)
+    {
+        iSentSize = send(users[i]->userTCPSocket, vBuffer, iIndex, 0);
+
+        if (iSentSize != iIndex)
+        {
+            if (iSentSize == SOCKET_ERROR)
+            {
+                pLogManager ->printAndLog( "ServerService::createRoom::send() function failed and returned: "
+                                           + std::to_string(getLastError()), true);
+            }
+            else
+            {
+                pLogManager ->printAndLog( "ServerService::createRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                                           + std::to_string(iSentSize), true );
+            }
+        }
+    }
+
+    mtxRooms.unlock();
+    mtxUsersDelete.unlock();
 }
 
 void ServerService::checkPing()
