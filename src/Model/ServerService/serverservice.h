@@ -86,6 +86,11 @@ public:
         void  listenForNewTCPConnections  ();
 
 
+    // Rooms
+
+        void  moveRoom                    (const std::string &sRoomName, bool bMoveUp);
+
+
     // Ping
 
         void  checkPing                   ();

@@ -584,10 +584,10 @@ void MainWindow::moveRoomUp()
 {
     if ( ui ->listWidget_users ->currentRow() >= 0 )
     {
-        ui ->listWidget_users ->moveRoomUp( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
-
         pController ->moveRoom( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem())->getRoomName().toStdString(),
                                 true );
+
+        ui ->listWidget_users ->moveRoomUp( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
 
         ui ->listWidget_users ->clearSelection();
     }
@@ -597,10 +597,10 @@ void MainWindow::moveRoomDown()
 {
     if ( ui ->listWidget_users ->currentRow() >= 0 )
     {
-        ui ->listWidget_users ->moveRoomDown( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
-
         pController ->moveRoom( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem())->getRoomName().toStdString(),
                                 false );
+
+        ui ->listWidget_users ->moveRoomDown( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
 
         ui ->listWidget_users ->clearSelection();
     }

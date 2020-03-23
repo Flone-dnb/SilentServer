@@ -88,22 +88,22 @@ void Controller::kickUser(SListItemUser *pListWidgetItem)
 void Controller::changeRoomSettings(const std::string &sOldName, const std::string &sNewName, const std::u16string& sPassword,
                                     size_t iMaxUsers)
 {
-    TODO;
+    //TODO;
 }
 
 void Controller::createRoom(const std::string &sName, const std::u16string &sPassword, size_t iMaxUsers)
 {
-    TODO;
+    //TODO;
 }
 
 void Controller::deleteRoom(const std::string &sName)
 {
-    TODO;
+    //TODO;
 }
 
 void Controller::moveRoom(const std::string &sRoomName, bool bMoveUp)
 {
-    TODO;
+    pServerService->moveRoom(sRoomName, bMoveUp);
 }
 
 void Controller::archiveText(char16_t *pText, size_t iWChars)

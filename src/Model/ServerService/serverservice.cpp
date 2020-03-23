@@ -51,7 +51,8 @@ enum ROOM_COMMAND
     RC_PASSWORD_REQ         = 22,
     RC_WRONG_PASSWORD       = 23,
 
-    RC_USER_ENTERS_ROOM     = 25
+    RC_USER_ENTERS_ROOM     = 25,
+    RC_SERVER_MOVED_ROOM    = 26
 };
 
 enum TCP_SERVER_MESSAGE
@@ -1683,6 +1684,46 @@ void ServerService::userEntersRoom(UserStruct *userToListen, std::string sRoomNa
             }
         }
     }
+}
+
+void ServerService::moveRoom(const std::string &sRoomName, bool bMoveUp)
+{
+    char vBuffer[2 + MAX_NAME_LENGTH + 2];
+    memset(vBuffer, 0, 4 + MAX_NAME_LENGTH);
+
+    vBuffer[0] = RC_SERVER_MOVED_ROOM;
+    vBuffer[1] = static_cast<char>(sRoomName.size());
+
+    std::memcpy(vBuffer + 2, sRoomName.c_str(), sRoomName.size());
+    vBuffer[2 + sRoomName.size()] = bMoveUp;
+
+    int iSizeToSend = 3 + static_cast<int>(sRoomName.size());
+    int iSentSize   = 0;
+
+    mtxUsersDelete.lock();
+    mtxRooms.lock();
+
+    for (size_t i = 0; i < users.size(); i++)
+    {
+        iSentSize = send(users[i]->userTCPSocket, vBuffer, iSizeToSend, 0);
+
+        if (iSentSize != iSizeToSend)
+        {
+            if (iSentSize == SOCKET_ERROR)
+            {
+                pLogManager ->printAndLog( "ServerService::moveRoom::send() function failed and returned: "
+                                           + std::to_string(getLastError()), true);
+            }
+            else
+            {
+                pLogManager ->printAndLog( "ServerService::moveRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                                           + std::to_string(iSentSize), true );
+            }
+        }
+    }
+
+    mtxRooms.unlock();
+    mtxUsersDelete.unlock();
 }
 
 void ServerService::checkPing()
