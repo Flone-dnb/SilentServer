@@ -54,7 +54,8 @@ enum ROOM_COMMAND
     RC_USER_ENTERS_ROOM     = 25,
     RC_SERVER_MOVED_ROOM    = 26,
     RC_SERVER_DELETES_ROOM  = 27,
-    RC_SERVER_CREATES_ROOM  = 28
+    RC_SERVER_CREATES_ROOM  = 28,
+    RC_SERVER_CHANGES_ROOM  = 29
 };
 
 enum TCP_SERVER_MESSAGE
@@ -1835,7 +1836,55 @@ void ServerService::createRoom(const std::string &sName, size_t iMaxUsers)
 
 void ServerService::changeRoomSettings(const std::string &sOldName, const std::string &sNewName, size_t iMaxUsers)
 {
-    //TODO;
+    char vBuffer[MAX_NAME_LENGTH * 3];
+    memset(vBuffer, 0, MAX_NAME_LENGTH);
+
+    vBuffer[0] = RC_SERVER_CHANGES_ROOM;
+
+    vBuffer[1] = static_cast<char>(sOldName.size());
+
+    int iIndex = 2;
+
+    std::memcpy(vBuffer + iIndex, sOldName.c_str(), sOldName.size());
+    iIndex += sOldName.size();
+
+    vBuffer[iIndex] = static_cast<char>(sNewName.size());
+    iIndex++;
+
+    std::memcpy(vBuffer + iIndex, sNewName.c_str(), sNewName.size());
+    iIndex += sNewName.size();
+
+    unsigned int iMax = static_cast<unsigned int>(iMaxUsers);
+    std::memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
+    iIndex += sizeof(unsigned int);
+
+
+    int iSentSize   = 0;
+
+    mtxUsersDelete.lock();
+    mtxRooms.lock();
+
+    for (size_t i = 0; i < users.size(); i++)
+    {
+        iSentSize = send(users[i]->userTCPSocket, vBuffer, iIndex, 0);
+
+        if (iSentSize != iIndex)
+        {
+            if (iSentSize == SOCKET_ERROR)
+            {
+                pLogManager ->printAndLog( "ServerService::changeRoomSettings::send() function failed and returned: "
+                                           + std::to_string(getLastError()), true);
+            }
+            else
+            {
+                pLogManager ->printAndLog( "ServerService::changeRoomSettings::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                                           + std::to_string(iSentSize), true );
+            }
+        }
+    }
+
+    mtxRooms.unlock();
+    mtxUsersDelete.unlock();
 }
 
 void ServerService::checkPing()

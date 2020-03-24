@@ -644,7 +644,7 @@ void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QS
     QString sOldName = pRoom->getRoomName();
 
     pController->changeRoomSettings(sOldName.toStdString(), sName.toStdString(),
-                                    pRoom->getMaxUsers());
+                                    iMaxUsers);
 
     pRoom->setRoomName(sName);
     pRoom->setRoomPassword(sPassword);
