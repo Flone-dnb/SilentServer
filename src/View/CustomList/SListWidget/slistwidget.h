@@ -28,14 +28,17 @@ public:
 
     void           addRoom     (QString sRoomName, QString sPassword = "", size_t iMaxUsers = 0);
     SListItemUser* addUser     (QString sUserName, SListItemRoom* pRoom = nullptr);
+
     void           deleteRoom  (SListItemRoom* pRoom);
     void           deleteUser  (SListItemUser* pUser);
+    void           deleteAll   ();
+
     void           moveUser    (SListItemUser* pUser, QString sToRoom);
+    void           moveRoomUp  (SListItemRoom* pRoom);
+    void           moveRoomDown(SListItemRoom* pRoom);
 
     void           renameRoom  (SListItemRoom* pRoom, QString sNewName);
 
-    void           moveRoomUp  (SListItemRoom* pRoom);
-    void           moveRoomDown(SListItemRoom* pRoom);
 
     std::vector<QString> getRoomNames       ();
     size_t               getRoomCount       ();

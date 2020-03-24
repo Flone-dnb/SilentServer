@@ -249,6 +249,18 @@ unsigned short MainWindow::getRoomMaxUsers(size_t iRoomIndex)
     return static_cast<unsigned short>(ui ->listWidget_users ->getRoom(iRoomIndex) ->getMaxUsers());
 }
 
+void MainWindow::addRoom(std::string sRoomName, std::u16string sPassword, size_t iMaxUsers)
+{
+    ui ->listWidget_users ->addRoom(QString::fromStdString(sRoomName),
+                                    QString::fromStdU16String(sPassword),
+                                    iMaxUsers);
+}
+
+void MainWindow::clearAllRooms()
+{
+    ui ->listWidget_users ->deleteAll();
+}
+
 void MainWindow::moveUserToRoom(SListItemUser *pUser, std::string sRoomName)
 {
     ui ->listWidget_users ->moveUser(pUser, QString::fromStdString(sRoomName));

@@ -52,7 +52,14 @@ bool Controller::start()
 {
     if (pSettingsManager ->getCurrentSettings())
     {
-        if (bServerStarted) stop();
+        SettingsFile* pSettingsFile = new SettingsFile(*pSettingsManager ->getCurrentSettings());
+
+        pSettingsManager ->saveSettings( pSettingsFile, true );
+
+        if (bServerStarted)
+        {
+            stop();
+        }
         else
         {
             pLogManager ->eraseTempFile();

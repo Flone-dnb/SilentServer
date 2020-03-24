@@ -42,7 +42,7 @@ SettingsManager::SettingsManager(MainWindow* pMainWindow)
 
 
 
-void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
+void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSettings)
 {
 #if _WIN32
     // Get the path to the Documents folder.
@@ -163,6 +163,49 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
        newSettingsFile .write
                ( reinterpret_cast<char*>(  const_cast <char*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength );
 #endif
+    }
+
+    // Save room settings
+    if (bSaveRoomSettings)
+    {
+        std::vector<std::string> vRoomNames = pMainWindow->getRoomNames();
+
+        unsigned char cRoomCount = static_cast<unsigned char>( vRoomNames.size() );
+
+        newSettingsFile .write( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
+
+        for (unsigned char i = 0; i < cRoomCount; i++)
+        {
+            // Write room name size.
+
+            char cRoomNameSize = static_cast<char>( vRoomNames[i].size() );
+            newSettingsFile .write( &cRoomNameSize, sizeof(char) );
+
+
+
+            // Write room name.
+
+            newSettingsFile .write( vRoomNames[i].c_str(), vRoomNames[i].size() );
+
+
+
+            // Write room password size.
+
+            char cRoomPassSize = static_cast<char>( pMainWindow->getRoomPassword(i).size() );
+            newSettingsFile .write( &cRoomPassSize, sizeof(char) );
+
+
+
+            // Write room password.
+
+            std::u16string sRoomPassword = pMainWindow->getRoomPassword(i);
+            newSettingsFile .write( reinterpret_cast<char*>(const_cast<char16_t*>(sRoomPassword.c_str())), sRoomPassword.size() * 2 );
+
+
+            // Write room max users.
+            unsigned short int iMaxUsers = pMainWindow->getRoomMaxUsers(i);
+            newSettingsFile .write( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
+        }
     }
 
     // NEW SETTINGS GO HERE
@@ -309,6 +352,8 @@ SettingsFile *SettingsManager::readSettings()
             settingsFile .close();
 
             saveSettings(pSettingsFile);
+
+            return pSettingsFile;
         }
 
 
@@ -371,8 +416,68 @@ SettingsFile *SettingsManager::readSettings()
 #endif
         }
 
+        // Settings may end here
+        if (iPos >= iFileSize)
+        {
+            settingsFile .close();
+
+            saveSettings(pSettingsFile);
+
+            return pSettingsFile;
+        }
+
+        unsigned char cRoomCount = 0;
+
+        settingsFile .read( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
+
+        if (cRoomCount > 0)
+        {
+            pMainWindow ->clearAllRooms();
+        }
+
+        for (unsigned char i = 0; i < cRoomCount; i++)
+        {
+            // Read room name size.
+
+            char cRoomNameSize = 0;
+            settingsFile .read( &cRoomNameSize, sizeof(char) );
+
+
+
+            // Read room name.
+
+            char vNameBuffer[MAX_NAME_LENGTH + 1];
+            memset(vNameBuffer, 0, MAX_NAME_LENGTH + 1);
+
+            settingsFile .read( vNameBuffer, cRoomNameSize );
+
+
+
+            // Read room password size.
+
+            char cRoomPassSize = 0;
+            settingsFile .read( &cRoomPassSize, sizeof(char) );
+
+
+
+            // Read room password.
+
+            char16_t vPasswordBuffer[MAX_NAME_LENGTH + 1];
+            memset(vPasswordBuffer, 0, (MAX_NAME_LENGTH + 1) * 2);
+            settingsFile .read( reinterpret_cast<char*>(vPasswordBuffer), cRoomPassSize * 2 );
+
+
+            // Read room max users.
+            unsigned short int iMaxUsers = 0;
+            settingsFile .read( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
+
+            pMainWindow ->addRoom(vNameBuffer, vPasswordBuffer, iMaxUsers);
+        }
+
 
         settingsFile .close();
+
+        return pSettingsFile;
     }
     else
     {
@@ -381,9 +486,7 @@ SettingsFile *SettingsManager::readSettings()
 
 
         saveSettings(pSettingsFile);
+
+        return pSettingsFile;
     }
-
-
-
-    return pSettingsFile;
 }

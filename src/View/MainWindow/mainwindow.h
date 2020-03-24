@@ -82,6 +82,9 @@ public:
         std::u16string           getRoomPassword    (std::string sRoomName);
         unsigned short           getRoomMaxUsers    (size_t iRoomIndex);
 
+        void                     addRoom            (std::string sRoomName, std::u16string sPassword, size_t iMaxUsers);
+
+        void                     clearAllRooms      ();
         void                     moveUserToRoom     (SListItemUser* pUser, std::string sRoomName);
 
         bool                     checkRoomSettings  (std::string sRoomName, bool* pbPasswordNeeded, bool* pbRoomFull);
