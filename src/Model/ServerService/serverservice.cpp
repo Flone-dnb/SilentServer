@@ -1785,10 +1785,10 @@ void ServerService::deleteRoom(const std::string &sRoomName)
     }
 }
 
-void ServerService::createRoom(const std::string &sName, const std::u16string &sPassword, size_t iMaxUsers)
+void ServerService::createRoom(const std::string &sName, size_t iMaxUsers)
 {
-    char vBuffer[MAX_NAME_LENGTH * 4];
-    memset(vBuffer, 0, MAX_NAME_LENGTH * 4);
+    char vBuffer[MAX_NAME_LENGTH * 2];
+    memset(vBuffer, 0, MAX_NAME_LENGTH * 2);
 
     vBuffer[0] = RC_SERVER_CREATES_ROOM;
 
@@ -1799,14 +1799,8 @@ void ServerService::createRoom(const std::string &sName, const std::u16string &s
 
     int iIndex = 2 + static_cast<int>(sName.size());
 
-
-    vBuffer[iIndex] = static_cast<char>(sPassword.size());
-    iIndex++;
-
-    std::memcpy(vBuffer + iIndex, sPassword.c_str(), sPassword.size() * 2);
-    iIndex += sPassword.size() * 2;
-
     unsigned int iMax = static_cast<unsigned int>(iMaxUsers);
+
     std::memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
     iIndex += static_cast<int>(sizeof(unsigned int));
 
@@ -1837,6 +1831,11 @@ void ServerService::createRoom(const std::string &sName, const std::u16string &s
 
     mtxRooms.unlock();
     mtxUsersDelete.unlock();
+}
+
+void ServerService::changeRoomSettings(const std::string &sOldName, const std::string &sNewName, size_t iMaxUsers)
+{
+    //TODO;
 }
 
 void ServerService::checkPing()

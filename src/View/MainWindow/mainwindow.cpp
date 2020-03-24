@@ -643,17 +643,17 @@ void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QS
 {
     QString sOldName = pRoom->getRoomName();
 
+    pController->changeRoomSettings(sOldName.toStdString(), sName.toStdString(),
+                                    pRoom->getMaxUsers());
+
     pRoom->setRoomName(sName);
     pRoom->setRoomPassword(sPassword);
     pRoom->setRoomMaxUsers(iMaxUsers);
-
-    pController->changeRoomSettings(sOldName.toStdString(), sName.toStdString(), pRoom->getPassword().toStdU16String(),
-                                    pRoom->getMaxUsers());
 }
 
 void MainWindow::slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers)
 {
-    pController->createRoom(sName.toStdString(), sPassword.toStdU16String(), iMaxUsers);
+    pController->createRoom(sName.toStdString(), iMaxUsers);
 
     ui->listWidget_users->addRoom(sName, sPassword, iMaxUsers);
 }

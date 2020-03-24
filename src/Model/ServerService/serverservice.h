@@ -90,7 +90,8 @@ public:
 
         void  moveRoom                    (const std::string &sRoomName, bool bMoveUp);
         void  deleteRoom                  (const std::string &sRoomName);
-        void  createRoom                  (const std::string &sName, const std::u16string &sPassword, size_t iMaxUsers);
+        void  createRoom                  (const std::string &sName, size_t iMaxUsers);
+        void  changeRoomSettings          (const std::string& sOldName, const std::string& sNewName, size_t iMaxUsers);
 
 
     // Ping
