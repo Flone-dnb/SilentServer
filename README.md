@@ -1,8 +1,11 @@
-# Silent Server
+﻿# Silent Server
 Silent is an extremely lightweight, high quality - low latency voice chat made for gaming. Runs on Windows and Linux.<br>
 Must be used with the Silent (client) application.<br> 
 <br>
 Made with Qt Framework, Winsock2 and Windows Multimedia System.
+
+# Hidden features
+Try pressing the right mouse button in the 'connected' list, depending on what you pressed (user, room, nothing) you will see different options.
 
 # How to start your Silent Server
 All you need is to forward the UDP and TCP port 51337 (can be changed in the settings). If you don't know how to do that see the instruction below.<br>
