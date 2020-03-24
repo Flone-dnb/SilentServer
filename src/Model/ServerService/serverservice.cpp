@@ -692,16 +692,6 @@ void ServerService::listenForNewTCPConnections()
             memcpy(tempData + iBytesWillSend, vRooms[i].c_str(), static_cast<size_t>(cRoomNameSize));
             iBytesWillSend += cRoomNameSize;
 
-            // Copy room's settings.
-
-            std::u16string sPassword = pMainWindow->getRoomPassword(i);
-
-            char cPassSize = static_cast<char>(sPassword.size());
-            memcpy(tempData + iBytesWillSend, &cPassSize, 1);
-            iBytesWillSend++;
-
-            memcpy(tempData + iBytesWillSend, sPassword.c_str(), static_cast<size_t>(cPassSize) * sizeof(char16_t));
-            iBytesWillSend += static_cast<size_t>(cPassSize) * sizeof(char16_t);
 
 
             unsigned short iMaxUsers = pMainWindow->getRoomMaxUsers(i);
