@@ -151,11 +151,11 @@ void ServerService::sendMessageToAll(const std::string &sMessage)
 
         unsigned short int iMessageSize = static_cast<unsigned short>(sMessage.size());
 
-        std::memcpy(vBuffer + 1, &iMessageSize, sizeof(unsigned short));
+        memcpy(vBuffer + 1, &iMessageSize, sizeof(unsigned short));
 
         int iIndex = 1 + sizeof(unsigned short);
 
-        std::memcpy(vBuffer + iIndex, sMessage.c_str(), sMessage.size());
+        memcpy(vBuffer + iIndex, sMessage.c_str(), sMessage.size());
         iIndex += sMessage.size();
 
         int iSentSize = 0;
@@ -1657,7 +1657,7 @@ void ServerService::checkRoomSettings(UserStruct *userToListen)
                 vSendBuffer[0] = RC_PASSWORD_REQ;
                 vSendBuffer[1] = static_cast<char>(sRoomNameStr.size());
 
-                std::memcpy(vSendBuffer + 2, sRoomNameStr.c_str(), sRoomNameStr.size());
+                memcpy(vSendBuffer + 2, sRoomNameStr.c_str(), sRoomNameStr.size());
 
                 send(userToListen->userTCPSocket, vSendBuffer, 2 + static_cast<int>(sRoomNameStr.size()), 0);
             }
@@ -1675,7 +1675,7 @@ void ServerService::userEntersRoom(UserStruct *userToListen, std::string sRoomNa
     vSendBuffer[0] = RC_CAN_ENTER_ROOM;
     vSendBuffer[1] = static_cast<char>(sRoomName.size());
 
-    std::memcpy(vSendBuffer + 2, sRoomName.c_str(), sRoomName.size());
+    memcpy(vSendBuffer + 2, sRoomName.c_str(), sRoomName.size());
 
     send(userToListen->userTCPSocket, vSendBuffer, 2 + static_cast<int>(sRoomName.size()), 0);
 
@@ -1694,13 +1694,13 @@ void ServerService::userEntersRoom(UserStruct *userToListen, std::string sRoomNa
 
     iIndex = 2;
 
-    std::memcpy(vResendBuffer + iIndex, userToListen->userName.c_str(), userToListen->userName.size());
+    memcpy(vResendBuffer + iIndex, userToListen->userName.c_str(), userToListen->userName.size());
     iIndex += userToListen->userName.size();
 
     vResendBuffer[iIndex] = static_cast<char>(sRoomName.size());
     iIndex += 1;
 
-    std::memcpy(vResendBuffer + iIndex, sRoomName.c_str(), sRoomName.size());
+    memcpy(vResendBuffer + iIndex, sRoomName.c_str(), sRoomName.size());
     iIndex += sRoomName.size();
 
     for (size_t i = 0; i < users.size(); i++)
@@ -1734,7 +1734,7 @@ void ServerService::moveRoom(const std::string &sRoomName, bool bMoveUp)
     vBuffer[0] = RC_SERVER_MOVED_ROOM;
     vBuffer[1] = static_cast<char>(sRoomName.size());
 
-    std::memcpy(vBuffer + 2, sRoomName.c_str(), sRoomName.size());
+    memcpy(vBuffer + 2, sRoomName.c_str(), sRoomName.size());
     vBuffer[2 + sRoomName.size()] = bMoveUp;
 
     int iSizeToSend = 3 + static_cast<int>(sRoomName.size());
@@ -1776,7 +1776,7 @@ void ServerService::deleteRoom(const std::string &sRoomName)
     vBuffer[0] = RC_SERVER_DELETES_ROOM;
     vBuffer[1] = static_cast<char>(sRoomName.size());
 
-    std::memcpy(vBuffer + 2, sRoomName.c_str(), sRoomName.size());
+    memcpy(vBuffer + 2, sRoomName.c_str(), sRoomName.size());
 
     int iSizeToSend = 2 + static_cast<int>(sRoomName.size());
     int iSentSize   = 0;
@@ -1833,13 +1833,13 @@ void ServerService::createRoom(const std::string &sName, size_t iMaxUsers)
 
     vBuffer[1] = static_cast<char>(sName.size());
 
-    std::memcpy(vBuffer + 2, sName.c_str(), sName.size());
+    memcpy(vBuffer + 2, sName.c_str(), sName.size());
 
     int iIndex = 2 + static_cast<int>(sName.size());
 
     unsigned int iMax = static_cast<unsigned int>(iMaxUsers);
 
-    std::memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
+    memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
     iIndex += static_cast<int>(sizeof(unsigned int));
 
 
@@ -1882,17 +1882,17 @@ void ServerService::changeRoomSettings(const std::string &sOldName, const std::s
 
     int iIndex = 2;
 
-    std::memcpy(vBuffer + iIndex, sOldName.c_str(), sOldName.size());
+    memcpy(vBuffer + iIndex, sOldName.c_str(), sOldName.size());
     iIndex += sOldName.size();
 
     vBuffer[iIndex] = static_cast<char>(sNewName.size());
     iIndex++;
 
-    std::memcpy(vBuffer + iIndex, sNewName.c_str(), sNewName.size());
+    memcpy(vBuffer + iIndex, sNewName.c_str(), sNewName.size());
     iIndex += sNewName.size();
 
     unsigned int iMax = static_cast<unsigned int>(iMaxUsers);
-    std::memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
+    memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
     iIndex += sizeof(unsigned int);
 
 
