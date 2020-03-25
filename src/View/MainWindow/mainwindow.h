@@ -93,6 +93,7 @@ public:
     // Menu
 
         void             changeStartStopActionText  (bool bStop);
+        void             showSendMessageToAllAction (bool bShow);
 
 
 signals:
@@ -138,11 +139,17 @@ private slots:
         void             on_actionStart_triggered    ();
         void             on_actionAbout_2_triggered  ();
         void             on_actionSettings_triggered ();
+        void             on_actionSend_Server_Message_to_All_triggered();
 
 
     // Slider on output log
 
         void             slotSliderMoved(int iValue);
+
+
+    // Global Message Window
+
+        void             slotSendServerMessage(QString sMessage);
 
 
     // Context Menu

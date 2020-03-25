@@ -68,7 +68,8 @@ enum TCP_SERVER_MESSAGE
     SM_KEEPALIVE            = 9,
     SM_USERMESSAGE          = 10,
     SM_KICKED               = 11,
-    SM_WRONG_PASSWORD_WAIT  = 12
+    SM_WRONG_PASSWORD_WAIT  = 12,
+    SM_GLOBAL_MESSAGE       = 13
 };
 
 enum USER_DISCONNECT_REASON
@@ -137,6 +138,51 @@ unsigned short ServerService::getPingNormalBelow()
 unsigned short ServerService::getPingWarningBelow()
 {
     return iPingWarningBelow;
+}
+
+void ServerService::sendMessageToAll(const std::string &sMessage)
+{
+    if (bWinSockStarted && bTextListen && users.size() > 0)
+    {
+        char vBuffer[MAX_BUFFER_SIZE];
+        memset(vBuffer, 0, MAX_BUFFER_SIZE);
+
+        vBuffer[0] = SM_GLOBAL_MESSAGE;
+
+        unsigned short int iMessageSize = static_cast<unsigned short>(sMessage.size());
+
+        std::memcpy(vBuffer + 1, &iMessageSize, sizeof(unsigned short));
+
+        int iIndex = 1 + sizeof(unsigned short);
+
+        std::memcpy(vBuffer + iIndex, sMessage.c_str(), sMessage.size());
+        iIndex += sMessage.size();
+
+        int iSentSize = 0;
+
+        mtxUsersDelete.lock();
+
+        for (size_t i = 0; i < users.size(); i++)
+        {
+            iSentSize = send(users[i]->userTCPSocket, vBuffer, iIndex, 0);
+
+            if (iSentSize != iIndex)
+            {
+                if (iSentSize == SOCKET_ERROR)
+                {
+                    pLogManager ->printAndLog( "ServerService::sendMessageToAll::send() function failed and returned: "
+                                               + std::to_string(getLastError()), true);
+                }
+                else
+                {
+                    pLogManager ->printAndLog( "ServerService::sendMessageToAll::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                                               + std::to_string(iSentSize), true );
+                }
+            }
+        }
+
+        mtxUsersDelete.unlock();
+    }
 }
 
 void ServerService::catchUDPPackets()
@@ -352,6 +398,7 @@ bool ServerService::startWinSock()
         if (bTextListen)
         {
             pMainWindow->changeStartStopActionText(true);
+            pMainWindow->showSendMessageToAllAction(true);
 
             std::thread listenThread(&ServerService::listenForNewTCPConnections, this);
             listenThread.detach();
@@ -2677,4 +2724,5 @@ void ServerService::shutdownAllUsers()
 
     pLogManager ->printAndLog( "Server stopped.\n" );
     pMainWindow->changeStartStopActionText(false);
+    pMainWindow->showSendMessageToAllAction(false);
 }

@@ -31,6 +31,7 @@ using std::memcpy;
 #include "View/CustomList/SListItemRoom/slistitemroom.h"
 #include "View/ChangeRoomNameWindow/changeroomnamewindow.h"
 #include "View/CreateRoomWindow/createroomwindow.h"
+#include "View/GlobalMessageWindow/globalmessagewindow.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -316,6 +317,11 @@ void MainWindow::changeStartStopActionText(bool bStop)
     }
 }
 
+void MainWindow::showSendMessageToAllAction(bool bShow)
+{
+    ui ->actionSend_Server_Message_to_All ->setVisible(bShow);
+}
+
 void MainWindow::clearChatWindow()
 {
     emit signalClearChatWindow();
@@ -494,6 +500,11 @@ void MainWindow::slotSliderMoved(int iValue)
             pController ->showOldText();
         }
     }
+}
+
+void MainWindow::slotSendServerMessage(QString sMessage)
+{
+    pController->sendMessageToAll(sMessage.toStdString());
 }
 
 
@@ -711,6 +722,16 @@ void MainWindow::checkTextSize()
 
         pController ->archiveText(pOldText, iOldTextSizeInWChars);
     }
+}
+
+void MainWindow::on_actionSend_Server_Message_to_All_triggered()
+{
+    GlobalMessageWindow* pWindow = new GlobalMessageWindow(this);
+    pWindow->setWindowModality(Qt::WindowModality::WindowModal);
+
+    connect(pWindow, &GlobalMessageWindow::signalServerMessage, this, &MainWindow::slotSendServerMessage);
+
+    pWindow->show();
 }
 
 MainWindow::~MainWindow()

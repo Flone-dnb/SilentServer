@@ -28,6 +28,7 @@ SOURCES += \
     ../src/View/CustomList/SListItemRoom/slistitemroom.cpp \
     ../src/View/CustomList/SListItemUser/slistitemuser.cpp \
     ../src/View/CustomList/SListWidget/slistwidget.cpp \
+    ../src/View/GlobalMessageWindow/globalmessagewindow.cpp \
         ../src/View/SettingsWindow/settingswindow.cpp \
         ../src/main.cpp \
         ../src/View/MainWindow/mainwindow.cpp \
@@ -45,6 +46,7 @@ HEADERS += \
         ../src/View/CustomList/SListItemRoom/slistitemroom.h \
         ../src/View/CustomList/SListItemUser/slistitemuser.h \
         ../src/View/CustomList/SListWidget/slistwidget.h \
+        ../src/View/GlobalMessageWindow/globalmessagewindow.h \
         ../src/View/PingColorParams.h \
         ../src/View/AboutWindow/aboutwindow.h \
         ../src/View/MainWindow/mainwindow.h \
@@ -58,6 +60,7 @@ FORMS += \
         ../src/View/AboutWindow/aboutwindow.ui \
         ../src/View/ChangeRoomNameWindow/changeroomnamewindow.ui \
         ../src/View/CreateRoomWindow/createroomwindow.ui \
+        ../src/View/GlobalMessageWindow/globalmessagewindow.ui \
         ../src/View/MainWindow/mainwindow.ui \
         ../src/View/SettingsWindow/settingswindow.ui
 

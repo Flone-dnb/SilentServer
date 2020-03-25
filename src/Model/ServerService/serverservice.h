@@ -51,8 +51,8 @@ class UDPPacket;
 
 
 // should be shorter than MAX_VERSION_STRING_LENGTH
-#define SERVER_VERSION           "2.21.1"
-#define CLIENT_SUPPORTED_VERSION "2.23.3"
+#define SERVER_VERSION           "3.0.0"
+#define CLIENT_SUPPORTED_VERSION "3.0.0"
 
 
 
@@ -112,6 +112,11 @@ public:
         std::string    getLastClientVersion      ();
         unsigned short getPingNormalBelow        ();
         unsigned short getPingWarningBelow       ();
+
+
+    // Other
+
+        void  sendMessageToAll            (const std::string& sMessage);
 
 private:
 

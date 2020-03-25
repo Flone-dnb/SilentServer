@@ -87,6 +87,14 @@ void Controller::stop()
     }
 }
 
+void Controller::sendMessageToAll(const std::string &sMessage)
+{
+    if (bServerStarted)
+    {
+        pServerService->sendMessageToAll(sMessage);
+    }
+}
+
 void Controller::kickUser(SListItemUser *pListWidgetItem)
 {
     pServerService ->kickUser(pListWidgetItem);

@@ -216,6 +216,7 @@ QMenu::separator
      <string>Chat</string>
     </property>
     <addaction name="actionStart"/>
+    <addaction name="actionSend_Server_Message_to_All"/>
     <addaction name="separator"/>
     <addaction name="actionSettings"/>
    </widget>
@@ -276,6 +277,14 @@ QMenu::separator
   <action name="actionSettings">
    <property name="text">
     <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionSend_Server_Message_to_All">
+   <property name="text">
+    <string>Send Server Message to All</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
  </widget>

@@ -32,6 +32,7 @@ public:
 
     // Commands
 
+        void            sendMessageToAll      (const std::string& sMessage);
         void            kickUser              (SListItemUser* pListWidgetItem);
         void            changeRoomSettings    (const std::string& sOldName, const std::string& sNewName, size_t iMaxUsers);
         void            createRoom            (const std::string& sName, size_t iMaxUsers);
