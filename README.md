@@ -36,5 +36,5 @@ Please note that starting from version 2.20.0 the Silent Server is releasing und
 All versions before 2.20.0 were released under the MIT license.
 
 # Build
-Silent is built using Qt Framework (through Qt Creator).
+Silent is built with the MSVC 2017 64 bit compiler (on Windows) and Qt Framework (through Qt Creator).<br>
 The server can run on Windows and Linux.
