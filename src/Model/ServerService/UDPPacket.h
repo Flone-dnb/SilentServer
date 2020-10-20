@@ -84,7 +84,7 @@ public:
 
     // Packet info.
     char        vPacketData[MAX_BUFFER_SIZE];
-    int         iSize;
+    unsigned short iSize;
 
 
     // Sender info.

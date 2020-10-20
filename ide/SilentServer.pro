@@ -19,6 +19,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+    ../ext/AES/AES.cpp \
+    ../ext/integer/integer.cpp \
     ../src/Model/LogManager/logmanager.cpp \
     ../src/Model/SettingsManager/settingsmanager.cpp \
         ../src/View/AboutWindow/aboutwindow.cpp \
@@ -36,6 +38,8 @@ SOURCES += \
         ../src/Model/ServerService/serverservice.cpp \
 
 HEADERS += \
+        ../ext/AES/AES.h \
+        ../ext/integer/integer.h \
         ../src/Model/LogManager/logmanager.h \
         ../src/Model/ServerService/UDPPacket.h \
         ../src/Model/SettingsManager/SettingsFile.h \
@@ -73,6 +77,7 @@ win32
 RESOURCES += ../res/qt_rec_file.qrc
 
 INCLUDEPATH += "../src"
+INCLUDEPATH += "../ext"
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

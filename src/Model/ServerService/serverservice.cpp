@@ -31,6 +31,10 @@ using std::memcpy;
 #include "View/CustomList/SListItemUser/slistitemuser.h"
 #include "View/CustomList/SListItemRoom/slistitemroom.h"
 
+// External
+#include "AES/AES.h"
+#include "integer/integer.h"
+
 
 enum CONNECT_MESSAGES
 {
@@ -101,6 +105,21 @@ ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettings
     this ->pSettingsManager    = pSettingsManager;
     this ->pLogManager         = pLogManager;
 
+    pAES = new AES(128);
+    pRndGen = new std::mt19937_64( std::random_device{}() );
+
+    vKeyPG.resize(5);
+    vKeyPG[0].push_back(100005107);
+    vKeyPG[0].push_back(13);
+    vKeyPG[1].push_back(100008323);
+    vKeyPG[1].push_back(7);
+    vKeyPG[2].push_back(100000127);
+    vKeyPG[2].push_back(13);
+    vKeyPG[3].push_back(100008023);
+    vKeyPG[3].push_back(11);
+    vKeyPG[4].push_back(100008803);
+    vKeyPG[4].push_back(11);
+
 
     // should be shorter than MAX_VERSION_STRING_LENGTH
     serverVersion              = SERVER_VERSION;
@@ -114,6 +133,12 @@ ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettings
 
     bWinSockStarted            = false;
     bTextListen                = false;
+}
+
+ServerService::~ServerService()
+{
+    delete pAES;
+    delete pRndGen;
 }
 
 
@@ -228,8 +253,8 @@ void ServerService::catchUDPPackets()
             {
                 UDPPacket* pPacket = new UDPPacket();
 
-                pPacket ->iSize = recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
-                                     reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen);
+                pPacket ->iSize = static_cast<unsigned short>(recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
+                                     reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen));
 
                 mtxUDPPackets .lock();
 
@@ -420,6 +445,27 @@ void ServerService::startToListenForConnection()
     }
     else
     {
+        // Set recv() time out time to 10 seconds
+#if _WIN32
+        DWORD time = MAX_TIMEOUT_TIME_MS;
+
+        if (setsockopt(listenTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&time), sizeof(time))
+                < 0)
+        {
+            pLogManager->printAndLog("ServerService::startToListenForConnection::setsockopt() failed.", true);
+        }
+#elif __linux__
+        struct timeval timeout;
+        timeout.tv_sec = MAX_TIMEOUT_TIME_MS / 1000;
+        timeout.tv_usec = 0;
+
+        if (setsockopt(listenTCPSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout))
+                       < 0)
+        {
+            pLogManager->printAndLog("ServerService::startToListenForConnection::setsockopt() failed.", true);
+        }
+#endif
+
         // Create and fill the "sockaddr_in" structure containing the IPv4 socket
         sockaddr_in myAddr;
         memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
@@ -427,7 +473,9 @@ void ServerService::startToListenForConnection()
         myAddr .sin_port        = htons( pSettingsManager ->getCurrentSettings() ->iPort );
         myAddr .sin_addr.s_addr = INADDR_ANY;
 
-        if (bind(listenTCPSocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
+        int WSAAPI bind(_In_ SOCKET s,_In_reads_bytes_(namelen) const struct sockaddr FAR * name, _In_ int namelen);
+
+        if (bind(listenTCPSocket, reinterpret_cast<sockaddr*>(&myAddr), static_cast<int>(sizeof(myAddr))) == SOCKET_ERROR)
         {
             pLogManager ->printAndLog("ServerService::listenForConnection()::bind() function failed and returned: " + std::to_string(getLastError()) + ".\nSocket will be closed. Try again.\n");
             closeSocket(listenTCPSocket);
@@ -457,8 +505,6 @@ void ServerService::startToListenForConnection()
             }
             else
             {
-                pLogManager ->printAndLog("WARNING:\nThe data transmitted over the network is not encrypted.\n");
-
                 // Translate listen socket to non-blocking mode
                 if (setSocketBlocking(listenTCPSocket, false))
                 {
@@ -528,12 +574,6 @@ void ServerService::listenForNewTCPConnections()
 
 
 
-
-        pLogManager ->printAndLog("\nSomeone is connecting...", true);
-
-
-
-
         // Disable Nagle algorithm for Connected Socket
 
 #if _WIN32
@@ -558,6 +598,26 @@ void ServerService::listenForNewTCPConnections()
         }
 
 
+        // Set recv() time out time to 10 seconds
+#if _WIN32
+        DWORD time = MAX_TIMEOUT_TIME_MS;
+
+        if (setsockopt(newConnectedSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&time), sizeof(time))
+                < 0)
+        {
+            pLogManager->printAndLog("ServerService::listenForMessage::setsockopt() failed.", true);
+        }
+#elif __linux__
+        struct timeval timeout;
+        timeout.tv_sec = MAX_TIMEOUT_TIME_MS / 1000;
+        timeout.tv_usec = 0;
+
+        if (setsockopt(newConnectedSocket, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<char*>(&timeout), sizeof(timeout))
+                       < 0)
+        {
+            pLogManager->printAndLog("ServerService::listenForMessage::setsockopt() failed.", true);
+        }
+#endif
 
 
         // Receive version, user name and password (optional)
@@ -566,9 +626,30 @@ void ServerService::listenForNewTCPConnections()
         char nameBuffer[iBufferLength];
         memset(nameBuffer, 0, iBufferLength);
 
-        recv(newConnectedSocket, nameBuffer, iBufferLength, 0);
+        if (recv(newConnectedSocket, nameBuffer, iBufferLength, 0) == SOCKET_ERROR)
+        {
+
+            pLogManager ->printAndLog("", true);
+            pLogManager ->printAndLog("\nSomeone is connecting...\n"
+                                      "ServerService::listenForNewConnections()::recv() failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
 
 
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+
+
+        // Show with whom connected
+
+        char connectedWithIP[16];
+        memset(&connectedWithIP,0,16);
+        inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
 
 
         // Received version, user name and password
@@ -585,10 +666,11 @@ void ServerService::listenForNewTCPConnections()
         delete[] pVersion;
 
 
-
         if ( clientVersion != clientLastSupportedVersion )
         {
-            pLogManager ->printAndLog("Client version \"" + clientVersion + "\" does not match with the last supported client version "
+            pLogManager ->printAndLog("\nSomeone is connecting from " + std::string(connectedWithIP) +
+                                      ":" + std::to_string(ntohs(connectedWith.sin_port)) + "...\n"
+                                      "Client version \"" + clientVersion + "\" does not match with the last supported client version "
                                       + clientLastSupportedVersion + ".\n", true);
             char answerBuffer[MAX_VERSION_STRING_LENGTH + 2];
             memset(answerBuffer, 0, MAX_VERSION_STRING_LENGTH + 2);
@@ -609,7 +691,6 @@ void ServerService::listenForNewTCPConnections()
 
 
 
-
         // Check if this user name is free
 
         char vBuffer[MAX_NAME_LENGTH + 2];
@@ -620,6 +701,10 @@ void ServerService::listenForNewTCPConnections()
         //std::string userNameStr(nameBuffer + 1 + clientVersionSize);
         std::string userNameStr(vBuffer);
         bool bUserNameFree = true;
+
+
+        pLogManager ->printAndLog("\nSomeone is connecting from " + std::string(connectedWithIP) +
+                                  ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + userNameStr + "...", true);
 
 
         mtxConnectDisconnect .lock();
@@ -683,14 +768,6 @@ void ServerService::listenForNewTCPConnections()
                 continue;
             }
         }
-
-
-
-        // Show with whom connected
-
-        char connectedWithIP[16];
-        memset(&connectedWithIP,0,16);
-        inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
 
 
         const int iMaxBufferSize = MAX_TCP_BUFFER_SIZE;
@@ -829,10 +906,31 @@ void ServerService::listenForNewTCPConnections()
 
 
 
-        // Translate new connected socket to non-blocking mode
-        if (setSocketBlocking(newConnectedSocket, false))
+        // Generate secret key.
+
+        setSocketBlocking(newConnectedSocket, true);
+
+        pLogManager ->printAndLog("Establishing a secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + ".", true);
+
+        std::uniform_int_distribution<> uid_pg(0, static_cast<int>(vKeyPG.size() - 1));
+
+        size_t pgIndex = static_cast<size_t>(uid_pg(*pRndGen));
+
+        int p = vKeyPG[pgIndex][0];
+        int g = vKeyPG[pgIndex][1];
+
+        // Send p, g values.
+
+        char vKeyPGBuffer[sizeof(int) * 2];
+        memset(vKeyPGBuffer, 0, sizeof(int) * 2);
+
+        std::memcpy(vKeyPGBuffer, &p, sizeof(p));
+        std::memcpy(vKeyPGBuffer + sizeof(p), &g, sizeof(g));
+
+        if (send(newConnectedSocket, vKeyPGBuffer, sizeof(int) * 2, 0) != sizeof(int) * 2)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setSocketBlocking() (non-blocking mode) failed and returned: " + std::to_string(getLastError()) + ".", true);
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
@@ -843,8 +941,181 @@ void ServerService::listenForNewTCPConnections()
             continue;
         }
 
+        std::uniform_int_distribution<> uid(100, 500);
+        int a = uid(*pRndGen);
+
+        integer A = pow(integer(g), a) % p;
+
+        size_t iMaxKeyLength = 1000; // also change in client code
+        if (A.str().size() > iMaxKeyLength) // should not happen
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() (key too big) failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            continue;
+        }
+
+        short iStringSize = static_cast<short>(A.str().size());
+        char* pOpenKeyString = new char[sizeof(iStringSize) + iMaxKeyLength + 1];
+        memset(pOpenKeyString, 0, sizeof(iStringSize) + iMaxKeyLength + 1);
+
+        std::memcpy(pOpenKeyString, &iStringSize, sizeof(iStringSize));
+        std::memcpy(pOpenKeyString + sizeof(iStringSize), A.str().c_str(), A.str().size());
+
+
+        // Send A.
+        if (send(newConnectedSocket, pOpenKeyString, sizeof(iStringSize) + A.str().size(), 0) != sizeof(iStringSize) + A.str().size())
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() (sending open key) failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            delete[] pOpenKeyString;
+
+            continue;
+        }
+
+        memset(pOpenKeyString, 0, sizeof(iStringSize) + iMaxKeyLength + 1);
+
+        // Receive B.
+        if (recv(newConnectedSocket, reinterpret_cast<char*>(&iStringSize), sizeof(iStringSize), 0) <= 0)
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 1) failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            delete[] pOpenKeyString;
+
+            continue;
+        }
+
+        if (recv(newConnectedSocket, pOpenKeyString, iStringSize, 0) <= 0)
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 2) failed and returned: "
+                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            delete[] pOpenKeyString;
+
+            continue;
+        }
+
+        integer B(pOpenKeyString, 10);
+
+        delete[] pOpenKeyString;
+
+        integer secret = pow(integer(B), a) % p;
+
+        std::string sSecretAESKey = "";
+
+        if (secret.str().size() >= 16)
+        {
+            sSecretAESKey = secret.str().substr(0, 16);
+        }
+        else
+        {
+            std::string sSecret = secret.str();
+
+            size_t iCurrentIndex = 0;
+
+            while (sSecretAESKey.size() != 16)
+            {
+                sSecretAESKey += sSecret[iCurrentIndex];
+
+                if (iCurrentIndex == sSecret.size() - 1)
+                {
+                    iCurrentIndex = 0;
+                }
+                else
+                {
+                    iCurrentIndex++;
+                }
+            }
+        }
 
         mtxConnectDisconnect .lock();
+
+
+        // Receive "finished connecting" message.
+
+        char message = 0;
+        if (recv(newConnectedSocket, &message, sizeof(message), 0) <= 0)
+        {
+            int iLastError = getLastError();
+
+            if (iLastError == 10060)
+            {
+                pLogManager ->printAndLog(userNameStr + " secure connection time out.",true);
+            }
+            else
+            {
+                pLogManager ->printAndLog("ServerService::listenForNewConnections()::recv() (recv sync) failed and returned: "
+                                          + std::to_string(iLastError) + ".\n"
+                                          "Sending FIN to " + userNameStr,true);
+            }
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            mtxConnectDisconnect.unlock();
+
+            continue;
+        }
+
+        if (send(newConnectedSocket, &message, sizeof(message), 0) <= 0)
+        {
+            int iLastError = getLastError();
+
+            if (iLastError == 10060)
+            {
+                pLogManager ->printAndLog(userNameStr + " secure connection time out.",true);
+            }
+            else
+            {
+                pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() (send sync) failed and returned: "
+                                          + std::to_string(iLastError) + ".\n"
+                                          "Sending FIN to " + userNameStr,true);
+            }
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            mtxConnectDisconnect.unlock();
+
+            continue;
+        }
+
+
+        pLogManager ->printAndLog("A secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port))
+                                  + " AKA " + userNameStr + " has been established.", true);
+
 
 
         if (users.size() != 0)
@@ -886,6 +1157,7 @@ void ServerService::listenForNewTCPConnections()
         }
 
 
+
         // Fill UserStruct for new user
 
         UserStruct* pNewUser          = new UserStruct();
@@ -907,17 +1179,38 @@ void ServerService::listenForNewTCPConnections()
         pNewUser->bConnectedToTextChat   = false;
         pNewUser->bConnectedToVOIP       = false;
 
+        for (size_t i = 0; i < 16; i++)
+        {
+            pNewUser->vSecretAESKey[i] = sSecretAESKey[i];
+        }
+
+
         users.push_back(pNewUser);
 
         // Ready to send and receive data
 
-        pLogManager ->printAndLog("Connected with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + pNewUser->userName + ".",true);
         pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
         pNewUser->pUserInList = pMainWindow->addNewUserToList(pNewUser->userName);
 
         std::thread listenThread(&ServerService::listenForMessage, this, pNewUser);
         listenThread.detach();
 
+
+        // Translate new connected socket to non-blocking mode
+        if (setSocketBlocking(newConnectedSocket, false))
+        {
+            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setSocketBlocking() (non-blocking mode) failed and returned: " + std::to_string(getLastError()) + ".", true);
+
+            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
+            closethread.detach();
+
+
+            bConnectionFinished = false;
+
+            mtxConnectDisconnect .unlock();
+
+            continue;
+        }
 
         mtxConnectDisconnect .unlock();
     }
@@ -956,6 +1249,7 @@ void ServerService::prepareForVoiceConnection()
 
 
 
+    int WSAAPI bind(_In_ SOCKET s,_In_reads_bytes_(namelen) const struct sockaddr FAR * name, _In_ int namelen);
 
     if (bind(UDPsocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
     {
@@ -1038,7 +1332,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
             // Translate user socket to blocking mode
             setSocketBlocking(userToListen->userTCPSocket, true);
 
-            // Set recv() time out time to 10 seconds
+            // Set recv() time out.
 #if _WIN32
             DWORD time = MAX_TIMEOUT_TIME_MS;
 
@@ -1297,7 +1591,8 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
             if (pPacket ->vPacketData[0] == UDP_SM_PING)
             {
-                // it's ping check
+                // It's ping check.
+
                 userToListen ->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
                         (std::chrono::steady_clock::now() - pingCheckSendTime).count());
             }
@@ -1320,6 +1615,8 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
             else if (pPacket ->vPacketData[0] == UDP_SM_FIRST_PING)
             {
+                // Answer from the first ping check.
+
                 userToListen ->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
                         (std::chrono::steady_clock::now() - firstPingCheckSendTime).count());
 
@@ -1330,24 +1627,86 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 char vBuffer[MAX_BUFFER_SIZE + MAX_NAME_LENGTH + 2];
                 memset(vBuffer, 0, MAX_BUFFER_SIZE + MAX_NAME_LENGTH + 2);
 
-                memcpy( vBuffer + 1 + userToListen ->userName .size(), pPacket ->vPacketData,
-                             static_cast <size_t> (pPacket ->iSize) );
 
+                // Prepare to resend this packet to all in the same room.
+
+                int iResendPacketSize = 0;
+
+                // Copy user name size.
                 vBuffer[0] = static_cast<char>(userToListen->userName.size());
-                memcpy(vBuffer + 1, userToListen->userName.c_str(), userToListen->userName.size());
+                iResendPacketSize += sizeof(char);
 
-                int iSize = pPacket ->iSize;
-                iSize    += 1 + static_cast <int> (userToListen->userName.size());
+                // Copy user name.
+                memcpy(vBuffer + iResendPacketSize, userToListen->userName.c_str(), userToListen->userName.size());
+                iResendPacketSize += userToListen->userName.size();
 
+                // Copy packet command char.
+                memcpy( vBuffer + iResendPacketSize, pPacket ->vPacketData, sizeof(char));
+                iResendPacketSize += sizeof(char);
+
+                unsigned char* pDecryptedVoiceBytes = nullptr;
+
+                if (pPacket ->vPacketData[0] != 1)
+                {
+                    // Not the last audio packet.
+
+                    // Decrypt voice message.
+                    unsigned short iEncryptedDataSize = 0;
+                    memcpy(&iEncryptedDataSize, pPacket ->vPacketData + 1, sizeof(iEncryptedDataSize));
+
+                    char* pEncryptedVoiceMessage = new char[iEncryptedDataSize];
+                    memset(pEncryptedVoiceMessage, 0, iEncryptedDataSize);
+                    memcpy(pEncryptedVoiceMessage, pPacket ->vPacketData + 1 + sizeof(iEncryptedDataSize), iEncryptedDataSize);
+
+                    // Should be: iUsersVoicePacketSampleCount * 2 bytes + 1 null-terminated char (added by DecryptECB function).
+                    pDecryptedVoiceBytes = pAES->DecryptECB(reinterpret_cast<unsigned char*>(pEncryptedVoiceMessage), static_cast<unsigned int>(iEncryptedDataSize),
+                                                                           reinterpret_cast<unsigned char*>(userToListen ->vSecretAESKey));
+                }
+
+
+                int iUserResendPacketSize = 0;
                 int iSentSize = 0;
+
+                mtxUsersDelete .lock();
 
                 for (unsigned int i = 0; i < users.size(); i++)
                 {
                     if ( (userToListen->pUserInList->getRoom() == users[i]->pUserInList->getRoom())
-                         && (users[i]->userName != userToListen->userName) )
+                         && (users[i]->userName != userToListen->userName)
+                         && users[i]->bConnectedToVOIP)
                     {
-                        iSentSize = sendto(UDPsocket, vBuffer, iSize, 0, reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
-                        if (iSentSize != iSize)
+                        unsigned int iEncryptedVoiceMessageSizeInt = 0;
+
+                        if (pPacket ->vPacketData[0] != 1)
+                        {
+                            // Not the last audio packet.
+
+                            // Encrypt voice message with user's secret key.
+
+                            unsigned char* pEncryptedMessageBytes = pAES->EncryptECB(reinterpret_cast<unsigned char*>(pDecryptedVoiceBytes),
+                                                                                     static_cast<unsigned int>(iUsersVoicePacketSampleCount * 2),
+                                                                                     reinterpret_cast<unsigned char*>(users[i] ->vSecretAESKey),
+                                                                                     iEncryptedVoiceMessageSizeInt);
+                            unsigned short iEncryptedVoiceMessageSize = static_cast<unsigned short>(iEncryptedVoiceMessageSizeInt);
+
+                            // Add encrypted message size.
+                            memcpy(vBuffer + iResendPacketSize, &iEncryptedVoiceMessageSize, sizeof(iEncryptedVoiceMessageSize));
+
+                            // Add encrypted message.
+                            memcpy(vBuffer + iResendPacketSize + sizeof(iEncryptedVoiceMessageSize), pEncryptedMessageBytes, iEncryptedVoiceMessageSize);
+
+                            iUserResendPacketSize = static_cast<int>(iResendPacketSize + sizeof(iEncryptedVoiceMessageSize) + iEncryptedVoiceMessageSize);
+
+                            delete[] pEncryptedMessageBytes;
+                        }
+                        else
+                        {
+                            iUserResendPacketSize = iResendPacketSize;
+                        }
+
+
+                        iSentSize = sendto(UDPsocket, vBuffer, iUserResendPacketSize, 0, reinterpret_cast<sockaddr*>(&users[i]->userUDPAddr), sizeof(users[i]->userUDPAddr));
+                        if (iSentSize != iUserResendPacketSize)
                         {
                             if (iSentSize == SOCKET_ERROR)
                             {
@@ -1362,7 +1721,17 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                                                            + users[i]->userName + "!\n", true);
                             }
                         }
+
+                        // Clear old voice message.
+                        memset(vBuffer + iResendPacketSize + sizeof(iEncryptedVoiceMessageSizeInt), 0, iEncryptedVoiceMessageSizeInt);
                     }
+                }
+
+                mtxUsersDelete .unlock();
+
+                if (pDecryptedVoiceBytes)
+                {
+                    delete[] pDecryptedVoiceBytes;
                 }
             }
 
@@ -1439,8 +1808,8 @@ void ServerService::processMessage(UserStruct *userToListen)
     if ( timePassedInSeconds < ANTI_SPAM_MINIMUM_TIME_SEC )
     {
         // Receive user message.
-        char16_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
-        memset(vMessageBuffer, 0, MAX_BUFFER_SIZE / 2);
+        char16_t vMessageBuffer[MAX_BUFFER_SIZE];
+        memset(vMessageBuffer, 0, MAX_BUFFER_SIZE);
 
         recv(userToListen->userTCPSocket, reinterpret_cast <char*> (vMessageBuffer), iMessageSize, 0);
 
@@ -1489,30 +1858,49 @@ void ServerService::processMessage(UserStruct *userToListen)
 
 
 
-    // Add 'timeString' size and 'iMessageSize' to 'iPacketSize'
-    unsigned short int iPacketSize = static_cast<unsigned short int>(timeString.size() + iMessageSize);
-
-    // Prepare buffer to send
-    char* pSendToAllBuffer = new char[3 + iPacketSize + 1];
-    memset(pSendToAllBuffer, 0, 3 + iPacketSize + 1);
-
-    // Set packet ID (message) to buffer
-    pSendToAllBuffer[0] = SM_USERMESSAGE;
-    // Set packet size to buffer
-    memcpy(pSendToAllBuffer + 1, &iPacketSize, 2);
-    // Copy time and name to buffer
-    memcpy(pSendToAllBuffer + 3, timeString.c_str(), timeString.size());
-
-
-
-
     // Receive user message to send
-    char16_t vMessageBuffer[MAX_BUFFER_SIZE / 2];
-    memset(vMessageBuffer, 0, MAX_BUFFER_SIZE / 2);
+
+    char16_t vMessageBuffer[MAX_BUFFER_SIZE];
+    memset(vMessageBuffer, 0, MAX_BUFFER_SIZE);
 
 
-    //recv(userToListen->userTCPSocket, pSendToAllBuffer + 3 + timeString.size(), iMessageSize, 0);
     recv(userToListen->userTCPSocket, reinterpret_cast <char*> (vMessageBuffer), iMessageSize, 0);
+
+
+
+    // Decrypt message.
+
+    unsigned char* pDecryptedMessageBytes = pAES->DecryptECB(reinterpret_cast<unsigned char*>(vMessageBuffer), iMessageSize,
+                                                             reinterpret_cast<unsigned char*>(userToListen ->vSecretAESKey));
+    memset(vMessageBuffer, 0, MAX_BUFFER_SIZE);
+
+    char* pMessageBytes = reinterpret_cast<char*>(vMessageBuffer);
+    size_t iMessageSizeInBytes = 0;
+
+    for (size_t i = 0; i < MAX_BUFFER_SIZE; i++)
+    {
+        pMessageBytes[i] = reinterpret_cast<char*>(pDecryptedMessageBytes)[i];
+        iMessageSizeInBytes++;
+
+        if (reinterpret_cast<char*>(pDecryptedMessageBytes)[i] == 0
+                &&
+            reinterpret_cast<char*>(pDecryptedMessageBytes)[i + 1] == 0)
+        {
+            // Decrypted string will have 1 null char at the end
+            // + we add the null char in the client's sendMessage() function at the end of the message.
+            // Found null wchar at the end.
+
+            pMessageBytes[i + 1] = 0;
+            iMessageSizeInBytes++;
+
+            break;
+        }
+    }
+
+    delete[] pDecryptedMessageBytes;
+
+
+
 
     std::u16string sUserMessage (vMessageBuffer);
 
@@ -1528,17 +1916,58 @@ void ServerService::processMessage(UserStruct *userToListen)
         }
     }
 
-    memcpy(pSendToAllBuffer + 3 + timeString .size(), sUserMessage .c_str(), iMessageSize);
+    memset(vMessageBuffer, 0, MAX_BUFFER_SIZE);
+
+    std::memcpy(vMessageBuffer, sUserMessage.c_str(), sUserMessage.length() * 2);
+
+
+
+    unsigned short int iPacketSize = 0;
+
+    // Prepare buffer to send
+    char* pSendToAllBuffer = new char[MAX_BUFFER_SIZE];
+    memset(pSendToAllBuffer, 0, MAX_BUFFER_SIZE);
+
+    // Set packet ID (message) to buffer
+    pSendToAllBuffer[0] = SM_USERMESSAGE;
+
+    // Skip 2 bytes for packet size.
+
+    // Copy time and name to buffer
+    memcpy(pSendToAllBuffer + 3, timeString.c_str(), timeString.size());
 
     int returnCode = 0;
 
 
 
-    // Send message to all but not the sender
+
+    mtxUsersDelete.lock();
+
+    // Send message to all in the same room.
     for (unsigned int j = 0; j < users.size(); j++)
     {
-        if (userToListen->pUserInList->getRoom() == users[j]->pUserInList->getRoom())
+        mtxRooms.lock();
+
+        if (userToListen->pUserInList->getRoom() == users[j]->pUserInList->getRoom()
+                && users[j]->bConnectedToTextChat)
         {
+            mtxRooms.unlock();
+
+            // Encrypt message with user's secret key.
+
+            unsigned int iEncryptedMessageSize = 0;
+            unsigned char* pEncryptedMessageBytes = pAES->EncryptECB(reinterpret_cast<unsigned char*>(vMessageBuffer), static_cast<unsigned int>(iMessageSizeInBytes),
+                                                                     reinterpret_cast<unsigned char*>(users[j]->vSecretAESKey), iEncryptedMessageSize);
+            unsigned short iEncMessageSize = static_cast<unsigned short>(iEncryptedMessageSize);
+            iPacketSize = static_cast<unsigned short int>(timeString.size() + sizeof(iEncMessageSize) + iEncMessageSize);
+
+            // Set packet size to buffer
+            memcpy(pSendToAllBuffer + 1, &iPacketSize, 2);
+
+            memcpy(pSendToAllBuffer + 3 + timeString .size(), &iEncMessageSize, sizeof(iEncMessageSize));
+            memcpy(pSendToAllBuffer + 5 + timeString .size(), pEncryptedMessageBytes, iEncMessageSize);
+
+
             returnCode = send(users[j]->userTCPSocket, pSendToAllBuffer, 3 + iPacketSize, 0);
             if ( returnCode != (3 + iPacketSize) )
             {
@@ -1551,8 +1980,19 @@ void ServerService::processMessage(UserStruct *userToListen)
                     pLogManager ->printAndLog( userToListen->userName + "'s message wasn't fully sent. send() returned: " + std::to_string(returnCode), true );
                 }
             }
+
+            // Clear old message.
+            memset(pSendToAllBuffer + 5 + timeString .size(), 0, iEncMessageSize);
+
+            delete[] pEncryptedMessageBytes;
+        }
+        else
+        {
+            mtxRooms.unlock();
         }
     }
+
+    mtxUsersDelete.unlock();
 
     delete[] pSendToAllBuffer;
 }

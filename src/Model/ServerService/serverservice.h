@@ -12,6 +12,7 @@
 #include <ctime>
 #include <chrono>
 #include <mutex>
+#include <random>
 
 // ============== Network ==============
 // Sockets and stuff
@@ -48,6 +49,8 @@ class SettingsManager;
 class LogManager;
 class UDPPacket;
 
+class AES;
+
 
 
 // should be shorter than MAX_VERSION_STRING_LENGTH
@@ -68,6 +71,7 @@ class ServerService
 public:
 
     ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager, LogManager* pLogManager);
+    ~ServerService();
 
 
 
@@ -154,6 +158,8 @@ private:
     MainWindow*              pMainWindow;
     SettingsManager*         pSettingsManager;
     LogManager*              pLogManager;
+    AES*                     pAES;
+    std::mt19937_64*         pRndGen;
 
 
     // Users
@@ -161,6 +167,7 @@ private:
     SSocket                  UDPsocket;
     std::vector<UserStruct*> users;
     std::vector<UDPPacket*>  vUDPPackets;
+    std::vector<std::vector<int>> vKeyPG; // some 'p' and 'g' values for key generation.
 
 
     // Ping
@@ -186,6 +193,7 @@ private:
 
     int                      iUsersConnectedCount;
     int                      iUsersConnectedToVOIP;
+    const int                iUsersVoicePacketSampleCount = 679;
 
 
     bool                     bWinSockStarted;

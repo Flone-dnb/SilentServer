@@ -50,6 +50,7 @@ struct UserStruct
 
     std::string      userName;
     std::string      userIP;
+    char             vSecretAESKey[16];
 
 
     unsigned short   userTCPPort;
