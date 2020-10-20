@@ -473,7 +473,11 @@ void ServerService::startToListenForConnection()
         myAddr .sin_port        = htons( pSettingsManager ->getCurrentSettings() ->iPort );
         myAddr .sin_addr.s_addr = INADDR_ANY;
 
+#if _WIN32
         int WSAAPI bind(_In_ SOCKET s,_In_reads_bytes_(namelen) const struct sockaddr FAR * name, _In_ int namelen);
+#elif __linux__
+        int bind (int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len);
+#endif
 
         if (bind(listenTCPSocket, reinterpret_cast<sockaddr*>(&myAddr), static_cast<int>(sizeof(myAddr))) == SOCKET_ERROR)
         {
@@ -1249,7 +1253,11 @@ void ServerService::prepareForVoiceConnection()
 
 
 
-    int WSAAPI bind(_In_ SOCKET s,_In_reads_bytes_(namelen) const struct sockaddr FAR * name, _In_ int namelen);
+#if _WIN32
+        int WSAAPI bind(_In_ SOCKET s,_In_reads_bytes_(namelen) const struct sockaddr FAR * name, _In_ int namelen);
+#elif __linux__
+        int bind (int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len);
+#endif
 
     if (bind(UDPsocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
     {
