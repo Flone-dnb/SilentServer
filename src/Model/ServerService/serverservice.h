@@ -54,8 +54,8 @@ class AES;
 
 
 // should be shorter than MAX_VERSION_STRING_LENGTH
-#define SERVER_VERSION           "3.0.0"
-#define CLIENT_SUPPORTED_VERSION "3.3.0"
+#define SERVER_VERSION           "3.1.0"
+#define CLIENT_SUPPORTED_VERSION "3.4.0"
 
 
 
