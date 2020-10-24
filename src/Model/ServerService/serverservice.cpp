@@ -945,7 +945,7 @@ void ServerService::listenForNewTCPConnections()
             continue;
         }
 
-        std::uniform_int_distribution<> uid(100, 500);
+        std::uniform_int_distribution<> uid(500, 1000); // also change in server
         int a = uid(*pRndGen);
 
         integer A = pow(integer(g), a) % p;
