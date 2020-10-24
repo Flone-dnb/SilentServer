@@ -39,30 +39,30 @@ using std::memcpy;
 
 LogManager::LogManager(MainWindow* pMainWindow, SettingsManager* pSettingsManager)
 {
-    this ->pMainWindow      = pMainWindow;
-    this ->pSettingsManager = pSettingsManager;
+    this->pMainWindow      = pMainWindow;
+    this->pSettingsManager = pSettingsManager;
 
 
     eraseTempFile();
 
 
-    if (pSettingsManager ->getCurrentSettings() ->bLog)
+    if (pSettingsManager->getCurrentSettings()->bLog)
     {
 #if _WIN32
-        std::wstring temp(pSettingsManager ->getCurrentSettings() ->sPathToLogFile.begin(), pSettingsManager ->getCurrentSettings() ->sPathToLogFile.end());
+        std::wstring temp(pSettingsManager->getCurrentSettings()->sPathToLogFile.begin(), pSettingsManager->getCurrentSettings()->sPathToLogFile.end());
         std::ofstream logFile (temp, std::ios::app);
 #elif __linux__
-        std::ofstream logFile (pSettingsManager ->getCurrentSettings() ->sPathToLogFile, std::ios::app);
+        std::ofstream logFile (pSettingsManager->getCurrentSettings()->sPathToLogFile, std::ios::app);
 #endif
 
-        if ( logFile .is_open() )
+        if ( logFile.is_open() )
         {
-            logFile .close();
+            logFile.close();
 
 #if _WIN32
-            _wremove( temp .c_str() );
+            _wremove( temp.c_str() );
 #elif __linux__
-            unlink(pSettingsManager ->getCurrentSettings() ->sPathToLogFile .c_str());
+            unlink(pSettingsManager->getCurrentSettings()->sPathToLogFile.c_str());
 #endif
         }
     }
@@ -71,32 +71,32 @@ LogManager::LogManager(MainWindow* pMainWindow, SettingsManager* pSettingsManage
 
 void LogManager::printAndLog(std::string sText, bool bEmitSignal)
 {
-    pMainWindow ->printOutput(sText, bEmitSignal);
+    pMainWindow->printOutput(sText, bEmitSignal);
 
 
-    if ( pSettingsManager ->getCurrentSettings() ->bLog )
+    if ( pSettingsManager->getCurrentSettings()->bLog )
     {
         std::thread tLog(&LogManager::logThread, this, sText);
-        tLog .detach();
+        tLog.detach();
     }
 }
 
 void LogManager::archiveText(char16_t *pText, size_t iWChars)
 {
     std::thread tArchive (&LogManager::archiveThread, this, pText, iWChars);
-    tArchive .detach();
+    tArchive.detach();
 }
 
 void LogManager::showOldText()
 {
     std::thread tShow (&LogManager::showTextThread, this);
-    tShow .detach();
+    tShow.detach();
 }
 
 void LogManager::stop()
 {
-    mtxLogWrite .lock();
-    mtxLogWrite .unlock();
+    mtxLogWrite.lock();
+    mtxLogWrite.unlock();
 
 
     eraseTempFile();
@@ -104,14 +104,14 @@ void LogManager::stop()
 
 void LogManager::logThread(std::string sText)
 {
-    mtxLogWrite .lock();
+    mtxLogWrite.lock();
 
 
 #if _WIN32
-    std::wstring temp(pSettingsManager ->getCurrentSettings() ->sPathToLogFile.begin(), pSettingsManager ->getCurrentSettings() ->sPathToLogFile.end());
+    std::wstring temp(pSettingsManager->getCurrentSettings()->sPathToLogFile.begin(), pSettingsManager->getCurrentSettings()->sPathToLogFile.end());
     std::ofstream logFile (temp, std::ios::app);
 #elif __linux__
-    std::ofstream logFile (pSettingsManager ->getCurrentSettings() ->sPathToLogFile, std::ios::app);
+    std::ofstream logFile (pSettingsManager->getCurrentSettings()->sPathToLogFile, std::ios::app);
 #endif
 
 
@@ -128,10 +128,10 @@ void LogManager::logThread(std::string sText)
 
     std::string sTimeString = "";
 
-    sTimeString += "[" + std::to_string(now .tm_year + 1900) + '.' + std::to_string(now .tm_mon + 1)
-                   + '.' + std::to_string(now .tm_mday) + "] ";
+    sTimeString += "[" + std::to_string(now.tm_year + 1900) + '.' + std::to_string(now.tm_mon + 1)
+                   + '.' + std::to_string(now.tm_mday) + "] ";
 
-    sTimeString += std::to_string(now .tm_hour) + ':' + std::to_string(now .tm_min) + '.';
+    sTimeString += std::to_string(now.tm_hour) + ':' + std::to_string(now.tm_min) + '.';
     sTimeString += "\n";
 
 
@@ -140,15 +140,15 @@ void LogManager::logThread(std::string sText)
     logFile << "\n";
 
 
-    logFile .close();
+    logFile.close();
 
 
-    mtxLogWrite .unlock();
+    mtxLogWrite.unlock();
 }
 
 void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 {
-    mtxLogWrite .lock();
+    mtxLogWrite.lock();
 
 
     // Prepare the buffer.
@@ -164,7 +164,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 #if _WIN32
     if ( GetTempPathW(MAX_PATH, vBuffer) == 0 )
     {
-        mtxLogWrite .unlock();
+        mtxLogWrite.unlock();
 
         printAndLog("Can't get the path to the TEMP directory.\n", true);
 
@@ -193,7 +193,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 
 //    if (pTempDir == NULL)
 //    {
-//        mtxLogWrite .unlock();
+//        mtxLogWrite.unlock();
 
 //        printAndLog("Can't get the path to the TEMP directory.\n", true);
 
@@ -231,7 +231,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
     size_t iCurrentTextPosInBytes = 0;
     size_t iStringSizeInBytes     = iWChars * 2;
 
-    newTempFile .write( reinterpret_cast <char*>(&iWChars), sizeof(iWChars) );
+    newTempFile.write( reinterpret_cast <char*>(&iWChars), sizeof(iWChars) );
 
 
     while (iCurrentTextPosInBytes < iStringSizeInBytes)
@@ -242,7 +242,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 
             memcpy(vReadBuffer, reinterpret_cast <char*>(pText) + iCurrentTextPosInBytes, iOneReadLengthInBytes);
 
-            newTempFile .write( vReadBuffer, iOneReadLengthInBytes );
+            newTempFile.write( vReadBuffer, iOneReadLengthInBytes );
 
             iCurrentTextPosInBytes += iOneReadLengthInBytes;
         }
@@ -254,7 +254,7 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 
             memcpy(vReadBuffer, reinterpret_cast <char*>(pText) + iCurrentTextPosInBytes, iLeftBytes);
 
-            newTempFile .write( vReadBuffer, static_cast <long long>(iLeftBytes) );
+            newTempFile.write( vReadBuffer, static_cast <long long>(iLeftBytes) );
 
             iCurrentTextPosInBytes += iLeftBytes;
         }
@@ -267,14 +267,14 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 
     std::ifstream oldTempFile(sPathToOldFile, std::ios::binary);
 
-    if ( oldTempFile .is_open() )
+    if ( oldTempFile.is_open() )
     {
         // Copy this old file to the new file.
 
         long long iOldFileSize = 0;
-        oldTempFile .seekg(0, std::ios::end);
-        iOldFileSize = oldTempFile .tellg();
-        oldTempFile .seekg(0, std::ios::beg);
+        oldTempFile.seekg(0, std::ios::end);
+        iOldFileSize = oldTempFile.tellg();
+        oldTempFile.seekg(0, std::ios::beg);
 
         long long iCurrentPos = 0;
 
@@ -285,8 +285,8 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
             {
                 // Not the last read.
 
-                oldTempFile .read(vReadBuffer, iOneReadLengthInBytes);
-                newTempFile .write(vReadBuffer, iOneReadLengthInBytes);
+                oldTempFile.read(vReadBuffer, iOneReadLengthInBytes);
+                newTempFile.write(vReadBuffer, iOneReadLengthInBytes);
 
                 iCurrentPos += iOneReadLengthInBytes;
             }
@@ -296,43 +296,43 @@ void LogManager::archiveThread(char16_t *pText, size_t iWChars)
 
                 long long iLeftBytes = iOldFileSize - iCurrentPos;
 
-                oldTempFile .read(vReadBuffer, iLeftBytes);
-                newTempFile .write(vReadBuffer, iLeftBytes);
+                oldTempFile.read(vReadBuffer, iLeftBytes);
+                newTempFile.write(vReadBuffer, iLeftBytes);
 
                 iCurrentPos += iLeftBytes;
             }
         }
 
 
-        newTempFile .close();
-        oldTempFile .close();
+        newTempFile.close();
+        oldTempFile.close();
 
 #if _WIN32
-        _wremove(sPathToOldFile .c_str());
+        _wremove(sPathToOldFile.c_str());
 #elif __linux__
-        unlink(sPathToOldFile .c_str());
+        unlink(sPathToOldFile.c_str());
 #endif
     }
     else
     {
-        newTempFile .close();
+        newTempFile.close();
     }
 
 #if _WIN32
-    _wrename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
+    _wrename(sPathToNewFile.c_str(), sPathToOldFile.c_str());
 #elif __linux__
-    rename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
+    rename(sPathToNewFile.c_str(), sPathToOldFile.c_str());
 #endif
 
     delete[] pText;
 
 
-    mtxLogWrite .unlock();
+    mtxLogWrite.unlock();
 }
 
 void LogManager::showTextThread()
 {
-    mtxLogWrite .lock();
+    mtxLogWrite.lock();
 
 
     // Prepare the buffer.
@@ -348,7 +348,7 @@ void LogManager::showTextThread()
 #if _WIN32
     if ( GetTempPathW(MAX_PATH, vBuffer) == 0 )
     {
-        mtxLogWrite .unlock();
+        mtxLogWrite.unlock();
 
         printAndLog("Can't get the path to the TEMP directory.\n", true);
 
@@ -378,7 +378,7 @@ void LogManager::showTextThread()
 //    {
 //        pTempDir = "/tmp";
 
-//        mtxLogWrite .unlock();
+//        mtxLogWrite.unlock();
 
 //        printAndLog("Can't get the path to the TEMP directory.\n", true);
 
@@ -406,9 +406,9 @@ void LogManager::showTextThread()
 
     std::ifstream tempFile (sPathToOldFile, std::ios::binary);
 
-    if (!tempFile .is_open())
+    if (!tempFile.is_open())
     {
-        mtxLogWrite .unlock();
+        mtxLogWrite.unlock();
 
         return;
     }
@@ -420,15 +420,15 @@ void LogManager::showTextThread()
 
     size_t iSizeOfTextInWChars = 0;
 
-    tempFile .read(reinterpret_cast <char*>(&iSizeOfTextInWChars), sizeof(iSizeOfTextInWChars));
+    tempFile.read(reinterpret_cast <char*>(&iSizeOfTextInWChars), sizeof(iSizeOfTextInWChars));
 
     char16_t* pText = new char16_t[iSizeOfTextInWChars + 1];
     memset(pText, 0, (iSizeOfTextInWChars * sizeof(char16_t)) + sizeof(char16_t));
 
-    tempFile .read( reinterpret_cast <char*>(pText), static_cast <long long>(iSizeOfTextInWChars)
+    tempFile.read( reinterpret_cast <char*>(pText), static_cast <long long>(iSizeOfTextInWChars)
                     * static_cast <long long>(sizeof(char16_t)) );
 
-    tempFile .close();
+    tempFile.close();
 
 
 
@@ -437,20 +437,20 @@ void LogManager::showTextThread()
 
     long long iOldFileSize = 0;
 
-    tempFile .open(sPathToOldFile, std::ios::binary);
+    tempFile.open(sPathToOldFile, std::ios::binary);
 
-    tempFile .seekg(0, std::ios::end);
+    tempFile.seekg(0, std::ios::end);
 
-    iOldFileSize = tempFile .tellg();
+    iOldFileSize = tempFile.tellg();
 
-    tempFile .seekg(static_cast <long long> (sizeof(iSizeOfTextInWChars)) + static_cast <long long>(iSizeOfTextInWChars) * 2);
+    tempFile.seekg(static_cast <long long> (sizeof(iSizeOfTextInWChars)) + static_cast <long long>(iSizeOfTextInWChars) * 2);
 
 
 
 
     // Pass to MainWindow
 
-    pMainWindow ->showOldText(pText);
+    pMainWindow->showOldText(pText);
 
 
 
@@ -481,8 +481,8 @@ void LogManager::showTextThread()
         {
             // Not the last read.
 
-            tempFile .read(vReadBuffer, iOneReadLengthBytes);
-            newTempFile .write(vReadBuffer, iOneReadLengthBytes);
+            tempFile.read(vReadBuffer, iOneReadLengthBytes);
+            newTempFile.write(vReadBuffer, iOneReadLengthBytes);
 
             iCurrentTextPos += iOneReadLengthBytes;
         }
@@ -492,8 +492,8 @@ void LogManager::showTextThread()
 
             long long iLeftBytes = iOldFileSize - iCurrentTextPos;
 
-            tempFile .read(vReadBuffer, iLeftBytes);
-            newTempFile .write(vReadBuffer, iLeftBytes);
+            tempFile.read(vReadBuffer, iLeftBytes);
+            newTempFile.write(vReadBuffer, iLeftBytes);
 
             iCurrentTextPos += iLeftBytes;
         }
@@ -501,35 +501,35 @@ void LogManager::showTextThread()
         bFirstRead = false;
     }
 
-    tempFile .close();
-    newTempFile .close();
+    tempFile.close();
+    newTempFile.close();
 
 #if _WIN32
-    _wremove(sPathToOldFile .c_str());
+    _wremove(sPathToOldFile.c_str());
 
     if (bFirstRead)
     {
-        _wremove(sPathToNewFile .c_str());
+        _wremove(sPathToNewFile.c_str());
     }
     else
     {
-        _wrename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
+        _wrename(sPathToNewFile.c_str(), sPathToOldFile.c_str());
     }
 #elif __linux__
-    unlink(sPathToOldFile .c_str());
+    unlink(sPathToOldFile.c_str());
 
     if (bFirstRead)
     {
-        unlink(sPathToNewFile .c_str());
+        unlink(sPathToNewFile.c_str());
     }
     else
     {
-        rename(sPathToNewFile .c_str(), sPathToOldFile .c_str());
+        rename(sPathToNewFile.c_str(), sPathToOldFile.c_str());
     }
 #endif
 
 
-    mtxLogWrite .unlock();
+    mtxLogWrite.unlock();
 }
 
 void LogManager::eraseTempFile()
@@ -549,7 +549,7 @@ void LogManager::eraseTempFile()
 #if _WIN32
     if ( GetTempPathW(MAX_PATH, vBuffer) == 0 )
     {
-        mtxLogWrite .unlock();
+        mtxLogWrite.unlock();
 
         printAndLog("Can't get the path to the TEMP directory.\n", true);
 
@@ -577,7 +577,7 @@ void LogManager::eraseTempFile()
 
 //    if (pTempDir == NULL)
 //    {
-//        mtxLogWrite .unlock();
+//        mtxLogWrite.unlock();
 
 //        printAndLog("Can't get the path to the TEMP directory.\n", true);
 
@@ -605,12 +605,12 @@ void LogManager::eraseTempFile()
     std::ifstream tempFile(sPathToOldFile);
 
 
-    if (tempFile .is_open())
+    if (tempFile.is_open())
     {
-        tempFile .close();
+        tempFile.close();
 
 #if _WIN32
-        _wremove( sPathToOldFile .c_str() );
+        _wremove( sPathToOldFile.c_str() );
 #elif __linux__
         unlink(sPathToOldFile.c_str());
 #endif

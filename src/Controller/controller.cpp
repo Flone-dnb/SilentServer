@@ -18,7 +18,7 @@ Controller::Controller(MainWindow* pMainWindow)
 {
     pSettingsManager = new SettingsManager(pMainWindow);
 
-    if (pSettingsManager ->getCurrentSettings())
+    if (pSettingsManager->getCurrentSettings())
     {
         pLogManager      = new LogManager(pMainWindow, pSettingsManager);
         pServerService   = new ServerService(pMainWindow, pSettingsManager, pLogManager);
@@ -50,11 +50,11 @@ bool Controller::isServerRunning()
 
 bool Controller::start()
 {
-    if (pSettingsManager ->getCurrentSettings())
+    if (pSettingsManager->getCurrentSettings())
     {
-        SettingsFile* pSettingsFile = new SettingsFile(*pSettingsManager ->getCurrentSettings());
+        SettingsFile* pSettingsFile = new SettingsFile(*pSettingsManager->getCurrentSettings());
 
-        pSettingsManager ->saveSettings( pSettingsFile, true );
+        pSettingsManager->saveSettings( pSettingsFile, true );
 
         if (bServerStarted)
         {
@@ -62,7 +62,7 @@ bool Controller::start()
         }
         else
         {
-            pLogManager ->eraseTempFile();
+            pLogManager->eraseTempFile();
 
             bServerStarted = pServerService->startWinSock();
         }
@@ -79,9 +79,9 @@ void Controller::stop()
 {
     if (bServerStarted)
     {
-        pServerService ->shutdownAllUsers();
+        pServerService->shutdownAllUsers();
 
-        pLogManager ->stop();
+        pLogManager->stop();
 
         bServerStarted = false;
     }
@@ -97,7 +97,7 @@ void Controller::sendMessageToAll(const std::string &sMessage)
 
 void Controller::kickUser(SListItemUser *pListWidgetItem)
 {
-    pServerService ->kickUser(pListWidgetItem);
+    pServerService->kickUser(pListWidgetItem);
 }
 
 void Controller::changeRoomSettings(const std::string &sOldName, const std::string &sNewName, size_t iMaxUsers)
@@ -124,7 +124,7 @@ void Controller::archiveText(char16_t *pText, size_t iWChars)
 {
     if (pLogManager)
     {
-        pLogManager ->archiveText(pText, iWChars);
+        pLogManager->archiveText(pText, iWChars);
     }
     else
     {
@@ -136,7 +136,7 @@ void Controller::showOldText()
 {
     if (pLogManager)
     {
-        pLogManager ->showOldText();
+        pLogManager->showOldText();
     }
 }
 
@@ -150,12 +150,12 @@ void Controller::saveNewSettings(SettingsFile* pSettingsFile)
         pLogManager->eraseTempFile();
     }
 
-    pSettingsManager ->saveSettings(pSettingsFile);
+    pSettingsManager->saveSettings(pSettingsFile);
 }
 
 SettingsFile *Controller::getSettingsFile()
 {
-    return pSettingsManager ->getCurrentSettings();
+    return pSettingsManager->getCurrentSettings();
 }
 
 Controller::~Controller()

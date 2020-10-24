@@ -29,7 +29,7 @@
 
 SettingsManager::SettingsManager(MainWindow* pMainWindow)
 {
-    this ->pMainWindow = pMainWindow;
+    this->pMainWindow = pMainWindow;
 
 
     pCurrentSettingsFile = nullptr;
@@ -52,7 +52,7 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 
     if (result != S_OK)
     {
-        pMainWindow ->showMessageBox(true, u"ServerService::showSettings::SHGetFolderPathW() failed. "
+        pMainWindow->showMessageBox(true, u"ServerService::showSettings::SHGetFolderPathW() failed. "
                                            "Can't open the settings file.");
 
         delete pSettingsFile;
@@ -83,10 +83,10 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
     else
     {
 #if _WIN32
-        pMainWindow ->showMessageBox(true, u"ServerService::showSettings() failed. "
+        pMainWindow->showMessageBox(true, u"ServerService::showSettings() failed. "
                                            "Can't get path to HOME.");
 #elif __linux__
-        pMainWindow ->showMessageBox(true, u"ServerService::showSettings() failed. "
+        pMainWindow->showMessageBox(true, u"ServerService::showSettings() failed. "
                                            "Can't get path to HOME.");
 #endif
 
@@ -104,22 +104,22 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 #endif
     std::ofstream newSettingsFile;
 
-    if ( settingsFile .is_open() )
+    if ( settingsFile.is_open() )
     {
 #if _WIN32
         std::wstring path1 (sPathToNewSettings.begin(), sPathToNewSettings.end());
-        newSettingsFile .open(path1);
+        newSettingsFile.open(path1);
 #elif __linux__
-        newSettingsFile .open(sPathToNewSettings);
+        newSettingsFile.open(sPathToNewSettings);
 #endif
     }
     else
     {
 #if _WIN32
         std::wstring path1 (sPathToOldSettings.begin(), sPathToOldSettings.end());
-        newSettingsFile .open(path1);
+        newSettingsFile.open(path1);
 #elif __linux__
-        newSettingsFile .open(sPathToOldSettings);
+        newSettingsFile.open(sPathToOldSettings);
 #endif
     }
 
@@ -129,39 +129,39 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
     // Write new setting to the new file.
 
     // Server port
-    newSettingsFile .write
-            ( reinterpret_cast <char*> (&pSettingsFile ->iPort), sizeof(pSettingsFile ->iPort) );
+    newSettingsFile.write
+            ( reinterpret_cast <char*> (&pSettingsFile->iPort), sizeof(pSettingsFile->iPort) );
 
     // Allow HTML in messages
-    char cAllowHTMLInMessages = pSettingsFile ->bAllowHTMLInMessages;
-    newSettingsFile .write
+    char cAllowHTMLInMessages = pSettingsFile->bAllowHTMLInMessages;
+    newSettingsFile.write
             ( &cAllowHTMLInMessages, sizeof(cAllowHTMLInMessages) );
 
     // Password to join
-    unsigned char cPasswordToJoinLength = static_cast <unsigned char> ( pSettingsFile ->sPasswordToJoin .size() );
-    newSettingsFile .write
+    unsigned char cPasswordToJoinLength = static_cast <unsigned char> ( pSettingsFile->sPasswordToJoin.size() );
+    newSettingsFile.write
             ( reinterpret_cast<char*>(&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
 
-    newSettingsFile .write
-            ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile ->sPasswordToJoin .c_str())  ), cPasswordToJoinLength * 2 );
+    newSettingsFile.write
+            ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile->sPasswordToJoin.c_str())  ), cPasswordToJoinLength * 2 );
 
     // Log
-    char cLog = pSettingsFile ->bLog;
-    newSettingsFile .write
+    char cLog = pSettingsFile->bLog;
+    newSettingsFile.write
             ( &cLog, sizeof(cLog) );
 
-    if (pSettingsFile ->bLog)
+    if (pSettingsFile->bLog)
     {
-       unsigned char cLogFilePathLength = static_cast <unsigned char> (pSettingsFile ->sPathToLogFile .size());
-       newSettingsFile .write
+       unsigned char cLogFilePathLength = static_cast <unsigned char> (pSettingsFile->sPathToLogFile.size());
+       newSettingsFile.write
                ( reinterpret_cast<char*>(&cLogFilePathLength), sizeof(cLogFilePathLength) );
 
 #if _WIN32
-       newSettingsFile .write
-               ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength * 2 );
+       newSettingsFile.write
+               ( reinterpret_cast<char*>(  const_cast <char16_t*>(pSettingsFile->sPathToLogFile.c_str())  ), cLogFilePathLength * 2 );
 #elif __linux__
-       newSettingsFile .write
-               ( reinterpret_cast<char*>(  const_cast <char*>(pSettingsFile ->sPathToLogFile .c_str())  ), cLogFilePathLength );
+       newSettingsFile.write
+               ( reinterpret_cast<char*>(  const_cast <char*>(pSettingsFile->sPathToLogFile.c_str())  ), cLogFilePathLength );
 #endif
     }
 
@@ -172,39 +172,39 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 
         unsigned char cRoomCount = static_cast<unsigned char>( vRoomNames.size() );
 
-        newSettingsFile .write( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
+        newSettingsFile.write( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
 
         for (unsigned char i = 0; i < cRoomCount; i++)
         {
             // Write room name size.
 
             char cRoomNameSize = static_cast<char>( vRoomNames[i].size() );
-            newSettingsFile .write( &cRoomNameSize, sizeof(char) );
+            newSettingsFile.write( &cRoomNameSize, sizeof(char) );
 
 
 
             // Write room name.
 
-            newSettingsFile .write( vRoomNames[i].c_str(), vRoomNames[i].size() );
+            newSettingsFile.write( vRoomNames[i].c_str(), vRoomNames[i].size() );
 
 
 
             // Write room password size.
 
             char cRoomPassSize = static_cast<char>( pMainWindow->getRoomPassword(i).size() );
-            newSettingsFile .write( &cRoomPassSize, sizeof(char) );
+            newSettingsFile.write( &cRoomPassSize, sizeof(char) );
 
 
 
             // Write room password.
 
             std::u16string sRoomPassword = pMainWindow->getRoomPassword(i);
-            newSettingsFile .write( reinterpret_cast<char*>(const_cast<char16_t*>(sRoomPassword.c_str())), sRoomPassword.size() * 2 );
+            newSettingsFile.write( reinterpret_cast<char*>(const_cast<char16_t*>(sRoomPassword.c_str())), sRoomPassword.size() * 2 );
 
 
             // Write room max users.
             unsigned short int iMaxUsers = pMainWindow->getRoomMaxUsers(i);
-            newSettingsFile .write( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
+            newSettingsFile.write( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
         }
     }
 
@@ -213,28 +213,28 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 
 
 
-    if ( settingsFile .is_open() )
+    if ( settingsFile.is_open() )
     {
         // Close files and rename the new file.
 
-        settingsFile    .close();
-        newSettingsFile .close();
+        settingsFile   .close();
+        newSettingsFile.close();
 
 #if _WIN32
         std::wstring path1 (sPathToOldSettings.begin(), sPathToOldSettings.end());
-        _wremove( path1 .c_str() );
+        _wremove( path1.c_str() );
 
         std::wstring path2 (sPathToNewSettings.begin(), sPathToNewSettings.end());
-        _wrename( path2 .c_str(), path1 .c_str() );
+        _wrename( path2.c_str(), path1.c_str() );
 #elif __linux__
-        unlink(sPathToOldSettings .c_str());
+        unlink(sPathToOldSettings.c_str());
 
-        rename(sPathToNewSettings .c_str(), sPathToOldSettings .c_str());
+        rename(sPathToNewSettings.c_str(), sPathToOldSettings.c_str());
 #endif
     }
     else
     {
-        newSettingsFile .close();
+        newSettingsFile.close();
     }
 
 
@@ -242,7 +242,7 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 
     // Update our 'pCurrentSettingsFile' to the new settings
 
-    mtxUpdateSettings .lock();
+    mtxUpdateSettings.lock();
 
 
     if (pCurrentSettingsFile)
@@ -254,13 +254,13 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
     pCurrentSettingsFile = pSettingsFile;
 
 
-    mtxUpdateSettings .unlock();
+    mtxUpdateSettings.unlock();
 }
 
 SettingsFile *SettingsManager::getCurrentSettings()
 {
-    mtxUpdateSettings .lock();
-    mtxUpdateSettings .unlock();
+    mtxUpdateSettings.lock();
+    mtxUpdateSettings.unlock();
 
     return pCurrentSettingsFile;
 }
@@ -275,7 +275,7 @@ SettingsFile *SettingsManager::readSettings()
 
     if (result != S_OK)
     {
-        pMainWindow ->showMessageBox(true, u"ServerService::readSettings::SHGetFolderPathW() failed. "
+        pMainWindow->showMessageBox(true, u"ServerService::readSettings::SHGetFolderPathW() failed. "
                                            "Can't open the settings file.");
 
         return nullptr;
@@ -300,10 +300,10 @@ SettingsFile *SettingsManager::readSettings()
     else
     {
 #if _WIN32
-        pMainWindow ->showMessageBox(true, u"ServerService::readSettings() failed. "
+        pMainWindow->showMessageBox(true, u"ServerService::readSettings() failed. "
                                            "Can't get path to HOME.");
 #elif __linux__
-        pMainWindow ->showMessageBox(true, u"ServerService::readSettings() failed. "
+        pMainWindow->showMessageBox(true, u"ServerService::readSettings() failed. "
                                            "Can't get path to HOME.");
 #endif
 
@@ -327,21 +327,21 @@ SettingsFile *SettingsManager::readSettings()
 #endif
 
     // Get file size.
-    settingsFile .seekg(0, std::ios::end);
-    long long iFileSize = settingsFile .tellg();
-    settingsFile .seekg(0, std::ios::beg);
+    settingsFile.seekg(0, std::ios::end);
+    long long iFileSize = settingsFile.tellg();
+    settingsFile.seekg(0, std::ios::beg);
 
     long long iPos = 0;
 
-    if ( settingsFile .is_open() )
+    if ( settingsFile.is_open() )
     {
         // Read the settings.
 
 
 
         // Read port
-        settingsFile .read( reinterpret_cast <char*> (&pSettingsFile ->iPort), sizeof(pSettingsFile ->iPort) );
-        iPos += sizeof(pSettingsFile ->iPort);
+        settingsFile.read( reinterpret_cast <char*> (&pSettingsFile->iPort), sizeof(pSettingsFile->iPort) );
+        iPos += sizeof(pSettingsFile->iPort);
 
 
 
@@ -349,7 +349,7 @@ SettingsFile *SettingsManager::readSettings()
         // Settings may end here
         if (iPos >= iFileSize)
         {
-            settingsFile .close();
+            settingsFile.close();
 
             saveSettings(pSettingsFile);
 
@@ -360,66 +360,66 @@ SettingsFile *SettingsManager::readSettings()
 
         // Read allow HTML in messages
         char cAllowHTMLInMessages;
-        settingsFile .read( reinterpret_cast <char*> (&cAllowHTMLInMessages), sizeof(cAllowHTMLInMessages) );
+        settingsFile.read( reinterpret_cast <char*> (&cAllowHTMLInMessages), sizeof(cAllowHTMLInMessages) );
         iPos += sizeof(cAllowHTMLInMessages);
 
-        pSettingsFile ->bAllowHTMLInMessages = cAllowHTMLInMessages;
+        pSettingsFile->bAllowHTMLInMessages = cAllowHTMLInMessages;
 
 
 
 
         // Read password to join
         unsigned char cPasswordToJoinLength = 0;
-        settingsFile .read( reinterpret_cast <char*> (&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
+        settingsFile.read( reinterpret_cast <char*> (&cPasswordToJoinLength), sizeof(cPasswordToJoinLength) );
         iPos += sizeof(cPasswordToJoinLength);
 
         char16_t vBuffer[UCHAR_MAX + 1];
         memset(vBuffer, 0, UCHAR_MAX + 1);
 
-        settingsFile .read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because char16_t is 2 bytes each char
+        settingsFile.read( reinterpret_cast<char*>( vBuffer ), cPasswordToJoinLength * 2); // because char16_t is 2 bytes each char
         iPos += cPasswordToJoinLength * 2;
 
-        pSettingsFile ->sPasswordToJoin = vBuffer;
+        pSettingsFile->sPasswordToJoin = vBuffer;
 
 
         // Read log
         char cLog = 0;
-        settingsFile .read( &cLog, sizeof(cLog) );
+        settingsFile.read( &cLog, sizeof(cLog) );
         iPos += sizeof(cLog);
 
         if (cLog)
         {
-            pSettingsFile ->bLog = true;
+            pSettingsFile->bLog = true;
 
 
             unsigned char cLogFilePathLength = 0;
-            settingsFile .read
+            settingsFile.read
                    ( reinterpret_cast<char*>(&cLogFilePathLength), sizeof(cLogFilePathLength) );
             iPos += sizeof(cLogFilePathLength);
 
 
 #if _WIN32
             memset(vBuffer, 0, UCHAR_MAX + 1);
-            settingsFile .read
+            settingsFile.read
                    ( reinterpret_cast<char*>( vBuffer ), cLogFilePathLength * 2 );
             iPos += cLogFilePathLength * 2;
 
-            pSettingsFile ->sPathToLogFile = vBuffer;
+            pSettingsFile->sPathToLogFile = vBuffer;
 #elif __linux__
             char vLogBuffer[UCHAR_MAX + 1];
             memset(vLogBuffer, 0, UCHAR_MAX + 1);
-            settingsFile .read
+            settingsFile.read
                    ( reinterpret_cast<char*>( vLogBuffer ), cLogFilePathLength );
             iPos += cLogFilePathLength;
 
-            pSettingsFile ->sPathToLogFile = vLogBuffer;
+            pSettingsFile->sPathToLogFile = vLogBuffer;
 #endif
         }
 
         // Settings may end here
         if (iPos >= iFileSize)
         {
-            settingsFile .close();
+            settingsFile.close();
 
             saveSettings(pSettingsFile);
 
@@ -428,11 +428,11 @@ SettingsFile *SettingsManager::readSettings()
 
         unsigned char cRoomCount = 0;
 
-        settingsFile .read( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
+        settingsFile.read( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
 
         if (cRoomCount > 0)
         {
-            pMainWindow ->clearAllRooms();
+            pMainWindow->clearAllRooms();
         }
 
         for (unsigned char i = 0; i < cRoomCount; i++)
@@ -440,7 +440,7 @@ SettingsFile *SettingsManager::readSettings()
             // Read room name size.
 
             char cRoomNameSize = 0;
-            settingsFile .read( &cRoomNameSize, sizeof(char) );
+            settingsFile.read( &cRoomNameSize, sizeof(char) );
 
 
 
@@ -449,14 +449,14 @@ SettingsFile *SettingsManager::readSettings()
             char vNameBuffer[MAX_NAME_LENGTH + 1];
             memset(vNameBuffer, 0, MAX_NAME_LENGTH + 1);
 
-            settingsFile .read( vNameBuffer, cRoomNameSize );
+            settingsFile.read( vNameBuffer, cRoomNameSize );
 
 
 
             // Read room password size.
 
             char cRoomPassSize = 0;
-            settingsFile .read( &cRoomPassSize, sizeof(char) );
+            settingsFile.read( &cRoomPassSize, sizeof(char) );
 
 
 
@@ -464,18 +464,18 @@ SettingsFile *SettingsManager::readSettings()
 
             char16_t vPasswordBuffer[MAX_NAME_LENGTH + 1];
             memset(vPasswordBuffer, 0, (MAX_NAME_LENGTH + 1) * 2);
-            settingsFile .read( reinterpret_cast<char*>(vPasswordBuffer), cRoomPassSize * 2 );
+            settingsFile.read( reinterpret_cast<char*>(vPasswordBuffer), cRoomPassSize * 2 );
 
 
             // Read room max users.
             unsigned short int iMaxUsers = 0;
-            settingsFile .read( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
+            settingsFile.read( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
 
-            pMainWindow ->addRoom(vNameBuffer, vPasswordBuffer, iMaxUsers);
+            pMainWindow->addRoom(vNameBuffer, vPasswordBuffer, iMaxUsers);
         }
 
 
-        settingsFile .close();
+        settingsFile.close();
 
         return pSettingsFile;
     }

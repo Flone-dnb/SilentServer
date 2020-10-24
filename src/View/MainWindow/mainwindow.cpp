@@ -60,8 +60,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Setup context menu for 'connected users' list
 
-    ui ->listWidget_users ->setContextMenuPolicy (Qt::CustomContextMenu);
-    ui ->listWidget_users ->setViewMode          (QListView::ListMode);
+    ui->listWidget_users->setContextMenuPolicy (Qt::CustomContextMenu);
+    ui->listWidget_users->setViewMode          (QListView::ListMode);
 
 
 
@@ -71,11 +71,11 @@ MainWindow::MainWindow(QWidget *parent) :
     pMenuEmpty = new QMenu(this);
     connect(pMenuEmpty, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
 
-    pMenuEmpty ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+    pMenuEmpty->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
 
     pActionCreateRoom = new QAction("Create Room");
 
-    pMenuEmpty ->addAction(pActionCreateRoom);
+    pMenuEmpty->addAction(pActionCreateRoom);
 
     connect(pActionCreateRoom, &QAction::triggered, this, &MainWindow::createRoom);
 
@@ -87,13 +87,13 @@ MainWindow::MainWindow(QWidget *parent) :
     pMenuUser   = new QMenu(this);
     connect(pMenuUser, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
 
-    pMenuUser ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+    pMenuUser->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
 
     pActionKick = new QAction("Kick");
 
-    pMenuUser ->addAction(pActionKick);
-    pMenuUser ->addSeparator();
-    pMenuUser ->addAction(pActionCreateRoom);
+    pMenuUser->addAction(pActionKick);
+    pMenuUser->addSeparator();
+    pMenuUser->addAction(pActionCreateRoom);
 
     connect(pActionKick, &QAction::triggered, this, &MainWindow::kickUser);
 
@@ -104,18 +104,18 @@ MainWindow::MainWindow(QWidget *parent) :
     pMenuRoom   = new QMenu(this);
     connect(pMenuRoom, &QMenu::aboutToHide, this, &MainWindow::slotMenuClose);
 
-    pMenuRoom ->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
+    pMenuRoom->setStyleSheet("QMenuBar { background-color: transparent; color: white; } QMenuBar::item { background-color: transparent; } QMenuBar::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(26, 26, 26, 100), stop:0.605809 rgba(19, 19, 19, 255), stop:1 rgba(26, 26, 26, 100)); color: white; } QMenu::item::selected { background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 rgba(156, 11, 11, 255), stop:1 rgba(168, 0, 0, 255)); } QMenu::separator { background-color: rgb(50, 0, 0); height: 2px; margin-left: 10px; margin-right: 5px; }");
 
     pActionChangeSettings = new QAction("Change Room Settings");
     pActionMoveRoomUp     = new QAction("Move Up");
     pActionMoveRoomDown   = new QAction("Move Down");
     pActionDeleteRoom     = new QAction("Delete Room");
 
-    pMenuRoom ->addAction(pActionChangeSettings);
-    pMenuRoom ->addAction(pActionMoveRoomUp);
-    pMenuRoom ->addAction(pActionMoveRoomDown);
-    pMenuRoom ->addAction(pActionCreateRoom);
-    pMenuRoom ->addAction(pActionDeleteRoom);
+    pMenuRoom->addAction(pActionChangeSettings);
+    pMenuRoom->addAction(pActionMoveRoomUp);
+    pMenuRoom->addAction(pActionMoveRoomDown);
+    pMenuRoom->addAction(pActionCreateRoom);
+    pMenuRoom->addAction(pActionDeleteRoom);
 
     connect(pActionChangeSettings, &QAction::triggered, this, &MainWindow::changeRoomSettings);
     connect(pActionMoveRoomUp,     &QAction::triggered, this, &MainWindow::moveRoomUp);
@@ -125,7 +125,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     // Slider
-    connect(ui ->plainTextEdit ->verticalScrollBar(), &QScrollBar::valueChanged, this, &MainWindow::slotSliderMoved);
+    connect(ui->plainTextEdit->verticalScrollBar(), &QScrollBar::valueChanged, this, &MainWindow::slotSliderMoved);
 
     bInternalTextWork = false;
 
@@ -147,11 +147,11 @@ void MainWindow::printOutput(std::string errorText, bool bEmitSignal)
 {
     if (bEmitSignal == false)
     {
-        mtxPrintOutput .lock   ();
+        mtxPrintOutput.lock   ();
 
-        ui ->plainTextEdit ->appendPlainText( QString::fromStdString(errorText) );
+        ui->plainTextEdit->appendPlainText( QString::fromStdString(errorText) );
 
-        mtxPrintOutput .unlock ();
+        mtxPrintOutput.unlock ();
 
         checkTextSize();
     }
@@ -181,15 +181,15 @@ void MainWindow::showMessageBox(bool bErrorBox, const std::u16string &sMessage, 
 
 void MainWindow::updateOnlineUsersCount(int iNewAmount)
 {
-    ui ->label_2 ->setText("Connected: " + QString::number(iNewAmount));
+    ui->label_2->setText("Connected: " + QString::number(iNewAmount));
 }
 
 SListItemUser* MainWindow::addNewUserToList(std::string userName)
 {
     return ui->listWidget_users->addUser(QString::fromStdString(userName));
 
-    //ui ->listWidget_users        ->addItem ( QString::fromStdString(userName) );
-    //return ui ->listWidget_users ->item    ( ui ->listWidget_users ->model() ->rowCount()-1 );
+    //ui->listWidget_users       ->addItem ( QString::fromStdString(userName) );
+    //return ui->listWidget_users->item    ( ui->listWidget_users->model()->rowCount()-1 );
 }
 
 void MainWindow::setPingToUser(SListItemUser* pListItem, int ping)
@@ -199,19 +199,19 @@ void MainWindow::setPingToUser(SListItemUser* pListItem, int ping)
 
 void MainWindow::deleteUserFromList(SListItemUser* pUser)
 {
-    mtxListUsers .lock();
+    mtxListUsers.lock();
 
-    ui ->listWidget_users->deleteUser(pUser);
+    ui->listWidget_users->deleteUser(pUser);
     //delete pListItem;
 
-    mtxListUsers .unlock();
+    mtxListUsers.unlock();
 }
 
 std::vector<std::string> MainWindow::getRoomNames()
 {
     std::vector<std::string> vRoomNames;
 
-    std::vector<QString> vRooms = ui ->listWidget_users ->getRoomNames();
+    std::vector<QString> vRooms = ui->listWidget_users->getRoomNames();
 
     for (size_t i = 0; i < vRooms.size(); i++)
     {
@@ -225,7 +225,7 @@ std::vector<std::string> MainWindow::getUsersOfRoomIndex(size_t i)
 {
     std::vector<std::string> vUsers;
 
-    std::vector<SListItemUser*> vUserNames = ui ->listWidget_users ->getRoom(i) ->getUsers();
+    std::vector<SListItemUser*> vUserNames = ui->listWidget_users->getRoom(i)->getUsers();
 
     for (size_t i = 0; i < vUserNames.size(); i++)
     {
@@ -237,39 +237,39 @@ std::vector<std::string> MainWindow::getUsersOfRoomIndex(size_t i)
 
 std::u16string MainWindow::getRoomPassword(size_t iRoomIndex)
 {
-    return ui ->listWidget_users ->getRoom(iRoomIndex) ->getPassword() .toStdU16String();
+    return ui->listWidget_users->getRoom(iRoomIndex)->getPassword().toStdU16String();
 }
 
 std::u16string MainWindow::getRoomPassword(std::string sRoomName)
 {
-    return ui ->listWidget_users ->getRoomPassword(QString::fromStdString(sRoomName)).toStdU16String();
+    return ui->listWidget_users->getRoomPassword(QString::fromStdString(sRoomName)).toStdU16String();
 }
 
 unsigned short MainWindow::getRoomMaxUsers(size_t iRoomIndex)
 {
-    return static_cast<unsigned short>(ui ->listWidget_users ->getRoom(iRoomIndex) ->getMaxUsers());
+    return static_cast<unsigned short>(ui->listWidget_users->getRoom(iRoomIndex)->getMaxUsers());
 }
 
 void MainWindow::addRoom(std::string sRoomName, std::u16string sPassword, size_t iMaxUsers)
 {
-    ui ->listWidget_users ->addRoom(QString::fromStdString(sRoomName),
+    ui->listWidget_users->addRoom(QString::fromStdString(sRoomName),
                                     QString::fromStdU16String(sPassword),
                                     iMaxUsers);
 }
 
 void MainWindow::clearAllRooms()
 {
-    ui ->listWidget_users ->deleteAll();
+    ui->listWidget_users->deleteAll();
 }
 
 void MainWindow::moveUserToRoom(SListItemUser *pUser, std::string sRoomName)
 {
-    ui ->listWidget_users ->moveUser(pUser, QString::fromStdString(sRoomName));
+    ui->listWidget_users->moveUser(pUser, QString::fromStdString(sRoomName));
 }
 
 bool MainWindow::checkRoomSettings(std::string sRoomName, bool* pbPasswordNeeded, bool* pbRoomFull)
 {
-    std::vector<QString> vRooms = ui ->listWidget_users ->getRoomNames();
+    std::vector<QString> vRooms = ui->listWidget_users->getRoomNames();
 
     QString sRoomToEnter = QString::fromStdString(sRoomName);
 
@@ -282,7 +282,7 @@ bool MainWindow::checkRoomSettings(std::string sRoomName, bool* pbPasswordNeeded
         if (sRoomToEnter == vRooms[i])
         {
             bRoomFound = true;
-            pRoom = ui ->listWidget_users ->getRoom(i);
+            pRoom = ui->listWidget_users->getRoom(i);
             break;
         }
     }
@@ -309,17 +309,17 @@ void MainWindow::changeStartStopActionText(bool bStop)
 {
     if (bStop)
     {
-        ui ->actionStart ->setText("Stop Server");
+        ui->actionStart->setText("Stop Server");
     }
     else
     {
-        ui ->actionStart ->setText("Start Server");
+        ui->actionStart->setText("Start Server");
     }
 }
 
 void MainWindow::showSendMessageToAllAction(bool bShow)
 {
-    ui ->actionSend_Server_Message_to_All ->setVisible(bShow);
+    ui->actionSend_Server_Message_to_All->setVisible(bShow);
 }
 
 void MainWindow::clearChatWindow()
@@ -337,17 +337,17 @@ void MainWindow::hideEvent(QHideEvent *event)
     Q_UNUSED(event)
 
     hide();
-    pTrayIcon ->show();
+    pTrayIcon->show();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (pController ->isServerRunning())
+    if (pController->isServerRunning())
     {
-        pController ->stop();
-        event       ->ignore();
+        pController->stop();
+        event      ->ignore();
 
-        ui ->plainTextEdit ->appendPlainText("Press Exit again to close.");
+        ui->plainTextEdit->appendPlainText("Press Exit again to close.");
     }
 }
 
@@ -365,18 +365,18 @@ void MainWindow::slotShowMessageBox(bool bErrorBox, const QString &sMessage)
 
 void MainWindow::typeSomeOnOutputLog(QString text)
 {
-    mtxPrintOutput .lock   ();
+    mtxPrintOutput.lock   ();
 
-    ui ->plainTextEdit ->appendPlainText (text);
+    ui->plainTextEdit->appendPlainText (text);
 
-    mtxPrintOutput .unlock ();
+    mtxPrintOutput.unlock ();
 
     checkTextSize();
 }
 
 void MainWindow::slotShowOldText(char16_t *pText)
 {
-    mtxPrintOutput .lock();
+    mtxPrintOutput.lock();
 
 
     std::u16string sText(pText);
@@ -387,24 +387,24 @@ void MainWindow::slotShowOldText(char16_t *pText)
     QString sNewText = "";
     sNewText += QString::fromStdU16String(sText);
 
-    sNewText += ui ->plainTextEdit ->toPlainText() .right( ui ->plainTextEdit ->toPlainText() .size() - 10 ); // 10: ".........."
+    sNewText += ui->plainTextEdit->toPlainText().right( ui->plainTextEdit->toPlainText().size() - 10 ); // 10: ".........."
 
 
     bInternalTextWork = true;
 
-    ui ->plainTextEdit ->clear();
+    ui->plainTextEdit->clear();
 
-    ui ->plainTextEdit ->appendPlainText(sNewText);
+    ui->plainTextEdit->appendPlainText(sNewText);
 
     bInternalTextWork = false;
 
 
-    mtxPrintOutput .unlock();
+    mtxPrintOutput.unlock();
 }
 
 void MainWindow::slotTrayIconActivated()
 {
-    pTrayIcon ->hide();
+    pTrayIcon->hide();
     raise();
     activateWindow();
     showNormal();
@@ -412,12 +412,12 @@ void MainWindow::slotTrayIconActivated()
 
 void MainWindow::slotApplyNewSettings(SettingsFile* pSettingsFile)
 {
-    pController ->saveNewSettings(pSettingsFile);
+    pController->saveNewSettings(pSettingsFile);
 }
 
 void MainWindow::slotSetPingToUser(SListItemUser* pListItem, int ping)
 {
-    mtxListUsers .lock();
+    mtxListUsers.lock();
 
     if (pListItem != nullptr)
     {
@@ -447,23 +447,23 @@ void MainWindow::slotSetPingToUser(SListItemUser* pListItem, int ping)
         pListItem->setPing(ping);
     }
 
-    mtxListUsers .unlock();
+    mtxListUsers.unlock();
 }
 
 void MainWindow::slotClearChatWindow()
 {
-    mtxPrintOutput .lock();
+    mtxPrintOutput.lock();
 
     ui->plainTextEdit->clear();
 
-    mtxPrintOutput .unlock();
+    mtxPrintOutput.unlock();
 }
 
 void MainWindow::on_actionStart_triggered()
 {
-    if ( pController ->start() )
+    if ( pController->start() )
     {
-        ui ->plainTextEdit ->appendPlainText("Could not start the server.");
+        ui->plainTextEdit->appendPlainText("Could not start the server.");
     }
 }
 
@@ -474,21 +474,21 @@ void MainWindow::on_actionAbout_2_triggered()
                                                     QString::fromStdString(pController->getLastClientVersion()),
                                                     this
                                                 );
-    pAboutWindow ->setWindowModality (Qt::WindowModality::WindowModal);
-    pAboutWindow ->show();
+    pAboutWindow->setWindowModality (Qt::WindowModality::WindowModal);
+    pAboutWindow->show();
 }
 
 
 void MainWindow::on_actionSettings_triggered()
 {
     SettingsWindow* pSettingsWindow = new SettingsWindow (this);
-    pSettingsWindow ->setWindowModality( Qt::WindowModality::WindowModal );
+    pSettingsWindow->setWindowModality( Qt::WindowModality::WindowModal );
 
     connect(pSettingsWindow, &SettingsWindow::signalApply, this, &MainWindow::slotApplyNewSettings);
 
-    pSettingsWindow ->setSettings(pController ->getSettingsFile());
+    pSettingsWindow->setSettings(pController->getSettingsFile());
 
-    pSettingsWindow ->show();
+    pSettingsWindow->show();
 }
 
 void MainWindow::slotSliderMoved(int iValue)
@@ -497,7 +497,7 @@ void MainWindow::slotSliderMoved(int iValue)
     {
         if ( iValue == 0 )
         {
-            pController ->showOldText();
+            pController->showOldText();
         }
     }
 }
@@ -510,86 +510,86 @@ void MainWindow::slotSendServerMessage(QString sMessage)
 
 void MainWindow::on_listWidget_users_customContextMenuRequested(const QPoint &pos)
 {
-    SListItem* pItem = dynamic_cast<SListItem*>(ui ->listWidget_users ->itemAt(pos));
+    SListItem* pItem = dynamic_cast<SListItem*>(ui->listWidget_users->itemAt(pos));
 
     if (pItem)
     {
-        QPoint globalPos = ui ->listWidget_users ->mapToGlobal(pos);
+        QPoint globalPos = ui->listWidget_users->mapToGlobal(pos);
 
         if (pItem->isRoom())
         {
             SListItemRoom* pRoomItem = dynamic_cast<SListItemRoom*>(pItem);
 
-            if (pRoomItem ->getRoomName() == ui ->listWidget_users ->getRoomNames()[0])
+            if (pRoomItem->getRoomName() == ui->listWidget_users->getRoomNames()[0])
             {
-                pActionDeleteRoom ->setVisible(false);
+                pActionDeleteRoom->setVisible(false);
             }
             else
             {
-                pActionDeleteRoom ->setVisible(true);
+                pActionDeleteRoom->setVisible(true);
             }
 
-            if (ui ->listWidget_users ->getRoomCount() > 1)
+            if (ui->listWidget_users->getRoomCount() > 1)
             {
-                if ( (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[1])
-                     || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+                if ( (pRoomItem->getRoomName() == ui->listWidget_users->getRoomNames()[1])
+                     || (pRoomItem->getRoomName() == ui->listWidget_users->getRoomNames()[0]))
                 {
-                    pActionMoveRoomUp ->setVisible(false);
+                    pActionMoveRoomUp->setVisible(false);
                 }
                 else
                 {
-                    pActionMoveRoomUp ->setVisible(true);
+                    pActionMoveRoomUp->setVisible(true);
                 }
 
                 if ( (pRoomItem->getRoomName() ==
-                                     ui ->listWidget_users ->getRoomNames()[ ui ->listWidget_users ->getRoomNames().size() - 1 ])
-                     || (pRoomItem->getRoomName() == ui ->listWidget_users ->getRoomNames()[0]))
+                                     ui->listWidget_users->getRoomNames()[ ui->listWidget_users->getRoomNames().size() - 1 ])
+                     || (pRoomItem->getRoomName() == ui->listWidget_users->getRoomNames()[0]))
                 {
-                    pActionMoveRoomDown ->setVisible(false);
+                    pActionMoveRoomDown->setVisible(false);
                 }
                 else
                 {
-                    pActionMoveRoomDown ->setVisible(true);
+                    pActionMoveRoomDown->setVisible(true);
                 }
             }
             else
             {
-                pActionMoveRoomUp ->setVisible(false);
-                pActionMoveRoomDown ->setVisible(false);
+                pActionMoveRoomUp->setVisible(false);
+                pActionMoveRoomDown->setVisible(false);
             }
 
 
-            pMenuRoom ->exec(globalPos);
+            pMenuRoom->exec(globalPos);
         }
         else
         {
-            pMenuUser ->exec(globalPos);
+            pMenuUser->exec(globalPos);
         }
     }
     else
     {
-        QPoint globalPos = ui ->listWidget_users ->mapToGlobal(pos);
+        QPoint globalPos = ui->listWidget_users->mapToGlobal(pos);
 
-        pMenuEmpty ->exec(globalPos);
+        pMenuEmpty->exec(globalPos);
     }
 }
 
 void MainWindow::kickUser()
 {
-    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    if ( ui->listWidget_users->currentRow() >= 0 )
     {
-        pController ->kickUser( dynamic_cast<SListItemUser*>(ui ->listWidget_users ->currentItem()) );
+        pController->kickUser( dynamic_cast<SListItemUser*>(ui->listWidget_users->currentItem()) );
 
-        ui ->listWidget_users ->clearSelection();
+        ui->listWidget_users->clearSelection();
     }
 }
 
 void MainWindow::changeRoomSettings()
 {
-    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    if ( ui->listWidget_users->currentRow() >= 0 )
     {
         ChangeRoomNameWindow* pWindow =
-                new ChangeRoomNameWindow(dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()),
+                new ChangeRoomNameWindow(dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem()),
                                          ui->listWidget_users,
                                          this);
 
@@ -599,39 +599,39 @@ void MainWindow::changeRoomSettings()
 
         pWindow->show();
 
-        ui ->listWidget_users ->clearSelection();
+        ui->listWidget_users->clearSelection();
     }
 }
 
 void MainWindow::moveRoomUp()
 {
-    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    if ( ui->listWidget_users->currentRow() >= 0 )
     {
-        pController ->moveRoom( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem())->getRoomName().toStdString(),
+        pController->moveRoom( dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem())->getRoomName().toStdString(),
                                 true );
 
-        ui ->listWidget_users ->moveRoomUp( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
+        ui->listWidget_users->moveRoomUp( dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem()) );
 
-        ui ->listWidget_users ->clearSelection();
+        ui->listWidget_users->clearSelection();
     }
 }
 
 void MainWindow::moveRoomDown()
 {
-    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    if ( ui->listWidget_users->currentRow() >= 0 )
     {
-        pController ->moveRoom( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem())->getRoomName().toStdString(),
+        pController->moveRoom( dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem())->getRoomName().toStdString(),
                                 false );
 
-        ui ->listWidget_users ->moveRoomDown( dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem()) );
+        ui->listWidget_users->moveRoomDown( dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem()) );
 
-        ui ->listWidget_users ->clearSelection();
+        ui->listWidget_users->clearSelection();
     }
 }
 
 void MainWindow::createRoom()
 {
-    if (ui ->listWidget_users ->isAbleToCreateRoom())
+    if (ui->listWidget_users->isAbleToCreateRoom())
     {
         CreateRoomWindow* pWindow = new CreateRoomWindow(ui->listWidget_users, this);
 
@@ -645,9 +645,9 @@ void MainWindow::createRoom()
 
 void MainWindow::deleteRoom()
 {
-    if ( ui ->listWidget_users ->currentRow() >= 0 )
+    if ( ui->listWidget_users->currentRow() >= 0 )
     {
-        SListItemRoom* pRoom = dynamic_cast<SListItemRoom*>(ui ->listWidget_users ->currentItem());
+        SListItemRoom* pRoom = dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem());
 
         if (pRoom->getUsersCount() > 0)
         {
@@ -657,7 +657,7 @@ void MainWindow::deleteRoom()
         {
             pController->deleteRoom(pRoom->getRoomName().toStdString());
 
-            ui ->listWidget_users ->deleteRoom(pRoom);
+            ui->listWidget_users->deleteRoom(pRoom);
         }
     }
 }
@@ -683,44 +683,44 @@ void MainWindow::slotCreateNewRoom(QString sName, QString sPassword, size_t iMax
 
 void MainWindow::slotMenuClose()
 {
-    ui ->listWidget_users ->clearSelection();
+    ui->listWidget_users->clearSelection();
 }
 
 void MainWindow::checkTextSize()
 {
-    if ( ui ->plainTextEdit ->verticalScrollBar() ->value() >= ARCHIVE_HALF_TEXT_SLIDER_VALUE )
+    if ( ui->plainTextEdit->verticalScrollBar()->value() >= ARCHIVE_HALF_TEXT_SLIDER_VALUE )
     {
-        mtxPrintOutput .lock();
+        mtxPrintOutput.lock();
 
 
-        QString sText = ui ->plainTextEdit ->toPlainText();
+        QString sText = ui->plainTextEdit->toPlainText();
 
         QString sNewText = "..........";
-        sNewText += sText .right( sText .size() / 2 );
+        sNewText += sText.right( sText.size() / 2 );
 
 
         bInternalTextWork = true;
 
         ui->plainTextEdit->clear();
 
-        ui ->plainTextEdit ->appendPlainText (sNewText);
+        ui->plainTextEdit->appendPlainText (sNewText);
 
 
         bInternalTextWork = false;
 
-        mtxPrintOutput .unlock();
+        mtxPrintOutput.unlock();
 
-        std::u16string sOldWString = sText .left( sText .size() / 2 ) .toStdU16String();
+        std::u16string sOldWString = sText.left( sText.size() / 2 ).toStdU16String();
 
-        size_t iOldTextSizeInWChars = sOldWString .size() * 2;
+        size_t iOldTextSizeInWChars = sOldWString.size() * 2;
 
         char16_t* pOldText = new char16_t[ iOldTextSizeInWChars + 1 ];
         memset(pOldText, 0, (iOldTextSizeInWChars * sizeof(char16_t)) + sizeof(char16_t));
 
 
-        memcpy(pOldText, sOldWString .c_str(), (iOldTextSizeInWChars * sizeof(char16_t)));
+        memcpy(pOldText, sOldWString.c_str(), (iOldTextSizeInWChars * sizeof(char16_t)));
 
-        pController ->archiveText(pOldText, iOldTextSizeInWChars);
+        pController->archiveText(pOldText, iOldTextSizeInWChars);
     }
 }
 

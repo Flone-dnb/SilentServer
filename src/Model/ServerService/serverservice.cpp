@@ -76,6 +76,12 @@ enum TCP_SERVER_MESSAGE
     SM_GLOBAL_MESSAGE       = 13
 };
 
+enum VOICE_MESSAGE
+{
+    VM_DEFAULT_MESSAGE      = 1,
+    VM_LAST_MESSAGE         = 2
+};
+
 enum USER_DISCONNECT_REASON
 {
     UDR_DISCONNECT          = 0,
@@ -101,9 +107,9 @@ enum UDP_SERVER_MESSAGE
 
 ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettingsManager, LogManager* pLogManager)
 {
-    this ->pMainWindow         = pMainWindow;
-    this ->pSettingsManager    = pSettingsManager;
-    this ->pLogManager         = pLogManager;
+    this->pMainWindow         = pMainWindow;
+    this->pSettingsManager    = pSettingsManager;
+    this->pLogManager         = pLogManager;
 
     pAES = new AES(128);
     pRndGen = new std::mt19937_64( std::random_device{}() );
@@ -195,12 +201,12 @@ void ServerService::sendMessageToAll(const std::string &sMessage)
             {
                 if (iSentSize == SOCKET_ERROR)
                 {
-                    pLogManager ->printAndLog( "ServerService::sendMessageToAll::send() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::sendMessageToAll::send() function failed and returned: "
                                                + std::to_string(getLastError()), true);
                 }
                 else
                 {
-                    pLogManager ->printAndLog( "ServerService::sendMessageToAll::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                    pLogManager->printAndLog( "ServerService::sendMessageToAll::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
                                                + std::to_string(iSentSize), true );
                 }
             }
@@ -228,7 +234,7 @@ void ServerService::catchUDPPackets()
     // Wrong packet refresh thread
 
     std::thread tWrongPacketRefresher (&ServerService::refreshWrongUDPPackets, this);
-    tWrongPacketRefresher .detach();
+    tWrongPacketRefresher.detach();
 
     while (bVoiceListen)
     {
@@ -243,24 +249,24 @@ void ServerService::catchUDPPackets()
 
                 recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, 0, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
 
-                mtxRefreshWrongPacketCount .lock();
+                mtxRefreshWrongPacketCount.lock();
 
                 iWrongOrEmptyPacketCount++;
 
-                mtxRefreshWrongPacketCount .unlock();
+                mtxRefreshWrongPacketCount.unlock();
             }
             else
             {
                 UDPPacket* pPacket = new UDPPacket();
 
-                pPacket ->iSize = static_cast<unsigned short>(recvfrom(UDPsocket, pPacket ->vPacketData, MAX_BUFFER_SIZE, 0,
-                                     reinterpret_cast<sockaddr*>(&pPacket ->senderInfo), &pPacket ->iLen));
+                pPacket->iSize = static_cast<unsigned short>(recvfrom(UDPsocket, pPacket->vPacketData, MAX_BUFFER_SIZE, 0,
+                                     reinterpret_cast<sockaddr*>(&pPacket->senderInfo), &pPacket->iLen));
 
-                mtxUDPPackets .lock();
+                mtxUDPPackets.lock();
 
-                vUDPPackets .push_back(pPacket);
+                vUDPPackets.push_back(pPacket);
 
-                mtxUDPPackets .unlock();
+                mtxUDPPackets.unlock();
             }
 
             iSize = recvfrom(UDPsocket, readBuffer, MAX_BUFFER_SIZE, MSG_PEEK, reinterpret_cast<sockaddr*>(&senderInfo), &iLen);
@@ -274,18 +280,18 @@ void ServerService::eraseUDPPacket()
 {
     // This function should be called when mtxUDPPackets is locked.
 
-    if ( vUDPPackets[0] ->vThreadsRejectedPacket .size() >= users .size() )
+    if ( vUDPPackets[0]->vThreadsRejectedPacket.size() >= users.size() )
     {
         delete vUDPPackets[0];
 
-        vUDPPackets .erase( vUDPPackets .begin() );
+        vUDPPackets.erase( vUDPPackets.begin() );
 
 
-        mtxRefreshWrongPacketCount .lock();
+        mtxRefreshWrongPacketCount.lock();
 
         iWrongOrEmptyPacketCount++;
 
-        mtxRefreshWrongPacketCount .unlock();
+        mtxRefreshWrongPacketCount.unlock();
     }
 }
 
@@ -309,17 +315,17 @@ void ServerService::refreshWrongUDPPackets()
 
         if ( iWrongOrEmptyPacketCount > NOTIFY_WHEN_WRONG_PACKETS_MORE )
         {
-            pLogManager ->printAndLog("For the last " + std::to_string(INTERVAL_REFRESH_WRONG_PACKETS_SEC) +
+            pLogManager->printAndLog("For the last " + std::to_string(INTERVAL_REFRESH_WRONG_PACKETS_SEC) +
                                       " sec. wrong or empty UDP packets received: " +
                                       std::to_string(iWrongOrEmptyPacketCount) + ".\n", true);
         }
 
 
-        mtxRefreshWrongPacketCount .lock();
+        mtxRefreshWrongPacketCount.lock();
 
         iWrongOrEmptyPacketCount = 0;
 
-        mtxRefreshWrongPacketCount .unlock();
+        mtxRefreshWrongPacketCount.unlock();
     }
 }
 
@@ -399,7 +405,7 @@ bool ServerService::closeSocket(SSocket socket)
 bool ServerService::startWinSock()
 {
     pMainWindow->clearChatWindow();
-    pLogManager ->printAndLog( std::string("Starting...") );
+    pLogManager->printAndLog( std::string("Starting...") );
 
     int result = 0;
 #ifdef _WIN32
@@ -411,7 +417,7 @@ bool ServerService::startWinSock()
     // Start WinSock2 (ver. 2.2)
     if (result != 0)
     {
-        pLogManager ->printAndLog(std::string("WSAStartup function failed and returned: " + std::to_string(getLastError()) + ".\nTry again.\n"));
+        pLogManager->printAndLog(std::string("WSAStartup function failed and returned: " + std::to_string(getLastError()) + ".\nTry again.\n"));
     }
 #endif
 
@@ -441,7 +447,7 @@ void ServerService::startToListenForConnection()
     listenTCPSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (listenTCPSocket == INVALID_SOCKET)
     {
-        pLogManager ->printAndLog("ServerService::listenForConnection()::socket() function failed and returned: " + std::to_string(getLastError()) + ".");
+        pLogManager->printAndLog("ServerService::listenForConnection()::socket() function failed and returned: " + std::to_string(getLastError()) + ".");
     }
     else
     {
@@ -469,9 +475,9 @@ void ServerService::startToListenForConnection()
         // Create and fill the "sockaddr_in" structure containing the IPv4 socket
         sockaddr_in myAddr;
         memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
-        myAddr .sin_family      = AF_INET;
-        myAddr .sin_port        = htons( pSettingsManager ->getCurrentSettings() ->iPort );
-        myAddr .sin_addr.s_addr = INADDR_ANY;
+        myAddr.sin_family      = AF_INET;
+        myAddr.sin_port        = htons( pSettingsManager->getCurrentSettings()->iPort );
+        myAddr.sin_addr.s_addr = INADDR_ANY;
 
 #if _WIN32
         int WSAAPI bind(_In_ SOCKET s,_In_reads_bytes_(namelen) const struct sockaddr FAR * name, _In_ int namelen);
@@ -481,7 +487,7 @@ void ServerService::startToListenForConnection()
 
         if (bind(listenTCPSocket, reinterpret_cast<sockaddr*>(&myAddr), static_cast<int>(sizeof(myAddr))) == SOCKET_ERROR)
         {
-            pLogManager ->printAndLog("ServerService::listenForConnection()::bind() function failed and returned: " + std::to_string(getLastError()) + ".\nSocket will be closed. Try again.\n");
+            pLogManager->printAndLog("ServerService::listenForConnection()::bind() function failed and returned: " + std::to_string(getLastError()) + ".\nSocket will be closed. Try again.\n");
             closeSocket(listenTCPSocket);
         }
         else
@@ -499,11 +505,11 @@ void ServerService::startToListenForConnection()
             char myIP[16];
             inet_ntop(AF_INET, &myBindedAddr.sin_addr, myIP, sizeof(myIP));
 
-            pLogManager ->printAndLog("Success. Waiting for a connection requests on port: " + std::to_string(ntohs(myBindedAddr.sin_port)) + ".\n");
+            pLogManager->printAndLog("Success. Waiting for a connection requests on port: " + std::to_string(ntohs(myBindedAddr.sin_port)) + ".\n");
 
             if (listen(listenTCPSocket, SOMAXCONN) == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog(std::string("ServerService::listenForConnection()::listen() function failed and returned: "
+                pLogManager->printAndLog(std::string("ServerService::listenForConnection()::listen() function failed and returned: "
                                                       + std::to_string(getLastError()) + ".\nSocket will be closed. Try again.\n"));
                 closeSocket(listenTCPSocket);
             }
@@ -512,7 +518,7 @@ void ServerService::startToListenForConnection()
                 // Translate listen socket to non-blocking mode
                 if (setSocketBlocking(listenTCPSocket, false))
                 {
-                    pLogManager ->printAndLog("ServerService::listenForConnection()::setSocketBlocking() failed and returned: "
+                    pLogManager->printAndLog("ServerService::listenForConnection()::setSocketBlocking() failed and returned: "
                                               + std::to_string(getLastError()) + ".\nSocket will be closed. Try again.\n");
                     closeSocket(listenTCPSocket);
                 }
@@ -545,14 +551,14 @@ void ServerService::listenForNewTCPConnections()
     {
         if (bConnectionFinished == false)
         {
-            pLogManager ->printAndLog("The user was not connected.\n", true);
+            pLogManager->printAndLog("The user was not connected.\n", true);
 
             bConnectionFinished = true;
         }
 
         // Wait for users to disconnect.
-        mtxConnectDisconnect .lock();
-        mtxConnectDisconnect .unlock();
+        mtxConnectDisconnect.lock();
+        mtxConnectDisconnect.unlock();
 
 
         if (bTextListen == false) break;
@@ -589,7 +595,7 @@ void ServerService::listenForNewTCPConnections()
 #endif
         if (setsockopt(newConnectedSocket, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&bOptVal), bOptLen) == SOCKET_ERROR)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::setsockopt() (Nagle algorithm) failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -633,8 +639,8 @@ void ServerService::listenForNewTCPConnections()
         if (recv(newConnectedSocket, nameBuffer, iBufferLength, 0) == SOCKET_ERROR)
         {
 
-            pLogManager ->printAndLog("", true);
-            pLogManager ->printAndLog("\nSomeone is connecting...\n"
+            pLogManager->printAndLog("", true);
+            pLogManager->printAndLog("\nSomeone is connecting...\n"
                                       "ServerService::listenForNewConnections()::recv() failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
@@ -672,7 +678,7 @@ void ServerService::listenForNewTCPConnections()
 
         if ( clientVersion != clientLastSupportedVersion )
         {
-            pLogManager ->printAndLog("\nSomeone is connecting from " + std::string(connectedWithIP) +
+            pLogManager->printAndLog("\nSomeone is connecting from " + std::string(connectedWithIP) +
                                       ":" + std::to_string(ntohs(connectedWith.sin_port)) + "...\n"
                                       "Client version \"" + clientVersion + "\" does not match with the last supported client version "
                                       + clientLastSupportedVersion + ".\n", true);
@@ -707,14 +713,14 @@ void ServerService::listenForNewTCPConnections()
         bool bUserNameFree = true;
 
 
-        pLogManager ->printAndLog("\nSomeone is connecting from " + std::string(connectedWithIP) +
+        pLogManager->printAndLog("\nSomeone is connecting from " + std::string(connectedWithIP) +
                                   ":" + std::to_string(ntohs(connectedWith.sin_port)) + " AKA " + userNameStr + "...", true);
 
 
-        mtxConnectDisconnect .lock();
+        mtxConnectDisconnect.lock();
 
 
-        for (unsigned int i = 0;   i< users .size();   i++)
+        for (unsigned int i = 0;   i< users.size();   i++)
         {
             if (users[i]->userName == userNameStr)
             {
@@ -724,12 +730,12 @@ void ServerService::listenForNewTCPConnections()
         }
 
 
-        mtxConnectDisconnect .unlock();
+        mtxConnectDisconnect.unlock();
 
 
         if (bUserNameFree == false)
         {
-            pLogManager ->printAndLog("User name " + userNameStr + " is already taken.",true);
+            pLogManager->printAndLog("User name " + userNameStr + " is already taken.",true);
             char command = CM_USERNAME_INUSE;
             send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -745,7 +751,7 @@ void ServerService::listenForNewTCPConnections()
 
         // Check if the password is right.
 
-        if (pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != u"")
+        if (pSettingsManager->getCurrentSettings()->sPasswordToJoin != u"")
         {
             char16_t vPassBuffer[UCHAR_MAX + 1];
             memset(vPassBuffer, 0, (UCHAR_MAX * 2) + 2);
@@ -758,9 +764,9 @@ void ServerService::listenForNewTCPConnections()
 
             std::u16string sPassword(vPassBuffer);
 
-            if ( pSettingsManager ->getCurrentSettings() ->sPasswordToJoin != sPassword )
+            if ( pSettingsManager->getCurrentSettings()->sPasswordToJoin != sPassword )
             {
-                pLogManager ->printAndLog("User " + userNameStr + " entered wrong or blank password.",true);
+                pLogManager->printAndLog("User " + userNameStr + " entered wrong or blank password.",true);
                 char command = CM_NEED_PASSWORD;
                 send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
                 std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -859,7 +865,7 @@ void ServerService::listenForNewTCPConnections()
         {
             // This should happen when you got like >200 users online (and all users have name long 20 chars) if my calculations are correct.
 
-            pLogManager ->printAndLog("Server is full.\n", true);
+            pLogManager->printAndLog("Server is full.\n", true);
 
             char serverIsFullCommand = CM_SERVER_FULL;
             send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
@@ -878,26 +884,26 @@ void ServerService::listenForNewTCPConnections()
 
         if (iBytesWereSent != iBytesWillSend)
         {
-            pLogManager ->printAndLog("WARNING:\n" + std::to_string(iBytesWereSent) + " bytes were sent of total "
+            pLogManager->printAndLog("WARNING:\n" + std::to_string(iBytesWereSent) + " bytes were sent of total "
                                       + std::to_string(iBytesWillSend) + " to new user.\n", true);
         }
         if (iBytesWereSent == -1)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send()) (online info) failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::send()) (online info) failed and returned: "
                                       + std::to_string(getLastError()) + ".", true);
 
             if (recv(newConnectedSocket, tempData, MAX_BUFFER_SIZE, 0) == 0)
             {
-                pLogManager ->printAndLog("Received FIN from this new user who didn't receive online info.", true);
+                pLogManager->printAndLog("Received FIN from this new user who didn't receive online info.", true);
 
                 shutdown(newConnectedSocket, SD_SEND);
                 if (closeSocket(newConnectedSocket) == false)
                 {
-                    pLogManager ->printAndLog("Closed this socket with success.", true);
+                    pLogManager->printAndLog("Closed this socket with success.", true);
                 }
                 else
                 {
-                    pLogManager ->printAndLog("Can't close this socket... You better reboot the server.", true);
+                    pLogManager->printAndLog("Can't close this socket... You better reboot the server.", true);
                 }
             }
 
@@ -914,7 +920,7 @@ void ServerService::listenForNewTCPConnections()
 
         setSocketBlocking(newConnectedSocket, true);
 
-        pLogManager ->printAndLog("Establishing a secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + ".", true);
+        pLogManager->printAndLog("Establishing a secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + ".", true);
 
         std::uniform_int_distribution<> uid_pg(0, static_cast<int>(vKeyPG.size() - 1));
 
@@ -933,7 +939,7 @@ void ServerService::listenForNewTCPConnections()
 
         if (send(newConnectedSocket, vKeyPGBuffer, sizeof(int) * 2, 0) != sizeof(int) * 2)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -953,7 +959,7 @@ void ServerService::listenForNewTCPConnections()
         size_t iMaxKeyLength = 1000; // also change in client code
         if (A.str().size() > iMaxKeyLength) // should not happen
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() (key too big) failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (key too big) failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -976,7 +982,7 @@ void ServerService::listenForNewTCPConnections()
         // Send A.
         if (send(newConnectedSocket, pOpenKeyString, sizeof(iStringSize) + A.str().size(), 0) != sizeof(iStringSize) + A.str().size())
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() (sending open key) failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (sending open key) failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -995,7 +1001,7 @@ void ServerService::listenForNewTCPConnections()
         // Receive B.
         if (recv(newConnectedSocket, reinterpret_cast<char*>(&iStringSize), sizeof(iStringSize), 0) <= 0)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 1) failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 1) failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -1011,7 +1017,7 @@ void ServerService::listenForNewTCPConnections()
 
         if (recv(newConnectedSocket, pOpenKeyString, iStringSize, 0) <= 0)
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 2) failed and returned: "
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 2) failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
@@ -1058,7 +1064,7 @@ void ServerService::listenForNewTCPConnections()
             }
         }
 
-        mtxConnectDisconnect .lock();
+        mtxConnectDisconnect.lock();
 
 
         // Receive "finished connecting" message.
@@ -1070,11 +1076,11 @@ void ServerService::listenForNewTCPConnections()
 
             if (iLastError == 10060)
             {
-                pLogManager ->printAndLog(userNameStr + " secure connection time out.",true);
+                pLogManager->printAndLog(userNameStr + " secure connection time out.",true);
             }
             else
             {
-                pLogManager ->printAndLog("ServerService::listenForNewConnections()::recv() (recv sync) failed and returned: "
+                pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (recv sync) failed and returned: "
                                           + std::to_string(iLastError) + ".\n"
                                           "Sending FIN to " + userNameStr,true);
             }
@@ -1096,11 +1102,11 @@ void ServerService::listenForNewTCPConnections()
 
             if (iLastError == 10060)
             {
-                pLogManager ->printAndLog(userNameStr + " secure connection time out.",true);
+                pLogManager->printAndLog(userNameStr + " secure connection time out.",true);
             }
             else
             {
-                pLogManager ->printAndLog("ServerService::listenForNewConnections()::send() (send sync) failed and returned: "
+                pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (send sync) failed and returned: "
                                           + std::to_string(iLastError) + ".\n"
                                           "Sending FIN to " + userNameStr,true);
             }
@@ -1117,7 +1123,7 @@ void ServerService::listenForNewTCPConnections()
         }
 
 
-        pLogManager ->printAndLog("A secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port))
+        pLogManager->printAndLog("A secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port))
                                   + " AKA " + userNameStr + " has been established.", true);
 
 
@@ -1155,7 +1161,7 @@ void ServerService::listenForNewTCPConnections()
             {
                 if ( send(users[i]->userTCPSocket, newUserInfo, iSendSize, 0) != iSendSize)
                 {
-                    pLogManager ->printAndLog("ServerService::listenForNewTCPConnections::send() failed (info about new user).", true );
+                    pLogManager->printAndLog("ServerService::listenForNewTCPConnections::send() failed (info about new user).", true );
                 }
             }
         }
@@ -1203,7 +1209,7 @@ void ServerService::listenForNewTCPConnections()
         // Translate new connected socket to non-blocking mode
         if (setSocketBlocking(newConnectedSocket, false))
         {
-            pLogManager ->printAndLog("ServerService::listenForNewConnections()::setSocketBlocking() (non-blocking mode) failed and returned: " + std::to_string(getLastError()) + ".", true);
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::setSocketBlocking() (non-blocking mode) failed and returned: " + std::to_string(getLastError()) + ".", true);
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
@@ -1211,12 +1217,12 @@ void ServerService::listenForNewTCPConnections()
 
             bConnectionFinished = false;
 
-            mtxConnectDisconnect .unlock();
+            mtxConnectDisconnect.unlock();
 
             continue;
         }
 
-        mtxConnectDisconnect .unlock();
+        mtxConnectDisconnect.unlock();
     }
 }
 
@@ -1225,14 +1231,14 @@ void ServerService::prepareForVoiceConnection()
     UDPsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (UDPsocket == INVALID_SOCKET)
     {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::socket() error: " + std::to_string(getLastError()), true );
+        pLogManager->printAndLog( "ServerService::prepareForVoiceConnection::socket() error: " + std::to_string(getLastError()), true );
         return;
     }
 
     sockaddr_in myAddr;
     memset(myAddr.sin_zero, 0, sizeof(myAddr.sin_zero));
     myAddr.sin_family = AF_INET;
-    myAddr.sin_port = htons(pSettingsManager ->getCurrentSettings() ->iPort);
+    myAddr.sin_port = htons(pSettingsManager->getCurrentSettings()->iPort);
     myAddr.sin_addr.s_addr = INADDR_ANY;
 
 
@@ -1246,7 +1252,7 @@ void ServerService::prepareForVoiceConnection()
 
     if (setsockopt(UDPsocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&bMultAddr), sizeof(bMultAddr)) == SOCKET_ERROR)
     {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::setsockopt() error: " + std::to_string(getLastError()), true );
+        pLogManager->printAndLog( "ServerService::prepareForVoiceConnection::setsockopt() error: " + std::to_string(getLastError()), true );
         closeSocket(UDPsocket);
         return;
     }
@@ -1261,7 +1267,7 @@ void ServerService::prepareForVoiceConnection()
 
     if (bind(UDPsocket, reinterpret_cast<sockaddr*>(&myAddr), sizeof(myAddr)) == SOCKET_ERROR)
     {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::bind() error: " + std::to_string(getLastError()), true );
+        pLogManager->printAndLog( "ServerService::prepareForVoiceConnection::bind() error: " + std::to_string(getLastError()), true );
         closeSocket(UDPsocket);
         return;
     }
@@ -1271,7 +1277,7 @@ void ServerService::prepareForVoiceConnection()
     // Translate listen socket to non-blocking mode
     if (setSocketBlocking(UDPsocket, false))
     {
-        pLogManager ->printAndLog( "ServerService::prepareForVoiceConnection::setSocketBlocking() error: " + std::to_string(getLastError()), true );
+        pLogManager->printAndLog( "ServerService::prepareForVoiceConnection::setSocketBlocking() error: " + std::to_string(getLastError()), true );
         closeSocket(UDPsocket);
         return;
     }
@@ -1283,7 +1289,7 @@ void ServerService::prepareForVoiceConnection()
 
 
     std::thread tUDP (&ServerService::catchUDPPackets, this);
-    tUDP .detach();
+    tUDP.detach();
 }
 
 void ServerService::listenForMessage(UserStruct* userToListen)
@@ -1386,7 +1392,7 @@ void ServerService::listenForMessage(UserStruct* userToListen)
 
         for (size_t i = 0;   i < INTERVAL_TCP_ACCEPT_MS / 25;   i++)
         {
-            if (userToListen ->bConnectedToTextChat)
+            if (userToListen->bConnectedToTextChat)
             {
                std::this_thread::sleep_for(std::chrono::milliseconds(25));
             }
@@ -1402,13 +1408,13 @@ void ServerService::listenForMessage(UserStruct* userToListen)
 void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 {
     // Preparation cycle
-    while( (userToListen ->bConnectedToTextChat) && (bTextListen) )
+    while( (userToListen->bConnectedToTextChat) && (bTextListen) )
     {
-        mtxUDPPackets .lock();
+        mtxUDPPackets.lock();
 
-        if (vUDPPackets .size() == 0)
+        if (vUDPPackets.size() == 0)
         {
-            mtxUDPPackets .unlock();
+            mtxUDPPackets.unlock();
 
             std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
@@ -1416,16 +1422,16 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
         else
         {
-            mtxUsersDelete .lock();
+            mtxUsersDelete.lock();
 
-            if (userToListen ->bConnectedToTextChat == false)
+            if (userToListen->bConnectedToTextChat == false)
             {
-                mtxUDPPackets .unlock();
+                mtxUDPPackets.unlock();
 
                 return;
             }
 
-            mtxUsersDelete .unlock();
+            mtxUsersDelete.unlock();
         }
 
 
@@ -1434,30 +1440,30 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         // If it's data not from 'userToListen' user then we should not touch it.
 
 #if _WIN32
-        if ( (pPacket ->vPacketData[0] == UDP_SM_PREPARE)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4) )
+        if ( (pPacket->vPacketData[0] == UDP_SM_PREPARE)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4) )
         {
 #elif __linux__
-        if ( (pPacket ->vPacketData[0] == UDP_SM_PREPARE)
-             && (pPacket ->senderInfo.sin_addr.s_addr == userToListen->userUDPAddr.sin_addr.s_addr) )
+        if ( (pPacket->vPacketData[0] == UDP_SM_PREPARE)
+             && (pPacket->senderInfo.sin_addr.s_addr == userToListen->userUDPAddr.sin_addr.s_addr) )
         {
 #endif
-            char userNameSize = pPacket ->vPacketData[1];
+            char userNameSize = pPacket->vPacketData[1];
             char userNameBuffer[MAX_NAME_LENGTH + 1];
             memset(userNameBuffer, 0, MAX_NAME_LENGTH + 1);
-            memcpy(userNameBuffer, pPacket ->vPacketData + 2, static_cast<size_t>(userNameSize));
+            memcpy(userNameBuffer, pPacket->vPacketData + 2, static_cast<size_t>(userNameSize));
 
             if ( std::string(userNameBuffer) == userToListen->userName )
             {
-                vUDPPackets .erase( vUDPPackets .begin() );
+                vUDPPackets.erase( vUDPPackets.begin() );
 
-                mtxUDPPackets .unlock();
+                mtxUDPPackets.unlock();
 
 
-                userToListen->userUDPAddr.sin_port = pPacket ->senderInfo.sin_port;
+                userToListen->userUDPAddr.sin_port = pPacket->senderInfo.sin_port;
 
                 // Tell user
                 char readyForVOIPcode = SM_CAN_START_UDP;
@@ -1467,7 +1473,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 userToListen->bConnectedToVOIP = true;
 
                 iUsersConnectedToVOIP++;
-                pLogManager ->printAndLog( "We are ready for VOIP with " + userToListen->userName + ".\n", true );
+                pLogManager->printAndLog( "We are ready for VOIP with " + userToListen->userName + ".\n", true );
 
                 if (iUsersConnectedToVOIP == 1)
                 {
@@ -1483,22 +1489,22 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
             else
             {
-                mtxUsersDelete .lock();
+                mtxUsersDelete.lock();
 
-                if ( (userToListen ->bConnectedToTextChat)
+                if ( (userToListen->bConnectedToTextChat)
                      &&
-                     (pPacket ->checkRejected(userToListen ->userName) == false) )
+                     (pPacket->checkRejected(userToListen->userName) == false) )
                 {
-                    pPacket ->rejectPacket( userToListen ->userName );
+                    pPacket->rejectPacket( userToListen->userName );
 
                     eraseUDPPacket();
                 }
 
-                mtxUsersDelete .unlock();
+                mtxUsersDelete.unlock();
 
-                mtxUDPPackets .unlock();
+                mtxUDPPackets.unlock();
 
-                if (userToListen ->bConnectedToTextChat)
+                if (userToListen->bConnectedToTextChat)
                 {
                     std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
@@ -1512,22 +1518,22 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
         else
         {
-            mtxUsersDelete .lock();
+            mtxUsersDelete.lock();
 
-            if ( (userToListen ->bConnectedToTextChat)
+            if ( (userToListen->bConnectedToTextChat)
                  &&
-                 (pPacket ->checkRejected(userToListen ->userName) == false) )
+                 (pPacket->checkRejected(userToListen->userName) == false) )
             {
-                pPacket ->rejectPacket( userToListen ->userName );
+                pPacket->rejectPacket( userToListen->userName );
 
                 eraseUDPPacket();
             }
 
-            mtxUsersDelete .unlock();
+            mtxUsersDelete.unlock();
 
-            mtxUDPPackets .unlock();
+            mtxUDPPackets.unlock();
 
-            if (userToListen ->bConnectedToTextChat)
+            if (userToListen->bConnectedToTextChat)
             {
                 std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
@@ -1547,15 +1553,15 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
 
 
-    while ( (userToListen ->bConnectedToVOIP) && (bTextListen) )
+    while ( (userToListen->bConnectedToVOIP) && (bTextListen) )
     {
-        mtxUDPPackets .lock();
+        mtxUDPPackets.lock();
 
-        if ( (vUDPPackets .size() == 0) || (userToListen->bConnectedToVOIP == false))
+        if ( (vUDPPackets.size() == 0) || (userToListen->bConnectedToVOIP == false))
         {
-            mtxUDPPackets .unlock();
+            mtxUDPPackets.unlock();
 
-            if (userToListen ->bConnectedToVOIP == false) return;
+            if (userToListen->bConnectedToVOIP == false) return;
 
             std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
@@ -1563,16 +1569,16 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
         else
         {
-            mtxUsersDelete .lock();
+            mtxUsersDelete.lock();
 
-            if (userToListen ->bConnectedToVOIP == false)
+            if (userToListen->bConnectedToVOIP == false)
             {
-                mtxUDPPackets .unlock();
+                mtxUDPPackets.unlock();
 
                 return;
             }
 
-            mtxUsersDelete .unlock();
+            mtxUsersDelete.unlock();
         }
 
 
@@ -1581,30 +1587,30 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         // If it's data not from 'userToListen' user then we should not touch it.
 
 #if _WIN32
-        while ( (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-             && (pPacket ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
-             && (userToListen ->userUDPAddr.sin_port == pPacket ->senderInfo.sin_port) )
+        while ( (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+             && (pPacket->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToListen->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+             && (userToListen->userUDPAddr.sin_port == pPacket->senderInfo.sin_port) )
         {
 #elif __linux__
-        while ( (pPacket ->senderInfo.sin_addr.s_addr == userToListen->userUDPAddr.sin_addr.s_addr)
-             && (userToListen ->userUDPAddr.sin_port == pPacket ->senderInfo.sin_port) )
+        while ( (pPacket->senderInfo.sin_addr.s_addr == userToListen->userUDPAddr.sin_addr.s_addr)
+             && (userToListen->userUDPAddr.sin_port == pPacket->senderInfo.sin_port) )
         {
 #endif
-            vUDPPackets .erase( vUDPPackets .begin() );
+            vUDPPackets.erase( vUDPPackets.begin() );
 
-            mtxUDPPackets .unlock();
+            mtxUDPPackets.unlock();
 
 
-            if (pPacket ->vPacketData[0] == UDP_SM_PING)
+            if (pPacket->vPacketData[0] == UDP_SM_PING)
             {
                 // It's ping check.
 
-                userToListen ->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
+                userToListen->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
                         (std::chrono::steady_clock::now() - pingCheckSendTime).count());
             }
-            else if (pPacket ->vPacketData[0] == UDP_SM_USER_READY)
+            else if (pPacket->vPacketData[0] == UDP_SM_USER_READY)
             {
                 // Send first ping check.
 
@@ -1616,16 +1622,16 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                 if (iSendPacketSize != sizeof(pingPacket))
                 {
-                    pLogManager ->printAndLog( userToListen->userName + "'s first ping check was not sent! "
+                    pLogManager->printAndLog( userToListen->userName + "'s first ping check was not sent! "
                                                "ServerService::listenForVoiceMessage()::sendto() failed and returned: "
                                                + std::to_string(getLastError()) + ".\n", true);
                 }
             }
-            else if (pPacket ->vPacketData[0] == UDP_SM_FIRST_PING)
+            else if (pPacket->vPacketData[0] == UDP_SM_FIRST_PING)
             {
                 // Answer from the first ping check.
 
-                userToListen ->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
+                userToListen->iPing = static_cast<unsigned short>(std::chrono::duration_cast<std::chrono::milliseconds>
                         (std::chrono::steady_clock::now() - firstPingCheckSendTime).count());
 
                 sendPingToAll(userToListen);
@@ -1649,33 +1655,33 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                 iResendPacketSize += userToListen->userName.size();
 
                 // Copy packet command char.
-                memcpy( vBuffer + iResendPacketSize, pPacket ->vPacketData, sizeof(char));
+                memcpy( vBuffer + iResendPacketSize, pPacket->vPacketData, sizeof(char));
                 iResendPacketSize += sizeof(char);
 
                 unsigned char* pDecryptedVoiceBytes = nullptr;
 
-                if (pPacket ->vPacketData[0] != 1)
+                if (pPacket->vPacketData[0] != VM_LAST_MESSAGE)
                 {
                     // Not the last audio packet.
 
                     // Decrypt voice message.
                     unsigned short iEncryptedDataSize = 0;
-                    memcpy(&iEncryptedDataSize, pPacket ->vPacketData + 1, sizeof(iEncryptedDataSize));
+                    memcpy(&iEncryptedDataSize, pPacket->vPacketData + 1, sizeof(iEncryptedDataSize));
 
                     char* pEncryptedVoiceMessage = new char[iEncryptedDataSize];
                     memset(pEncryptedVoiceMessage, 0, iEncryptedDataSize);
-                    memcpy(pEncryptedVoiceMessage, pPacket ->vPacketData + 1 + sizeof(iEncryptedDataSize), iEncryptedDataSize);
+                    memcpy(pEncryptedVoiceMessage, pPacket->vPacketData + 1 + sizeof(iEncryptedDataSize), iEncryptedDataSize);
 
                     // Should be: iUsersVoicePacketSampleCount * 2 bytes + 1 null-terminated char (added by DecryptECB function).
                     pDecryptedVoiceBytes = pAES->DecryptECB(reinterpret_cast<unsigned char*>(pEncryptedVoiceMessage), static_cast<unsigned int>(iEncryptedDataSize),
-                                                                           reinterpret_cast<unsigned char*>(userToListen ->vSecretAESKey));
+                                                                           reinterpret_cast<unsigned char*>(userToListen->vSecretAESKey));
                 }
 
 
                 int iUserResendPacketSize = 0;
                 int iSentSize = 0;
 
-                mtxUsersDelete .lock();
+                mtxUsersDelete.lock();
 
                 for (unsigned int i = 0; i < users.size(); i++)
                 {
@@ -1685,7 +1691,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                     {
                         unsigned int iEncryptedVoiceMessageSizeInt = 0;
 
-                        if (pPacket ->vPacketData[0] != 1)
+                        if (pPacket->vPacketData[0] != VM_LAST_MESSAGE)
                         {
                             // Not the last audio packet.
 
@@ -1693,7 +1699,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                             unsigned char* pEncryptedMessageBytes = pAES->EncryptECB(reinterpret_cast<unsigned char*>(pDecryptedVoiceBytes),
                                                                                      static_cast<unsigned int>(iUsersVoicePacketSampleCount * 2),
-                                                                                     reinterpret_cast<unsigned char*>(users[i] ->vSecretAESKey),
+                                                                                     reinterpret_cast<unsigned char*>(users[i]->vSecretAESKey),
                                                                                      iEncryptedVoiceMessageSizeInt);
                             unsigned short iEncryptedVoiceMessageSize = static_cast<unsigned short>(iEncryptedVoiceMessageSizeInt);
 
@@ -1718,14 +1724,14 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                         {
                             if (iSentSize == SOCKET_ERROR)
                             {
-                                pLogManager ->printAndLog( userToListen->userName + "'s voice message has not been sent to "
+                                pLogManager->printAndLog( userToListen->userName + "'s voice message has not been sent to "
                                                            + users[i]->userName + "!\n"
                                                            "ServerService::listenForVoiceMessage()::sendto() failed and returned: "
                                                            + std::to_string(getLastError()) + ".\n", true);
                             }
                             else
                             {
-                                pLogManager ->printAndLog( userToListen->userName + "'s voice message has not been fully sent to "
+                                pLogManager->printAndLog( userToListen->userName + "'s voice message has not been fully sent to "
                                                            + users[i]->userName + "!\n", true);
                             }
                         }
@@ -1735,7 +1741,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                     }
                 }
 
-                mtxUsersDelete .unlock();
+                mtxUsersDelete.unlock();
 
                 if (pDecryptedVoiceBytes)
                 {
@@ -1754,13 +1760,13 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
 
 
-            mtxUDPPackets .lock();
+            mtxUDPPackets.lock();
 
-            if (vUDPPackets .size() == 0)
+            if (vUDPPackets.size() == 0)
             {
                 pPacket = nullptr;
 
-                mtxUDPPackets .unlock();
+                mtxUDPPackets.unlock();
 
                 break;
             }
@@ -1775,20 +1781,20 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         {
             // Not our packet
 
-            mtxUsersDelete .lock();
+            mtxUsersDelete.lock();
 
-            if ( (userToListen ->bConnectedToVOIP)
+            if ( (userToListen->bConnectedToVOIP)
                  &&
-                 (pPacket ->checkRejected(userToListen ->userName) == false) )
+                 (pPacket->checkRejected(userToListen->userName) == false) )
             {
-                pPacket ->rejectPacket( userToListen ->userName );
+                pPacket->rejectPacket( userToListen->userName );
 
                 eraseUDPPacket();
             }
 
-            mtxUsersDelete .unlock();
+            mtxUsersDelete.unlock();
 
-            mtxUDPPackets .unlock();
+            mtxUDPPackets.unlock();
         }
 
 
@@ -1811,7 +1817,7 @@ void ServerService::processMessage(UserStruct *userToListen)
 
     // Check if the message is sent too quickly.
     float timePassedInSeconds = std::chrono::duration_cast<std::chrono::milliseconds>
-            (std::chrono::steady_clock::now() - userToListen ->lastTimeMessageSent).count() / 1000.0f;
+            (std::chrono::steady_clock::now() - userToListen->lastTimeMessageSent).count() / 1000.0f;
 
     if ( timePassedInSeconds < ANTI_SPAM_MINIMUM_TIME_SEC )
     {
@@ -1879,7 +1885,7 @@ void ServerService::processMessage(UserStruct *userToListen)
     // Decrypt message.
 
     unsigned char* pDecryptedMessageBytes = pAES->DecryptECB(reinterpret_cast<unsigned char*>(vMessageBuffer), iMessageSize,
-                                                             reinterpret_cast<unsigned char*>(userToListen ->vSecretAESKey));
+                                                             reinterpret_cast<unsigned char*>(userToListen->vSecretAESKey));
     memset(vMessageBuffer, 0, MAX_BUFFER_SIZE);
 
     char* pMessageBytes = reinterpret_cast<char*>(vMessageBuffer);
@@ -1912,13 +1918,13 @@ void ServerService::processMessage(UserStruct *userToListen)
 
     std::u16string sUserMessage (vMessageBuffer);
 
-    if (pSettingsManager ->getCurrentSettings() ->bAllowHTMLInMessages == false)
+    if (pSettingsManager->getCurrentSettings()->bAllowHTMLInMessages == false)
     {
-        for (size_t i = 0;   i < sUserMessage .size();   i++)
+        for (size_t i = 0;   i < sUserMessage.size();   i++)
         {
             if ( sUserMessage[i] == L'<' || sUserMessage[i] == L'>' )
             {
-                sUserMessage .erase( sUserMessage .begin() + static_cast <long long> (i) );
+                sUserMessage.erase( sUserMessage.begin() + static_cast <long long> (i) );
                 i--;
             }
         }
@@ -1972,8 +1978,8 @@ void ServerService::processMessage(UserStruct *userToListen)
             // Set packet size to buffer
             memcpy(pSendToAllBuffer + 1, &iPacketSize, 2);
 
-            memcpy(pSendToAllBuffer + 3 + timeString .size(), &iEncMessageSize, sizeof(iEncMessageSize));
-            memcpy(pSendToAllBuffer + 5 + timeString .size(), pEncryptedMessageBytes, iEncMessageSize);
+            memcpy(pSendToAllBuffer + 3 + timeString.size(), &iEncMessageSize, sizeof(iEncMessageSize));
+            memcpy(pSendToAllBuffer + 5 + timeString.size(), pEncryptedMessageBytes, iEncMessageSize);
 
 
             returnCode = send(users[j]->userTCPSocket, pSendToAllBuffer, 3 + iPacketSize, 0);
@@ -1981,16 +1987,16 @@ void ServerService::processMessage(UserStruct *userToListen)
             {
                 if (returnCode == SOCKET_ERROR)
                 {
-                    pLogManager ->printAndLog( "ServerService::getMessage::send() function failed and returned: " + std::to_string(getLastError()), true );
+                    pLogManager->printAndLog( "ServerService::getMessage::send() function failed and returned: " + std::to_string(getLastError()), true );
                 }
                 else
                 {
-                    pLogManager ->printAndLog( userToListen->userName + "'s message wasn't fully sent. send() returned: " + std::to_string(returnCode), true );
+                    pLogManager->printAndLog( userToListen->userName + "'s message wasn't fully sent. send() returned: " + std::to_string(returnCode), true );
                 }
             }
 
             // Clear old message.
-            memset(pSendToAllBuffer + 5 + timeString .size(), 0, iEncMessageSize);
+            memset(pSendToAllBuffer + 5 + timeString.size(), 0, iEncMessageSize);
 
             delete[] pEncryptedMessageBytes;
         }
@@ -2072,7 +2078,7 @@ void ServerService::checkRoomSettings(UserStruct *userToListen)
             if (sPassword != u"")
             {
                 float timePassedInSeconds = std::chrono::duration_cast<std::chrono::milliseconds>
-                        (std::chrono::steady_clock::now() - userToListen ->lastTimeWrongPasswordEntered).count() / 1000.0f;
+                        (std::chrono::steady_clock::now() - userToListen->lastTimeWrongPasswordEntered).count() / 1000.0f;
 
                 if (timePassedInSeconds <= WRONG_PASSWORD_INTERVAL_SEC)
                 {
@@ -2161,12 +2167,12 @@ void ServerService::userEntersRoom(UserStruct *userToListen, std::string sRoomNa
             {
                 if (iSentSize == SOCKET_ERROR)
                 {
-                    pLogManager ->printAndLog( "ServerService::checkRoomSettings::send() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::checkRoomSettings::send() function failed and returned: "
                                                + std::to_string(getLastError()), true);
                 }
                 else
                 {
-                    pLogManager ->printAndLog( users[i]->userName + "'s info about room change wasn't fully sent. send() returned: "
+                    pLogManager->printAndLog( users[i]->userName + "'s info about room change wasn't fully sent. send() returned: "
                                                + std::to_string(iSentSize), true );
                 }
             }
@@ -2199,12 +2205,12 @@ void ServerService::moveRoom(const std::string &sRoomName, bool bMoveUp)
         {
             if (iSentSize == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "ServerService::moveRoom::send() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::moveRoom::send() function failed and returned: "
                                            + std::to_string(getLastError()), true);
             }
             else
             {
-                pLogManager ->printAndLog( "ServerService::moveRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                pLogManager->printAndLog( "ServerService::moveRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
                                            + std::to_string(iSentSize), true );
             }
         }
@@ -2247,12 +2253,12 @@ void ServerService::deleteRoom(const std::string &sRoomName)
                     {
                         if (iSentSize == SOCKET_ERROR)
                         {
-                            pLogManager ->printAndLog( "ServerService::deleteRoom::send() function failed and returned: "
+                            pLogManager->printAndLog( "ServerService::deleteRoom::send() function failed and returned: "
                                                        + std::to_string(getLastError()), true);
                         }
                         else
                         {
-                            pLogManager ->printAndLog( "ServerService::deleteRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                            pLogManager->printAndLog( "ServerService::deleteRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
                                                        + std::to_string(iSentSize), true );
                         }
                     }
@@ -2304,12 +2310,12 @@ void ServerService::createRoom(const std::string &sName, size_t iMaxUsers)
         {
             if (iSentSize == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "ServerService::createRoom::send() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::createRoom::send() function failed and returned: "
                                            + std::to_string(getLastError()), true);
             }
             else
             {
-                pLogManager ->printAndLog( "ServerService::createRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                pLogManager->printAndLog( "ServerService::createRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
                                            + std::to_string(iSentSize), true );
             }
         }
@@ -2357,12 +2363,12 @@ void ServerService::changeRoomSettings(const std::string &sOldName, const std::s
         {
             if (iSentSize == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "ServerService::changeRoomSettings::send() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::changeRoomSettings::send() function failed and returned: "
                                            + std::to_string(getLastError()), true);
             }
             else
             {
-                pLogManager ->printAndLog( "ServerService::changeRoomSettings::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                pLogManager->printAndLog( "ServerService::changeRoomSettings::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
                                            + std::to_string(iSentSize), true );
             }
         }
@@ -2388,8 +2394,8 @@ void ServerService::checkPing()
         char sendBuffer[sizeof(char)];
         sendBuffer[0] = UDP_SM_PING;
 
-        mtxConnectDisconnect .lock();
-        mtxUsersDelete .lock();
+        mtxConnectDisconnect.lock();
+        mtxUsersDelete.lock();
 
         pingCheckSendTime = std::chrono::steady_clock::now();
 
@@ -2404,20 +2410,20 @@ void ServerService::checkPing()
                 {
                     if (iSentSize == SOCKET_ERROR)
                     {
-                        pLogManager ->printAndLog( "ServerService::checkPing::sendto() function failed and returned: "
+                        pLogManager->printAndLog( "ServerService::checkPing::sendto() function failed and returned: "
                                                    + std::to_string(getLastError()), true);
                     }
                     else
                     {
-                        pLogManager ->printAndLog( users[i]->userName + "'s ping check wasn't fully sent. sendto() returned: "
+                        pLogManager->printAndLog( users[i]->userName + "'s ping check wasn't fully sent. sendto() returned: "
                                                    + std::to_string(iSentSize), true );
                     }
                 }
             }
         }
 
-        mtxUsersDelete .unlock();
-        mtxConnectDisconnect .unlock();
+        mtxUsersDelete.unlock();
+        mtxConnectDisconnect.unlock();
 
 
         for (size_t i = 0; i < PING_ANSWER_WAIT_TIME_SEC; i++)
@@ -2440,10 +2446,10 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
     // here (in index '1-2' we will insert packet size later)
     int iCurrentPos = 3;
 
-    mtxConnectDisconnect .lock();
-    mtxUsersDelete .lock();
+    mtxConnectDisconnect.lock();
+    mtxUsersDelete.lock();
 
-    size_t iAllUsers = users .size();
+    size_t iAllUsers = users.size();
 
     for (size_t i = 0; i < users.size(); i++)
     {
@@ -2474,7 +2480,7 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
         }
         else
         {
-            pLogManager ->printAndLog( "ServerService::sendPingToAll() sendBuffer is full. " + std::to_string(i)
+            pLogManager->printAndLog( "ServerService::sendPingToAll() sendBuffer is full. " + std::to_string(i)
                                        + "/" + std::to_string(iAllUsers) + " users was added to the buffer.", true );
             break;
         }
@@ -2498,12 +2504,12 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
         {
             if (iSentSize == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
                                            + std::to_string(getLastError()), true );
             }
             else
             {
-                pLogManager ->printAndLog( pNewUser->userName + "'s ping report wasn't fully sent. send() returned: "
+                pLogManager->printAndLog( pNewUser->userName + "'s ping report wasn't fully sent. send() returned: "
                                            + std::to_string(iSentSize), true );
             }
         }
@@ -2544,12 +2550,12 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
             {
                 if (iSingleSentSize == SOCKET_ERROR)
                 {
-                    pLogManager ->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
                                                + std::to_string(getLastError()), true );
                 }
                 else
                 {
-                    pLogManager ->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
+                    pLogManager->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
                                                + std::to_string(iSentSize), true );
                 }
             }
@@ -2566,12 +2572,12 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
             {
                 if (iSentSize == SOCKET_ERROR)
                 {
-                    pLogManager ->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::sendPingToAll::send() function failed and returned: "
                                                + std::to_string(getLastError()), true );
                 }
                 else
                 {
-                    pLogManager ->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
+                    pLogManager->printAndLog( users[i]->userName + "'s ping report wasn't fully sent. send() returned: "
                                                + std::to_string(iSentSize), true );
                 }
             }
@@ -2579,20 +2585,20 @@ void ServerService::sendPingToAll(UserStruct* pNewUser)
     }
 
 
-    mtxUsersDelete .unlock();
-    mtxConnectDisconnect .unlock();
+    mtxUsersDelete.unlock();
+    mtxConnectDisconnect.unlock();
 }
 
 void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 {
-    mtxConnectDisconnect .lock();
-    mtxUsersDelete .lock();
+    mtxConnectDisconnect.lock();
+    mtxUsersDelete.lock();
 
-    userToClose ->bConnectedToVOIP     = false;
-    userToClose ->bConnectedToTextChat = false;
+    userToClose->bConnectedToVOIP     = false;
+    userToClose->bConnectedToTextChat = false;
     iUsersConnectedToVOIP--;
 
-    mtxUsersDelete .unlock();
+    mtxUsersDelete.unlock();
 
 
     if (userToClose->bConnectedToVOIP)
@@ -2600,47 +2606,47 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         // Wait for listenForVoiceMessage() to end.
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
 
-        mtxUDPPackets .lock();
+        mtxUDPPackets.lock();
 
-        for (int i = 0; i < static_cast <int>(vUDPPackets .size()); i++)
+        for (int i = 0; i < static_cast <int>(vUDPPackets.size()); i++)
         {
 #if _WIN32
-            if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
-                 && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
+            if (    (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
             {
 #elif __linux__
-            if (    (vUDPPackets[i] ->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
-                 && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
+            if (    (vUDPPackets[i]->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
+                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
             {
 #endif
                 delete vUDPPackets[i];
-                vUDPPackets .erase( vUDPPackets .begin() + i );
+                vUDPPackets.erase( vUDPPackets.begin() + i );
                 i--;
             }
         }
 
-        mtxUDPPackets .unlock();
+        mtxUDPPackets.unlock();
     }
 
-    //mtxConnectDisconnect .unlock();
+    //mtxConnectDisconnect.unlock();
 
     // Wait for listenForMessage() to end.
     //std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
     std::this_thread::sleep_for( std::chrono::milliseconds(25) ); // 25 because look end of listenForMessage().
 
-    //mtxConnectDisconnect .lock();
+    //mtxConnectDisconnect.lock();
 
 
     iUsersConnectedCount--;
-    pMainWindow ->updateOnlineUsersCount(iUsersConnectedCount);
+    pMainWindow->updateOnlineUsersCount(iUsersConnectedCount);
 
 
     // Clear 'users' massive
 
-    if ( (users .size() - 1) != 0)
+    if ( (users.size() - 1) != 0)
     {
         // Tell other users that one is disconnected
         char sendBuffer[MAX_NAME_LENGTH + 3 + 5];
@@ -2669,7 +2675,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 
         for (size_t j = 0; j < users.size(); j++)
         {
-            if ( users[j] ->userName != userToClose ->userName )
+            if ( users[j]->userName != userToClose->userName )
             {
                send(users[j]->userTCPSocket, sendBuffer, iPacketSize, 0);
             }
@@ -2682,41 +2688,41 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     {
         // Client sent FIN
         // We are responding:
-        pLogManager ->printAndLog( userToClose ->userName + " has sent FIN.", true );
+        pLogManager->printAndLog( userToClose->userName + " has sent FIN.", true );
 
         int returnCode = shutdown(userToClose->userTCPSocket, SD_SEND);
 
         if (returnCode == SOCKET_ERROR)
         {
-            pLogManager ->printAndLog( "ServerService::responseToFIN()::shutdown() function failed and returned: "
+            pLogManager->printAndLog( "ServerService::responseToFIN()::shutdown() function failed and returned: "
                                        + std::to_string(getLastError()) + ".", true );
 
             returnCode = shutdown(userToClose->userTCPSocket, SD_SEND);
 
             if (returnCode == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "Try #2. Can't shutdown socket. Closing socket...", true );
+                pLogManager->printAndLog( "Try #2. Can't shutdown socket. Closing socket...", true );
 
                 if (closeSocket(userToClose->userTCPSocket))
                 {
-                    pLogManager ->printAndLog( "ServerService::responseToFIN()::closeSocket() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::responseToFIN()::closeSocket() function failed and returned: "
                                                + std::to_string(getLastError())
                                                + ".\n Can't even close this socket... You better reboot server.\n", true );
                 }
             }
             else
             {
-                pLogManager ->printAndLog( "Try #2. Shutdown success.", true );
+                pLogManager->printAndLog( "Try #2. Shutdown success.", true );
 
                 if (closeSocket(userToClose->userTCPSocket))
                 {
-                    pLogManager ->printAndLog( "ServerService::responseToFIN()::closeSocket() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::responseToFIN()::closeSocket() function failed and returned: "
                                                + std::to_string(getLastError())
                                                + ".\n Can't even close this socket... You better reboot server.\n", true );
                 }
                 else
                 {
-                    pLogManager ->printAndLog( "Successfully closed the socket.\n", true );
+                    pLogManager->printAndLog( "Successfully closed the socket.\n", true );
                 }
             }
         }
@@ -2724,57 +2730,57 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
         {
             if (closeSocket(userToClose->userTCPSocket))
             {
-                pLogManager ->printAndLog( "ServerService::responseToFIN()::closeSocket() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::responseToFIN()::closeSocket() function failed and returned: "
                                            + std::to_string(getLastError())
                                            + ".\n Can't even close this socket... You better reboot server.\n", true );
             }
             else
             {
-                pLogManager ->printAndLog( "Successfully closed connection with " + userToClose->userName + ".\n", true );
+                pLogManager->printAndLog( "Successfully closed connection with " + userToClose->userName + ".\n", true );
             }
         }
     }
     else
     {
-        pLogManager ->printAndLog( "Lost connection with " + userToClose->userName + ". Closing socket...\n", true );
+        pLogManager->printAndLog( "Lost connection with " + userToClose->userName + ". Closing socket...\n", true );
         closeSocket(userToClose->userTCPSocket);
     }
 
 
 
-    mtxUsersDelete .lock();
+    mtxUsersDelete.lock();
 
 
     // Erase user from vector.
 
-    for (unsigned int i = 0;   i < users .size();   i++)
+    for (unsigned int i = 0;   i < users.size();   i++)
     {
-        if (users[i] ->userName == userToClose ->userName)
+        if (users[i]->userName == userToClose->userName)
         {
-            delete[] userToClose ->pDataFromUser;
-            pMainWindow ->deleteUserFromList( userToClose ->pUserInList );
+            delete[] userToClose->pDataFromUser;
+            pMainWindow->deleteUserFromList( userToClose->pUserInList );
 
             delete users[i];
-            users .erase( users .begin() + i );
+            users.erase( users.begin() + i );
 
             break;
         }
     }
 
 
-    mtxUsersDelete .unlock();
+    mtxUsersDelete.unlock();
 
-    mtxConnectDisconnect .unlock();
+    mtxConnectDisconnect.unlock();
 }
 
 void ServerService::kickUser(SListItemUser *pUser)
 {
-    for (size_t i = 0; i < users .size(); i++)
+    for (size_t i = 0; i < users.size(); i++)
     {
-        if ( users[i] ->pUserInList == pUser )
+        if ( users[i]->pUserInList == pUser )
         {
             std::thread tKickThread(&ServerService::sendFINtoUser, this, users[i]);
-            tKickThread .detach();
+            tKickThread.detach();
 
             break;
         }
@@ -2785,64 +2791,64 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
 {
     char cKickedNotice = SM_KICKED;
 
-    int iSentSize = send( userToClose ->userTCPSocket, &cKickedNotice, sizeof(cKickedNotice), 0 );
+    int iSentSize = send( userToClose->userTCPSocket, &cKickedNotice, sizeof(cKickedNotice), 0 );
 
     if (iSentSize != sizeof(cKickedNotice))
     {
-        pLogManager ->printAndLog( "Can't send the \"kick notice\" to the user \"" + userToClose ->userName
+        pLogManager->printAndLog( "Can't send the \"kick notice\" to the user \"" + userToClose->userName
                                    + "\". Closing connection.");
     }
 
 
-    pLogManager ->printAndLog("Kicked the user \"" + userToClose ->userName + "\" from the server.\n");
+    pLogManager->printAndLog("Kicked the user \"" + userToClose->userName + "\" from the server.\n");
 
 
-    mtxConnectDisconnect .lock();
+    mtxConnectDisconnect.lock();
 
     if (userToClose->bConnectedToVOIP)
     {
-        mtxUsersDelete .lock();
+        mtxUsersDelete.lock();
 
         userToClose->bConnectedToVOIP     = false;
         userToClose->bConnectedToTextChat = false;
         iUsersConnectedToVOIP--;
 
-        mtxUsersDelete .unlock();
+        mtxUsersDelete.unlock();
 
         // Wait for listenForVoiceMessage() and listenForMessage() to end.
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
         std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_MESSAGE_MS) );
 
-        mtxUDPPackets .lock();
+        mtxUDPPackets.lock();
 
 
         // This never happened (I think) but let's check if there are some packets from this user. Just in case.
 
-        for (int i = 0; i < vUDPPackets .size(); i++)
+        for (int i = 0; i < vUDPPackets.size(); i++)
         {
 #if _WIN32
-            if (    (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-                 && (vUDPPackets[i] ->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
-                 && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
+            if (    (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
             {
 #elif __linux__
-            if (    (vUDPPackets[i] ->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
-                 && (userToClose ->userUDPAddr.sin_port == vUDPPackets[i] ->senderInfo.sin_port) )
+            if (    (vUDPPackets[i]->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
+                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
             {
 #endif
                 delete vUDPPackets[i];
-                vUDPPackets .erase( vUDPPackets .begin() + i );
+                vUDPPackets.erase( vUDPPackets.begin() + i );
                 i--;
             }
         }
 
-        mtxUDPPackets .unlock();
+        mtxUDPPackets.unlock();
     }
 
 
-    sendFINtoSocket(userToClose ->userTCPSocket);
+    sendFINtoSocket(userToClose->userTCPSocket);
 
 
     iUsersConnectedCount--;
@@ -2872,7 +2878,7 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
 
         for (size_t j = 0; j < users.size(); j++)
         {
-            if ( users[j] ->userName != userToClose ->userName )
+            if ( users[j]->userName != userToClose->userName )
             {
                send(users[j]->userTCPSocket, sendBuffer, iPacketSize, 0);
             }
@@ -2880,7 +2886,7 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
     }
 
 
-    mtxUsersDelete .lock();
+    mtxUsersDelete.lock();
 
 
 
@@ -2900,10 +2906,10 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
     delete userToClose;
 
 
-    mtxUsersDelete .unlock();
+    mtxUsersDelete.unlock();
 
 
-    mtxConnectDisconnect .unlock();
+    mtxConnectDisconnect.unlock();
 }
 
 void ServerService::sendFINtoSocket(SSocket socketToClose)
@@ -2915,7 +2921,7 @@ void ServerService::sendFINtoSocket(SSocket socketToClose)
     int returnCode = shutdown(socketToClose, SD_SEND);
     if (returnCode == SOCKET_ERROR)
     {
-        pLogManager ->printAndLog( "ServerService::sendFINtoSocket()::shutdown() function failed and returned: "
+        pLogManager->printAndLog( "ServerService::sendFINtoSocket()::shutdown() function failed and returned: "
                                    + std::to_string(getLastError()) + ".", true );
         closeSocket(socketToClose);
     }
@@ -2927,13 +2933,13 @@ void ServerService::sendFINtoSocket(SSocket socketToClose)
         {
             if (closeSocket(socketToClose))
             {
-                pLogManager ->printAndLog( "ServerService::sendFINtoSocket()::closeSocket() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::sendFINtoSocket()::closeSocket() function failed and returned: "
                                            + std::to_string(getLastError())
                                            + ".\nShutdown done but can't close socket... You better reboot the server.\n", true);
             }
             else
             {
-                pLogManager ->printAndLog( "Received FIN and closed socket.", true );
+                pLogManager->printAndLog( "Received FIN and closed socket.", true );
             }
         }
         else
@@ -2943,14 +2949,14 @@ void ServerService::sendFINtoSocket(SSocket socketToClose)
             {
                 if (closeSocket(socketToClose))
                 {
-                    pLogManager ->printAndLog( "ServerService::sendFINtoSocket()::closeSocket() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::sendFINtoSocket()::closeSocket() function failed and returned: "
                                                + std::to_string(getLastError())
                                                + ".\nShutdown done but can't close socket... You better reboot the server.\n", true);
 
                 }
                 else
                 {
-                    pLogManager ->printAndLog( "Try #2. Received FIN and closed socket.", true );
+                    pLogManager->printAndLog( "Try #2. Received FIN and closed socket.", true );
                 }
             }
         }
@@ -2961,13 +2967,13 @@ void ServerService::shutdownAllUsers()
 {
     if (users.size() != 0)
     {
-        mtxConnectDisconnect .lock();
+        mtxConnectDisconnect.lock();
 
-        pLogManager ->printAndLog( "Shutting down...\n");
+        pLogManager->printAndLog( "Shutting down...\n");
 
         pMainWindow->updateOnlineUsersCount(0);
 
-        mtxUsersDelete .lock();
+        mtxUsersDelete.lock();
 
         for (unsigned int i = 0; i < users.size(); i++)
         {
@@ -2978,7 +2984,7 @@ void ServerService::shutdownAllUsers()
             users[i]->bConnectedToTextChat = false;
         }
 
-        mtxUsersDelete .unlock();
+        mtxUsersDelete.unlock();
 
         // Now we will not listen for new sockets and we also
         // will not listen connected users (because in listenForNewMessage function while cycle will fail)
@@ -3005,7 +3011,7 @@ void ServerService::shutdownAllUsers()
             returnCode = shutdown(users[i]->userTCPSocket, SD_SEND);
             if (returnCode == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "ServerService::shutdownAllUsers()::shutdown() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::shutdownAllUsers()::shutdown() function failed and returned: "
                                            + std::to_string(getLastError()) + ". Just closing it...");
                 closeSocket(users[i]->userTCPSocket);
 
@@ -3027,7 +3033,7 @@ void ServerService::shutdownAllUsers()
             // Socket isn't closed
             if (setSocketBlocking(users[i]->userTCPSocket, true))
             {
-                pLogManager ->printAndLog( "ServerService::shutdownAllUsers()::ioctsocket() (set blocking mode) failed and returned: "
+                pLogManager->printAndLog( "ServerService::shutdownAllUsers()::ioctsocket() (set blocking mode) failed and returned: "
                                            + std::to_string(getLastError()) + ". Just closing it...");
                 closeSocket(users[i]->userTCPSocket);
 
@@ -3043,7 +3049,7 @@ void ServerService::shutdownAllUsers()
         }
 
         bool tryAgainToClose = false;
-        pLogManager ->printAndLog( "Sent FIN packets to all users. Waiting for the response...");
+        pLogManager->printAndLog( "Sent FIN packets to all users. Waiting for the response...");
 
         // We are waiting for a response
         for (size_t i = 0; i < users.size(); i++)
@@ -3055,7 +3061,7 @@ void ServerService::shutdownAllUsers()
                 // FIN received
                 if (closeSocket(users[i]->userTCPSocket))
                 {
-                    pLogManager ->printAndLog( "ServerService::shutdownAllUsers()::closeSocket() function failed and returned: "
+                    pLogManager->printAndLog( "ServerService::shutdownAllUsers()::closeSocket() function failed and returned: "
                                                + std::to_string(getLastError()) + "." );
                 }
                 else
@@ -3090,7 +3096,7 @@ void ServerService::shutdownAllUsers()
                     // FIN received
                     if (closeSocket(users[i]->userTCPSocket))
                     {
-                        pLogManager ->printAndLog( "ServerService::shutdownAllUsers()::closeSocket() function failed and returned: "
+                        pLogManager->printAndLog( "ServerService::shutdownAllUsers()::closeSocket() function failed and returned: "
                                                    + std::to_string(getLastError()) + "." );
                     }
                     else
@@ -3100,7 +3106,7 @@ void ServerService::shutdownAllUsers()
                 }
                 else
                 {
-                    pLogManager ->printAndLog( "FIN wasn't received from client for the second time... Closing socket..." );
+                    pLogManager->printAndLog( "FIN wasn't received from client for the second time... Closing socket..." );
                 }
 
                 // Delete user's read buffer & delete him from list
@@ -3114,7 +3120,7 @@ void ServerService::shutdownAllUsers()
             }
         }
 
-        pLogManager ->printAndLog( "Correctly closed sockets: " + std::to_string(correctlyClosedSocketsCount)
+        pLogManager->printAndLog( "Correctly closed sockets: " + std::to_string(correctlyClosedSocketsCount)
                                    + "/" + std::to_string(socketsCount) + "." );
 
         // Clear users massive if someone is still there
@@ -3137,7 +3143,7 @@ void ServerService::shutdownAllUsers()
 #ifdef _WIN32
             if (WSACleanup() == SOCKET_ERROR)
             {
-                pLogManager ->printAndLog( "ServerService::shutdownAllUsers()::WSACleanup() function failed and returned: "
+                pLogManager->printAndLog( "ServerService::shutdownAllUsers()::WSACleanup() function failed and returned: "
                                            + std::to_string(getLastError()) + "." );
             }
 #endif
@@ -3145,7 +3151,7 @@ void ServerService::shutdownAllUsers()
             bWinSockStarted = false;
         }
 
-        mtxConnectDisconnect .unlock();
+        mtxConnectDisconnect.unlock();
     }
     else
     {
@@ -3159,18 +3165,18 @@ void ServerService::shutdownAllUsers()
     }
 
 
-    mtxUDPPackets .lock();
-    mtxUDPPackets .unlock();
+    mtxUDPPackets.lock();
+    mtxUDPPackets.unlock();
 
-    for (size_t i = 0; i < vUDPPackets .size(); i++)
+    for (size_t i = 0; i < vUDPPackets.size(); i++)
     {
         delete vUDPPackets[i];
     }
 
-    vUDPPackets .clear();
+    vUDPPackets.clear();
 
 
-    pLogManager ->printAndLog( "Server stopped.\n" );
+    pLogManager->printAndLog( "Server stopped.\n" );
     pMainWindow->changeStartStopActionText(false);
     pMainWindow->showSendMessageToAllAction(false);
 }

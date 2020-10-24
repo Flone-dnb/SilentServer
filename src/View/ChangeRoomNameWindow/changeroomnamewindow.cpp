@@ -32,23 +32,23 @@ ChangeRoomNameWindow::ChangeRoomNameWindow(SListItemRoom* pRoom, SListWidget* pL
 
     if (pList->row(pRoom) == 0)
     {
-        ui ->lineEdit_name ->setText(pRoom ->getRoomName());
+        ui->lineEdit_name->setText(pRoom->getRoomName());
 
-        ui ->lineEdit_password ->setEnabled(false);
-        ui ->lineEdit_count ->setEnabled(false);
+        ui->lineEdit_password->setEnabled(false);
+        ui->lineEdit_count->setEnabled(false);
     }
     else
     {
-        ui ->lineEdit_name ->setText(pRoom ->getRoomName());
-        ui ->lineEdit_password ->setText(pRoom ->getPassword());
+        ui->lineEdit_name->setText(pRoom->getRoomName());
+        ui->lineEdit_password->setText(pRoom->getPassword());
 
-        if (pRoom ->getMaxUsers() != 0)
+        if (pRoom->getMaxUsers() != 0)
         {
-            ui ->lineEdit_count ->setText(QString::number(pRoom ->getMaxUsers()));
+            ui->lineEdit_count->setText(QString::number(pRoom->getMaxUsers()));
         }
         else
         {
-            ui ->lineEdit_count ->setText("");
+            ui->lineEdit_count->setText("");
         }
     }
 }

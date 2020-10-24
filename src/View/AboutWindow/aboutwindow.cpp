@@ -16,16 +16,18 @@ AboutWindow::AboutWindow(QString sSilentVersion, QString sSilentLastClientVersio
     setFixedSize ( width (), height () );
 
 
-    ui ->label_appIcon       ->setPixmap ( QPixmap(":/appMainIcon.png").scaled (128, 128, Qt::KeepAspectRatio) );
-    ui ->label_silentVersion ->setText   ( "Silent Server. Version: " + sSilentVersion + ".\n"
+    ui->label_appIcon      ->setPixmap ( QPixmap(":/appMainIcon.png").scaled (128, 128, Qt::KeepAspectRatio) );
+    ui->label_silentVersion->setText   ( "Silent Server. Version: " + sSilentVersion + ".\n"
                                            "Supported client version: " + sSilentLastClientVersion + "." );
-    ui ->label_copyright     ->setText   ( "Copyright (c) 2019-2020.\nAleksandr \"Flone\" Tretyakov." );
+    ui->label_copyright    ->setText   ( "Copyright (c) 2019-2020.\nAleksandr \"Flone\" Tretyakov." );
 }
 
 
 
 void AboutWindow::closeEvent(QCloseEvent *pEvent)
 {
+    Q_UNUSED(pEvent)
+
     deleteLater ();
 }
 
