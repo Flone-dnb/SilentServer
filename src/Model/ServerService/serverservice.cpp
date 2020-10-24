@@ -216,6 +216,234 @@ void ServerService::sendMessageToAll(const std::string &sMessage)
     }
 }
 
+bool ServerService::establishSecureConnection(SOCKET userSocket,  std::string* pSecretKeyString, std::string userNameStr)
+{
+    std::uniform_int_distribution<> uid_pg(0, static_cast<int>(vKeyPG.size() - 1));
+
+    size_t pgIndex = static_cast<size_t>(uid_pg(*pRndGen));
+
+    int p = vKeyPG[pgIndex][0];
+    int g = vKeyPG[pgIndex][1];
+
+
+
+    // Send 2 int values: p, g values.
+
+    char vKeyPGBuffer[sizeof(int) * 2];
+    memset(vKeyPGBuffer, 0, sizeof(int) * 2);
+
+    std::memcpy(vKeyPGBuffer, &p, sizeof(p));
+    std::memcpy(vKeyPGBuffer + sizeof(p), &g, sizeof(g));
+
+    if (send(userSocket, vKeyPGBuffer, sizeof(int) * 2, 0) != sizeof(int) * 2)
+    {
+        pLogManager->printAndLog("ServerService::listenForNewConnections()::send() failed and returned: "
+                                  + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+        return true;
+    }
+
+
+
+    // Generate secret 'a' key.
+
+#if _DEBUG || DEBUG
+    std::uniform_int_distribution<> uid(50, 100); // also change in server
+#else
+    std::uniform_int_distribution<> uid(500, 1000); // also change in server
+#endif
+    int a = uid(*pRndGen);
+
+
+
+    // Generate open 'A' key.
+
+    integer A = pow(integer(g), a) % p;
+
+    size_t iMaxKeyLength = 1000; // also change in client code
+    if (A.str().size() > iMaxKeyLength) // should not happen
+    {
+        pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (key too big) failed and returned: "
+                                  + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+        return true;
+    }
+
+
+
+    // Prepare to send open key 'A'.
+
+    short iStringSize = static_cast<short>(A.str().size());
+    char* pOpenKeyString = new char[sizeof(iStringSize) + iMaxKeyLength + 1];
+    memset(pOpenKeyString, 0, sizeof(iStringSize) + iMaxKeyLength + 1);
+
+    std::memcpy(pOpenKeyString, &iStringSize, sizeof(iStringSize));
+    std::memcpy(pOpenKeyString + sizeof(iStringSize), A.str().c_str(), A.str().size());
+
+
+    // Send open key 'A'.
+
+    if (send(userSocket, pOpenKeyString, sizeof(iStringSize) + A.str().size(), 0) != sizeof(iStringSize) + A.str().size())
+    {
+        pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (sending open key) failed and returned: "
+                                  + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+
+        delete[] pOpenKeyString;
+
+        return true;
+    }
+
+    memset(pOpenKeyString, 0, sizeof(iStringSize) + iMaxKeyLength + 1);
+
+
+
+    // Receive open key 'B' string size.
+
+    if (recv(userSocket, reinterpret_cast<char*>(&iStringSize), sizeof(iStringSize), 0) <= 0)
+    {
+        pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 1) failed and returned: "
+                                  + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+
+        delete[] pOpenKeyString;
+
+        return true;
+    }
+
+
+
+    // Receive open key 'B'.
+
+    if (recv(userSocket, pOpenKeyString, iStringSize, 0) <= 0)
+    {
+        pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 2) failed and returned: "
+                                  + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+        delete[] pOpenKeyString;
+
+        return true;
+    }
+
+    integer B(pOpenKeyString, 10);
+
+    delete[] pOpenKeyString;
+
+
+
+    // Generate secret key.
+
+    integer secret = pow(integer(B), a) % p;
+
+
+    // Save key.
+
+    if (secret.str().size() >= 16)
+    {
+        // Save only first 16 numbers.
+
+        *pSecretKeyString = secret.str().substr(0, 16);
+    }
+    else
+    {
+        // Repeat the key until vSecretAESKey is full.
+
+        std::string sSecret = secret.str();
+
+        size_t iCurrentIndex = 0;
+
+        while (pSecretKeyString->size() != 16)
+        {
+            *pSecretKeyString += sSecret[iCurrentIndex];
+
+            if (iCurrentIndex == sSecret.size() - 1)
+            {
+                iCurrentIndex = 0;
+            }
+            else
+            {
+                iCurrentIndex++;
+            }
+        }
+    }
+
+    mtxConnectDisconnect.lock();
+
+
+    // Sync with the client.
+
+    // Receive "finished connecting" message.
+
+    char message = 0;
+    if (recv(userSocket, &message, sizeof(message), 0) <= 0)
+    {
+        int iLastError = getLastError();
+
+        if (iLastError == 10060)
+        {
+            pLogManager->printAndLog(userNameStr + " secure connection time out.",true);
+        }
+        else
+        {
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (recv sync) failed and returned: "
+                                      + std::to_string(iLastError) + ".\n"
+                                      "Sending FIN to " + userNameStr,true);
+        }
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+
+        mtxConnectDisconnect.unlock();
+
+        return true;
+    }
+
+
+    // Send "finished connecting" message.
+
+    if (send(userSocket, &message, sizeof(message), 0) <= 0)
+    {
+        int iLastError = getLastError();
+
+        if (iLastError == 10060)
+        {
+            pLogManager->printAndLog(userNameStr + " secure connection time out.",true);
+        }
+        else
+        {
+            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (send sync) failed and returned: "
+                                      + std::to_string(iLastError) + ".\n"
+                                      "Sending FIN to " + userNameStr,true);
+        }
+
+        std::thread closethread(&ServerService::sendFINtoSocket, this, userSocket);
+        closethread.detach();
+
+        mtxConnectDisconnect.unlock();
+
+        return true;
+    }
+
+
+    return false;
+}
+
 void ServerService::catchUDPPackets()
 {
     sockaddr_in senderInfo;
@@ -408,8 +636,9 @@ bool ServerService::startWinSock()
     pLogManager->printAndLog( std::string("Starting...") );
 
     int result = 0;
+
 #ifdef _WIN32
-    // Start Winsock2
+    // Start Winsock2.
 
     WSADATA WSAData;
     result = WSAStartup(MAKEWORD(2, 2), &WSAData);
@@ -431,7 +660,7 @@ bool ServerService::startWinSock()
             pMainWindow->changeStartStopActionText(true);
             pMainWindow->showSendMessageToAllAction(true);
 
-            std::thread listenThread(&ServerService::listenForNewTCPConnections, this);
+            std::thread listenThread(&ServerService::listenForNewConnections, this);
             listenThread.detach();
 
             return true;
@@ -534,7 +763,7 @@ void ServerService::startToListenForConnection()
     }
 }
 
-void ServerService::listenForNewTCPConnections()
+void ServerService::listenForNewConnections()
 {
     sockaddr_in connectedWith;
     memset(connectedWith.sin_zero, 0, sizeof(connectedWith.sin_zero));
@@ -544,18 +773,8 @@ void ServerService::listenForNewTCPConnections()
     socklen_t iLen = sizeof(connectedWith);
 #endif
 
-    bool bConnectionFinished = true;
-
-    // Accept new connection
     while (bTextListen)
     {
-        if (bConnectionFinished == false)
-        {
-            pLogManager->printAndLog("The user was not connected.\n", true);
-
-            bConnectionFinished = true;
-        }
-
         // Wait for users to disconnect.
         mtxConnectDisconnect.lock();
         mtxConnectDisconnect.unlock();
@@ -584,7 +803,7 @@ void ServerService::listenForNewTCPConnections()
 
 
 
-        // Disable Nagle algorithm for Connected Socket
+        // Disable Nagle algorithm for Connected Socket.
 
 #if _WIN32
         BOOL bOptVal = true;
@@ -600,9 +819,6 @@ void ServerService::listenForNewTCPConnections()
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
-
-
-            bConnectionFinished = false;
 
             continue;
         }
@@ -630,16 +846,21 @@ void ServerService::listenForNewTCPConnections()
 #endif
 
 
-        // Receive version, user name and password (optional)
+        // Receive version, user name and password (optional).
 
-        const size_t iBufferLength = MAX_NAME_LENGTH + MAX_VERSION_STRING_LENGTH + (UCHAR_MAX * 2) + 2;
-        char nameBuffer[iBufferLength];
-        memset(nameBuffer, 0, iBufferLength);
+        const size_t iBufferLength =
+                sizeof(char) +                // size of the version string
+                MAX_VERSION_STRING_LENGTH +   // version string
+                sizeof(char) +                // size of the user name
+                MAX_NAME_LENGTH +             // user name string
+                sizeof(char) +                // password string size
+                UCHAR_MAX * sizeof(wchar_t);  // password string
 
-        if (recv(newConnectedSocket, nameBuffer, iBufferLength, 0) == SOCKET_ERROR)
+        char vUserInfoBuffer[iBufferLength];
+        memset(vUserInfoBuffer, 0, iBufferLength);
+
+        if (recv(newConnectedSocket, vUserInfoBuffer, iBufferLength, 0) == SOCKET_ERROR)
         {
-
-            pLogManager->printAndLog("", true);
             pLogManager->printAndLog("\nSomeone is connecting...\n"
                                       "ServerService::listenForNewConnections()::recv() failed and returned: "
                                       + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
@@ -647,30 +868,28 @@ void ServerService::listenForNewTCPConnections()
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
 
-
-            bConnectionFinished = false;
-
             continue;
         }
 
 
 
-        // Show with whom connected
+        // Show with whom connected.
 
         char connectedWithIP[16];
         memset(&connectedWithIP,0,16);
         inet_ntop(AF_INET, &connectedWith.sin_addr, connectedWithIP, sizeof(connectedWithIP));
 
 
-        // Received version, user name and password
 
-        // Check if client version is the same with the server version
-        char clientVersionSize = nameBuffer[0];
+        // Received version, user name and password.
+
+        // Check if client version is the same with the server version.
+        char clientVersionSize = vUserInfoBuffer[0];
 
         char* pVersion = new char[ static_cast<size_t>(clientVersionSize + 1) ];
         memset( pVersion, 0, static_cast<size_t>(clientVersionSize + 1) );
 
-        memcpy(pVersion, nameBuffer + 1, static_cast<size_t>(clientVersionSize));
+        memcpy(pVersion, vUserInfoBuffer + 1, static_cast<size_t>(clientVersionSize));
 
         std::string clientVersion(pVersion);
         delete[] pVersion;
@@ -693,22 +912,19 @@ void ServerService::listenForNewTCPConnections()
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
 
-            bConnectionFinished = false;
-
             continue;
         }
 
 
 
 
-        // Check if this user name is free
+        // Check if this user name is free.
 
         char vBuffer[MAX_NAME_LENGTH + 2];
         memset(vBuffer, 0, MAX_NAME_LENGTH + 2);
 
-        memcpy(vBuffer, nameBuffer + 2 + clientVersionSize, static_cast <size_t> (nameBuffer[1 + clientVersionSize]));
+        memcpy(vBuffer, vUserInfoBuffer + 2 + clientVersionSize, static_cast <size_t> (vUserInfoBuffer[1 + clientVersionSize]));
 
-        //std::string userNameStr(nameBuffer + 1 + clientVersionSize);
         std::string userNameStr(vBuffer);
         bool bUserNameFree = true;
 
@@ -735,14 +951,12 @@ void ServerService::listenForNewTCPConnections()
 
         if (bUserNameFree == false)
         {
-            pLogManager->printAndLog("User name " + userNameStr + " is already taken.",true);
+            pLogManager->printAndLog("User name " + userNameStr + " is already taken.", true);
+
             char command = CM_USERNAME_INUSE;
             send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
-
-
-            bConnectionFinished = false;
 
             continue;
         }
@@ -756,24 +970,22 @@ void ServerService::listenForNewTCPConnections()
             char16_t vPassBuffer[UCHAR_MAX + 1];
             memset(vPassBuffer, 0, (UCHAR_MAX * 2) + 2);
 
-            char cUserNameSize = nameBuffer[1 + clientVersionSize];
-            unsigned char cPasswordSize = static_cast <unsigned char> (nameBuffer[2 + clientVersionSize + cUserNameSize]);
+            char cUserNameSize = vUserInfoBuffer[1 + clientVersionSize];
+            unsigned char cPasswordSize = static_cast <unsigned char> (vUserInfoBuffer[2 + clientVersionSize + cUserNameSize]);
 
-            memcpy(vPassBuffer, nameBuffer + 3 + clientVersionSize + cUserNameSize,
+            memcpy(vPassBuffer, vUserInfoBuffer + 3 + clientVersionSize + cUserNameSize,
                         static_cast<size_t>(cPasswordSize) * 2);
 
             std::u16string sPassword(vPassBuffer);
 
             if ( pSettingsManager->getCurrentSettings()->sPasswordToJoin != sPassword )
             {
-                pLogManager->printAndLog("User " + userNameStr + " entered wrong or blank password.",true);
+                pLogManager->printAndLog("User " + userNameStr + " entered wrong or blank password.", true);
+
                 char command = CM_NEED_PASSWORD;
                 send(newConnectedSocket,reinterpret_cast<char*>(&command), 1, 0);
                 std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
                 closethread.detach();
-
-
-                bConnectionFinished = false;
 
                 continue;
             }
@@ -785,7 +997,7 @@ void ServerService::listenForNewTCPConnections()
         char tempData[iMaxBufferSize];
         memset(tempData, 0, iMaxBufferSize);
 
-        // we ++ new user (if something will go wrong later we will -- this user
+        // we ++ new user (if something will go wrong later we will -- this user)
         iUsersConnectedCount++;
 
 
@@ -856,30 +1068,29 @@ void ServerService::listenForNewTCPConnections()
 
         mtxRooms.unlock();
 
-        // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes))
+
+        // Put packet size to buffer (packet size - command size (1 byte) - packet size (2 bytes)).
+
         unsigned short int iPacketSize = static_cast<unsigned short>(iBytesWillSend - 3);
         memcpy(tempData + 1, &iPacketSize, 2);
 
 
         if (iBytesWillSend > iMaxBufferSize)
         {
-            // This should happen when you got like >200 users online (and all users have name long 20 chars) if my calculations are correct.
+            // This should happen when you got like > 200 users online (and all users have name long 20 chars) if my calculations are correct.
 
-            pLogManager->printAndLog("Server is full.\n", true);
+            pLogManager->printAndLog("The server is full.\n", true);
 
             char serverIsFullCommand = CM_SERVER_FULL;
             send(newConnectedSocket,reinterpret_cast<char*>(&serverIsFullCommand), 1, 0);
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
 
-
-            bConnectionFinished = false;
-
             continue;
         }
 
 
-        // SEND
+        // Send chat info.
         int iBytesWereSent = send(newConnectedSocket, tempData, iBytesWillSend, 0);
 
         if (iBytesWereSent != iBytesWillSend)
@@ -909,222 +1120,28 @@ void ServerService::listenForNewTCPConnections()
 
             iUsersConnectedCount--;
 
-            bConnectionFinished = false;
-
             continue;
         }
 
 
-
-        // Generate secret key.
 
         setSocketBlocking(newConnectedSocket, true);
 
-        pLogManager->printAndLog("Establishing a secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port)) + ".", true);
+        pLogManager->printAndLog("Establishing a secure connection with " + userNameStr + ".", true);
 
-        std::uniform_int_distribution<> uid_pg(0, static_cast<int>(vKeyPG.size() - 1));
 
-        size_t pgIndex = static_cast<size_t>(uid_pg(*pRndGen));
+        // Establish a secure connection.
+        // Generate secret key.
 
-        int p = vKeyPG[pgIndex][0];
-        int g = vKeyPG[pgIndex][1];
 
-        // Send p, g values.
-
-        char vKeyPGBuffer[sizeof(int) * 2];
-        memset(vKeyPGBuffer, 0, sizeof(int) * 2);
-
-        std::memcpy(vKeyPGBuffer, &p, sizeof(p));
-        std::memcpy(vKeyPGBuffer + sizeof(p), &g, sizeof(g));
-
-        if (send(newConnectedSocket, vKeyPGBuffer, sizeof(int) * 2, 0) != sizeof(int) * 2)
+        std::string sSecretKeyString;
+        if (establishSecureConnection(newConnectedSocket, &sSecretKeyString, userNameStr))
         {
-            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() failed and returned: "
-                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            continue;
-        }
-
-        std::uniform_int_distribution<> uid(500, 1000); // also change in server
-        int a = uid(*pRndGen);
-
-        integer A = pow(integer(g), a) % p;
-
-        size_t iMaxKeyLength = 1000; // also change in client code
-        if (A.str().size() > iMaxKeyLength) // should not happen
-        {
-            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (key too big) failed and returned: "
-                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            continue;
-        }
-
-        short iStringSize = static_cast<short>(A.str().size());
-        char* pOpenKeyString = new char[sizeof(iStringSize) + iMaxKeyLength + 1];
-        memset(pOpenKeyString, 0, sizeof(iStringSize) + iMaxKeyLength + 1);
-
-        std::memcpy(pOpenKeyString, &iStringSize, sizeof(iStringSize));
-        std::memcpy(pOpenKeyString + sizeof(iStringSize), A.str().c_str(), A.str().size());
-
-
-        // Send A.
-        if (send(newConnectedSocket, pOpenKeyString, sizeof(iStringSize) + A.str().size(), 0) != sizeof(iStringSize) + A.str().size())
-        {
-            pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (sending open key) failed and returned: "
-                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            delete[] pOpenKeyString;
-
-            continue;
-        }
-
-        memset(pOpenKeyString, 0, sizeof(iStringSize) + iMaxKeyLength + 1);
-
-        // Receive B.
-        if (recv(newConnectedSocket, reinterpret_cast<char*>(&iStringSize), sizeof(iStringSize), 0) <= 0)
-        {
-            pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 1) failed and returned: "
-                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            delete[] pOpenKeyString;
-
-            continue;
-        }
-
-        if (recv(newConnectedSocket, pOpenKeyString, iStringSize, 0) <= 0)
-        {
-            pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (receiving open key 2) failed and returned: "
-                                      + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            delete[] pOpenKeyString;
-
-            continue;
-        }
-
-        integer B(pOpenKeyString, 10);
-
-        delete[] pOpenKeyString;
-
-        integer secret = pow(integer(B), a) % p;
-
-        std::string sSecretAESKey = "";
-
-        if (secret.str().size() >= 16)
-        {
-            sSecretAESKey = secret.str().substr(0, 16);
-        }
-        else
-        {
-            std::string sSecret = secret.str();
-
-            size_t iCurrentIndex = 0;
-
-            while (sSecretAESKey.size() != 16)
-            {
-                sSecretAESKey += sSecret[iCurrentIndex];
-
-                if (iCurrentIndex == sSecret.size() - 1)
-                {
-                    iCurrentIndex = 0;
-                }
-                else
-                {
-                    iCurrentIndex++;
-                }
-            }
-        }
-
-        mtxConnectDisconnect.lock();
-
-
-        // Receive "finished connecting" message.
-
-        char message = 0;
-        if (recv(newConnectedSocket, &message, sizeof(message), 0) <= 0)
-        {
-            int iLastError = getLastError();
-
-            if (iLastError == 10060)
-            {
-                pLogManager->printAndLog(userNameStr + " secure connection time out.",true);
-            }
-            else
-            {
-                pLogManager->printAndLog("ServerService::listenForNewConnections()::recv() (recv sync) failed and returned: "
-                                          + std::to_string(iLastError) + ".\n"
-                                          "Sending FIN to " + userNameStr,true);
-            }
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            mtxConnectDisconnect.unlock();
-
-            continue;
-        }
-
-        if (send(newConnectedSocket, &message, sizeof(message), 0) <= 0)
-        {
-            int iLastError = getLastError();
-
-            if (iLastError == 10060)
-            {
-                pLogManager->printAndLog(userNameStr + " secure connection time out.",true);
-            }
-            else
-            {
-                pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (send sync) failed and returned: "
-                                          + std::to_string(iLastError) + ".\n"
-                                          "Sending FIN to " + userNameStr,true);
-            }
-
-            std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
-            closethread.detach();
-
-
-            bConnectionFinished = false;
-
-            mtxConnectDisconnect.unlock();
-
             continue;
         }
 
 
-        pLogManager->printAndLog("A secure connection with " + std::string(connectedWithIP) + ":" + std::to_string(ntohs(connectedWith.sin_port))
-                                  + " AKA " + userNameStr + " has been established.", true);
+        pLogManager->printAndLog("A secure connection with " + userNameStr + " has been established.", true);
 
 
 
@@ -1191,7 +1208,7 @@ void ServerService::listenForNewTCPConnections()
 
         for (size_t i = 0; i < 16; i++)
         {
-            pNewUser->vSecretAESKey[i] = sSecretAESKey[i];
+            pNewUser->vSecretAESKey[i] = sSecretKeyString[i];
         }
 
 
@@ -1213,9 +1230,6 @@ void ServerService::listenForNewTCPConnections()
 
             std::thread closethread(&ServerService::sendFINtoSocket, this, newConnectedSocket);
             closethread.detach();
-
-
-            bConnectionFinished = false;
 
             mtxConnectDisconnect.unlock();
 

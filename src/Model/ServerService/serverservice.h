@@ -87,7 +87,7 @@ public:
 
         void  listenForMessage            (UserStruct* userToListen);
         void  listenForVoiceMessage       (UserStruct* userToListen);
-        void  listenForNewTCPConnections  ();
+        void  listenForNewConnections     ();
 
 
     // Rooms
@@ -126,6 +126,7 @@ private:
 
     // TCP
 
+        bool  establishSecureConnection          (SSocket userSocket, std::string* pSecretKeyString, std::string userNameStr);
         void  processMessage                     (UserStruct* userToListen);
         void  checkRoomSettings                  (UserStruct* userToListen);
         void  userEntersRoom                     (UserStruct* userToListen, std::string sRoomName);
