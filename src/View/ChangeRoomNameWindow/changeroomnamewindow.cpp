@@ -66,7 +66,7 @@ void ChangeRoomNameWindow::closeEvent(QCloseEvent *ev)
 
 void ChangeRoomNameWindow::on_pushButton_clicked()
 {
-    if (ui->plainTextEdit_roomMessage->toPlainText().length() * 2 > 500)
+    if (ui->plainTextEdit_roomMessage->toPlainText().length() * 2 > 900)
     {
         QMessageBox::warning(nullptr, "Error", "The room message is too big.");
         return;
