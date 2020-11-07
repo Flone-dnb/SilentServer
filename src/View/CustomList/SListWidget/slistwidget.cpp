@@ -18,7 +18,7 @@ SListWidget::SListWidget(QWidget *parent) : QListWidget(parent)
     addRoom("Room 3");
 }
 
-void SListWidget::addRoom(QString sRoomName, QString sPassword, size_t iMaxUsers)
+void SListWidget::addRoom(QString sRoomName, QString sPassword, size_t iMaxUsers, QString sRoomMessage)
 {
     if (vRooms.size() == MAX_ROOMS)
     {
@@ -28,6 +28,7 @@ void SListWidget::addRoom(QString sRoomName, QString sPassword, size_t iMaxUsers
     {
         SListItemRoom* pNewItem = new SListItemRoom(sRoomName, this, sPassword, iMaxUsers);
         pNewItem->setItemType(true);
+        pNewItem->setRoomMessage(sRoomMessage);
 
         vRooms.push_back(pNewItem);
 
@@ -126,6 +127,19 @@ QString SListWidget::getRoomPassword(QString sRoomName)
     }
 
     return "";
+}
+
+std::u16string SListWidget::getRoomMessage(QString sRoomName)
+{
+    for (size_t i = 0; i < vRooms.size(); i++)
+    {
+        if (vRooms[i]->getRoomName() == sRoomName)
+        {
+            return vRooms[i]->getRoomMessage();
+        }
+    }
+
+    return u"";
 }
 
 void SListWidget::renameRoom(SListItemRoom *pRoom, QString sNewName)

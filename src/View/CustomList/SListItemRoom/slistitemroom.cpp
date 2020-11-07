@@ -19,6 +19,8 @@ SListItemRoom::SListItemRoom(QString sName, SListWidget* pList, QString sPasswor
     this->sPassword = sPassword;
     this->iMaxUsers = iMaxUsers;
 
+    sRoomMessage = "";
+
     setText(getRoomFullName());
 }
 
@@ -118,6 +120,11 @@ void SListItemRoom::setRoomMaxUsers(size_t iMaxUsers)
     setText(getRoomFullName());
 }
 
+void SListItemRoom::setRoomMessage(QString sRoomMessage)
+{
+    this->sRoomMessage = sRoomMessage;
+}
+
 std::vector<SListItemUser *> SListItemRoom::getUsers()
 {
     return vUsers;
@@ -136,6 +143,11 @@ QString SListItemRoom::getRoomName()
 QString SListItemRoom::getPassword()
 {
     return sPassword;
+}
+
+std::u16string SListItemRoom::getRoomMessage()
+{
+    return sRoomMessage.toStdU16String();
 }
 
 size_t SListItemRoom::getMaxUsers()

@@ -23,7 +23,7 @@ class ChangeRoomNameWindow : public QMainWindow
 
 signals:
 
-    void signalChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers);
+    void signalChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers, QString sRoomMessage = "");
 
 public:
 

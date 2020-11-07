@@ -12,6 +12,8 @@
 // Custom
 #include "../src/Model/net_params.h"
 
+#define SETTINGS_FILE_MAGIC_NUMBER 999999
+#define SETTINGS_FILE_VERSION 1
 
 class SettingsFile
 {
@@ -49,9 +51,9 @@ public:
     // -------------------------
 
 
-    std::u16string     sPasswordToJoin;
+    std::u16string     sPasswordToJoin = u"";
 #if _WIN32
-    std::u16string     sPathToLogFile;
+    std::u16string     sPathToLogFile = u"";
 #elif __linux__
     std::string        sPathToLogFile;
 #endif

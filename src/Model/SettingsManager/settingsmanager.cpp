@@ -42,7 +42,7 @@ SettingsManager::SettingsManager(MainWindow* pMainWindow)
 
 
 
-void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSettings)
+void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 {
 #if _WIN32
     // Get the path to the Documents folder.
@@ -59,6 +59,14 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 
         return;
     }
+
+    if (pSettingsFile == pCurrentSettingsFile)
+    {
+        // Copy, because we will 'delete pCurrentSettingsFile' in the end of the function.
+        // and do 'pCurrentSettingsFile = pSettingsFile'.
+        pSettingsFile = new SettingsFile(*pCurrentSettingsFile);
+    }
+
 
     // Open the settings file.
 
@@ -128,6 +136,17 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
 
     // Write new setting to the new file.
 
+    // Save magic number.
+
+    unsigned int iMagicNumber = SETTINGS_FILE_MAGIC_NUMBER;
+    newSettingsFile.write
+            ( reinterpret_cast <char*> (&iMagicNumber), sizeof(iMagicNumber) );
+
+    // Save settings file version.
+    unsigned short iVersion = SETTINGS_FILE_VERSION;
+    newSettingsFile.write
+            ( reinterpret_cast <char*> (&iVersion), sizeof(iVersion) );
+
     // Server port
     newSettingsFile.write
             ( reinterpret_cast <char*> (&pSettingsFile->iPort), sizeof(pSettingsFile->iPort) );
@@ -166,46 +185,56 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile, bool bSaveRoomSe
     }
 
     // Save room settings
-    if (bSaveRoomSettings)
+    std::vector<std::string> vRoomNames = pMainWindow->getRoomNames();
+
+    unsigned char cRoomCount = static_cast<unsigned char>( vRoomNames.size() );
+
+    newSettingsFile.write( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
+
+    for (unsigned char i = 0; i < cRoomCount; i++)
     {
-        std::vector<std::string> vRoomNames = pMainWindow->getRoomNames();
+        // Write room name size.
 
-        unsigned char cRoomCount = static_cast<unsigned char>( vRoomNames.size() );
-
-        newSettingsFile.write( reinterpret_cast<char*>(&cRoomCount), sizeof(unsigned char) );
-
-        for (unsigned char i = 0; i < cRoomCount; i++)
-        {
-            // Write room name size.
-
-            char cRoomNameSize = static_cast<char>( vRoomNames[i].size() );
-            newSettingsFile.write( &cRoomNameSize, sizeof(char) );
+        char cRoomNameSize = static_cast<char>( vRoomNames[i].size() );
+        newSettingsFile.write( &cRoomNameSize, sizeof(char) );
 
 
 
-            // Write room name.
+        // Write room name.
 
-            newSettingsFile.write( vRoomNames[i].c_str(), vRoomNames[i].size() );
-
-
-
-            // Write room password size.
-
-            char cRoomPassSize = static_cast<char>( pMainWindow->getRoomPassword(i).size() );
-            newSettingsFile.write( &cRoomPassSize, sizeof(char) );
+        newSettingsFile.write( vRoomNames[i].c_str(), vRoomNames[i].size() );
 
 
 
-            // Write room password.
+        // Write room password size.
 
-            std::u16string sRoomPassword = pMainWindow->getRoomPassword(i);
-            newSettingsFile.write( reinterpret_cast<char*>(const_cast<char16_t*>(sRoomPassword.c_str())), sRoomPassword.size() * 2 );
+        char cRoomPassSize = static_cast<char>( pMainWindow->getRoomPassword(i).size() );
+        newSettingsFile.write( &cRoomPassSize, sizeof(char) );
 
 
-            // Write room max users.
-            unsigned short int iMaxUsers = pMainWindow->getRoomMaxUsers(i);
-            newSettingsFile.write( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
-        }
+
+        // Write room password.
+
+        std::u16string sRoomPassword = pMainWindow->getRoomPassword(i);
+        newSettingsFile.write( reinterpret_cast<char*>(const_cast<char16_t*>(sRoomPassword.c_str())), sRoomPassword.size() * 2 );
+
+
+        // Write room max users.
+
+        unsigned short int iMaxUsers = pMainWindow->getRoomMaxUsers(i);
+        newSettingsFile.write( reinterpret_cast<char*>(&iMaxUsers), sizeof(iMaxUsers) );
+
+
+        // Write room message size.
+
+        unsigned short int iRoomMessageSize = pMainWindow->getRoomMessage(i).length() * 2;
+        newSettingsFile.write( reinterpret_cast<char*>(&iRoomMessageSize), sizeof(iRoomMessageSize) );
+
+
+        // Write room message.
+
+        std::u16string sRoomMessage = pMainWindow->getRoomMessage(i);
+        newSettingsFile.write( reinterpret_cast<const char*>(sRoomMessage.c_str()), iRoomMessageSize );
     }
 
     // NEW SETTINGS GO HERE
@@ -338,17 +367,21 @@ SettingsFile *SettingsManager::readSettings()
         // Read the settings.
 
 
+        unsigned int iMagicNumber = SETTINGS_FILE_MAGIC_NUMBER;
+        settingsFile.read( reinterpret_cast <char*> (&iMagicNumber), sizeof(iMagicNumber) );
+        iPos += sizeof(iMagicNumber);
 
-        // Read port
-        settingsFile.read( reinterpret_cast <char*> (&pSettingsFile->iPort), sizeof(pSettingsFile->iPort) );
-        iPos += sizeof(pSettingsFile->iPort);
-
-
-
-
-        // Settings may end here
-        if (iPos >= iFileSize)
+        if (iMagicNumber != SETTINGS_FILE_MAGIC_NUMBER)
         {
+            if (pCurrentSettingsFile)
+            {
+                pMainWindow->showMessageBox(true, u"Found old version settings file. The settings file will be deleted.", true);
+            }
+            else
+            {
+                pMainWindow->showMessageBox(true, u"Found old version settings file. The settings file will be deleted.");
+            }
+
             settingsFile.close();
 
             saveSettings(pSettingsFile);
@@ -356,6 +389,14 @@ SettingsFile *SettingsManager::readSettings()
             return pSettingsFile;
         }
 
+        unsigned short iVersion = 0;
+        settingsFile.read( reinterpret_cast <char*> (&iVersion), sizeof(iVersion) );
+        iPos += sizeof(iVersion);
+
+
+        // Read port
+        settingsFile.read( reinterpret_cast <char*> (&pSettingsFile->iPort), sizeof(pSettingsFile->iPort) );
+        iPos += sizeof(pSettingsFile->iPort);
 
 
         // Read allow HTML in messages
@@ -364,8 +405,6 @@ SettingsFile *SettingsManager::readSettings()
         iPos += sizeof(cAllowHTMLInMessages);
 
         pSettingsFile->bAllowHTMLInMessages = cAllowHTMLInMessages;
-
-
 
 
         // Read password to join
@@ -416,15 +455,11 @@ SettingsFile *SettingsManager::readSettings()
 #endif
         }
 
-        // Settings may end here
-        if (iPos >= iFileSize)
-        {
-            settingsFile.close();
 
-            saveSettings(pSettingsFile);
+        // NEW SETTINGS MAY GO HERE
+        // DON'T FORGET ABOUT iVersion
+        // check the SETTINGS_FILE_VERSION
 
-            return pSettingsFile;
-        }
 
         unsigned char cRoomCount = 0;
 
@@ -468,12 +503,35 @@ SettingsFile *SettingsManager::readSettings()
 
 
             // Read room max users.
+
             unsigned short int iMaxUsers = 0;
             settingsFile.read( reinterpret_cast<char*>(&iMaxUsers), sizeof(unsigned short) );
 
-            pMainWindow->addRoom(vNameBuffer, vPasswordBuffer, iMaxUsers);
+
+            // Read room message size.
+
+            unsigned short int iRoomMessageSize = 0;
+            settingsFile.read( reinterpret_cast<char*>(&iRoomMessageSize), sizeof(iRoomMessageSize) );
+
+
+            // Read room message.
+
+            char16_t vRoomMessage[MAX_BUFFER_SIZE];
+            memset(vRoomMessage, 0, MAX_BUFFER_SIZE);
+            settingsFile.read( reinterpret_cast<char*>(vRoomMessage), iRoomMessageSize );
+
+
+            // NEW SETTINGS MAY GO HERE
+            // DON'T FORGET ABOUT iVersion
+            // check the SETTINGS_FILE_VERSION
+
+            pMainWindow->addRoom(vNameBuffer, vPasswordBuffer, iMaxUsers, vRoomMessage);
         }
 
+
+        // NEW SETTINGS MAY GO HERE
+        // DON'T FORGET ABOUT iVersion
+        // check the SETTINGS_FILE_VERSION
 
         settingsFile.close();
 

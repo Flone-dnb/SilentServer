@@ -245,16 +245,26 @@ std::u16string MainWindow::getRoomPassword(std::string sRoomName)
     return ui->listWidget_users->getRoomPassword(QString::fromStdString(sRoomName)).toStdU16String();
 }
 
+std::u16string MainWindow::getRoomMessage(size_t i)
+{
+    return ui->listWidget_users->getRoom(i)->getRoomMessage();
+}
+
+std::u16string MainWindow::getRoomMessage(std::string sRoomName)
+{
+    return ui->listWidget_users->getRoomMessage(QString::fromStdString(sRoomName));
+}
+
 unsigned short MainWindow::getRoomMaxUsers(size_t iRoomIndex)
 {
     return static_cast<unsigned short>(ui->listWidget_users->getRoom(iRoomIndex)->getMaxUsers());
 }
 
-void MainWindow::addRoom(std::string sRoomName, std::u16string sPassword, size_t iMaxUsers)
+void MainWindow::addRoom(std::string sRoomName, std::u16string sPassword, size_t iMaxUsers, std::u16string sRoomMessage)
 {
     ui->listWidget_users->addRoom(QString::fromStdString(sRoomName),
                                     QString::fromStdU16String(sPassword),
-                                    iMaxUsers);
+                                    iMaxUsers, QString::fromStdU16String(sRoomMessage));
 }
 
 void MainWindow::clearAllRooms()
@@ -613,6 +623,8 @@ void MainWindow::moveRoomUp()
         ui->listWidget_users->moveRoomUp( dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem()) );
 
         ui->listWidget_users->clearSelection();
+
+        pController->saveNewSettings( pController->getSettingsFile());
     }
 }
 
@@ -626,6 +638,8 @@ void MainWindow::moveRoomDown()
         ui->listWidget_users->moveRoomDown( dynamic_cast<SListItemRoom*>(ui->listWidget_users->currentItem()) );
 
         ui->listWidget_users->clearSelection();
+
+        pController->saveNewSettings( pController->getSettingsFile());
     }
 }
 
@@ -658,11 +672,13 @@ void MainWindow::deleteRoom()
             pController->deleteRoom(pRoom->getRoomName().toStdString());
 
             ui->listWidget_users->deleteRoom(pRoom);
+
+            pController->saveNewSettings( pController->getSettingsFile());
         }
     }
 }
 
-void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QString sPassword, size_t iMaxUsers)
+void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QString sPassword, size_t iMaxUsers, QString sRoomMessage)
 {
     QString sOldName = pRoom->getRoomName();
 
@@ -672,6 +688,9 @@ void MainWindow::slotChangeRoomSettings(SListItemRoom *pRoom,  QString sName, QS
     pRoom->setRoomName(sName);
     pRoom->setRoomPassword(sPassword);
     pRoom->setRoomMaxUsers(iMaxUsers);
+    pRoom->setRoomMessage(sRoomMessage);
+
+    pController->saveNewSettings( pController->getSettingsFile() );
 }
 
 void MainWindow::slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers)
@@ -679,6 +698,8 @@ void MainWindow::slotCreateNewRoom(QString sName, QString sPassword, size_t iMax
     pController->createRoom(sName.toStdString(), iMaxUsers);
 
     ui->listWidget_users->addRoom(sName, sPassword, iMaxUsers);
+
+    pController->saveNewSettings( pController->getSettingsFile());
 }
 
 void MainWindow::slotMenuClose()

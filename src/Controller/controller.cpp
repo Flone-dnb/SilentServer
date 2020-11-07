@@ -54,7 +54,7 @@ bool Controller::start()
     {
         SettingsFile* pSettingsFile = new SettingsFile(*pSettingsManager->getCurrentSettings());
 
-        pSettingsManager->saveSettings( pSettingsFile, true );
+        pSettingsManager->saveSettings( pSettingsFile );
 
         if (bServerStarted)
         {

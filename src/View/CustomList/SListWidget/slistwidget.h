@@ -26,7 +26,7 @@ public:
     explicit SListWidget       (QWidget *parent = nullptr);
 
 
-    void           addRoom     (QString sRoomName, QString sPassword = "", size_t iMaxUsers = 0);
+    void           addRoom     (QString sRoomName, QString sPassword = "", size_t iMaxUsers = 0, QString sRoomMessage = "");
     SListItemUser* addUser     (QString sUserName, SListItemRoom* pRoom = nullptr);
 
     void           deleteRoom  (SListItemRoom* pRoom);
@@ -45,6 +45,7 @@ public:
     bool                 isAbleToCreateRoom ();
     SListItemRoom*       getRoom            (size_t i);
     QString              getRoomPassword    (QString sRoomName);
+    std::u16string       getRoomMessage     (QString sRoomName);
 
 
     ~SListWidget();

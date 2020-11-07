@@ -51,6 +51,8 @@ ChangeRoomNameWindow::ChangeRoomNameWindow(SListItemRoom* pRoom, SListWidget* pL
             ui->lineEdit_count->setText("");
         }
     }
+
+    ui->plainTextEdit_roomMessage->setPlainText(QString::fromStdU16String(pRoom->getRoomMessage()));
 }
 
 
@@ -64,6 +66,12 @@ void ChangeRoomNameWindow::closeEvent(QCloseEvent *ev)
 
 void ChangeRoomNameWindow::on_pushButton_clicked()
 {
+    if (ui->plainTextEdit_roomMessage->toPlainText().length() * 2 > 500)
+    {
+        QMessageBox::warning(nullptr, "Error", "The room message is too big.");
+        return;
+    }
+
     bool bASCII = true;
 
     if (pRoom->getRoomName() != ui->lineEdit_name->text())
@@ -107,7 +115,7 @@ void ChangeRoomNameWindow::on_pushButton_clicked()
         else
         {
             emit signalChangeRoomSettings(pRoom, ui->lineEdit_name->text(), ui->lineEdit_password->text(),
-                                          static_cast<size_t>(ui->lineEdit_count->text().toInt()));
+                                          static_cast<size_t>(ui->lineEdit_count->text().toInt()), ui->plainTextEdit_roomMessage->toPlainText());
 
             close();
         }

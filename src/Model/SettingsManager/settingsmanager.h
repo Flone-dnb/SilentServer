@@ -36,7 +36,7 @@ public:
 
     // SET functions
 
-        void          saveSettings        (SettingsFile* pSettingsFile, bool bSaveRoomSettings = false);
+        void          saveSettings        (SettingsFile* pSettingsFile);
 
 
     // GET functions

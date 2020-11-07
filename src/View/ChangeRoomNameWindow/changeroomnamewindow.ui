@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>445</width>
-    <height>314</height>
+    <width>444</width>
+    <height>548</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
 color: white;</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout" stretch="15,15,15,15,20,20">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="10,10,10,10,10,10,5,25,10">
     <item>
      <widget class="QLabel" name="label">
       <property name="font">
@@ -123,6 +123,60 @@ color: white;</string>
      </layout>
     </item>
     <item>
+     <widget class="QLabel" name="label_4">
+      <property name="font">
+       <font>
+        <family>Segoe UI</family>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background: transparent;</string>
+      </property>
+      <property name="text">
+       <string>Room Message</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="label_5">
+      <property name="font">
+       <font>
+        <family>Segoe UI</family>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background: transparent;
+color: gray;</string>
+      </property>
+      <property name="text">
+       <string>Tip: you can use HTML in room message.</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="plainTextEdit_roomMessage">
+      <property name="font">
+       <font>
+        <family>Segoe UI</family>
+        <pointsize>9</pointsize>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgba(10, 10, 10, 255), stop:1 rgba(27, 27, 27, 255));
+selection-background-color: rgb(140, 0, 0);
+border: 1px solid rgb(240, 0, 0);
+border-radius: 6px;</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <layout class="QHBoxLayout" name="horizontalLayout" stretch="30,40,30">
       <item>
        <spacer name="horizontalSpacer">
@@ -200,8 +254,8 @@ QPushButton:hover
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>445</width>
-     <height>30</height>
+     <width>444</width>
+     <height>25</height>
     </rect>
    </property>
   </widget>

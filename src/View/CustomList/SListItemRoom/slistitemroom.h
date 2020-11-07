@@ -29,12 +29,14 @@ public:
     void    setRoomName     (QString sName);
     void    setRoomPassword (QString sPassword);
     void    setRoomMaxUsers (size_t iMaxUsers);
+    void    setRoomMessage  (QString sRoomMessage);
 
 
     std::vector<SListItemUser*> getUsers();
     size_t  getUsersCount();
     QString getRoomName ();
     QString getPassword ();
+    std::u16string getRoomMessage();
     size_t  getMaxUsers ();
 
 
@@ -55,4 +57,6 @@ private:
     QString sRoomName;
     QString sPassword;
     size_t  iMaxUsers;
+
+    QString sRoomMessage;
 };

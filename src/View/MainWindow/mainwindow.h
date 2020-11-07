@@ -80,9 +80,11 @@ public:
         std::vector<std::string> getUsersOfRoomIndex(size_t i);
         std::u16string           getRoomPassword    (size_t iRoomIndex);
         std::u16string           getRoomPassword    (std::string sRoomName);
+        std::u16string           getRoomMessage     (size_t i);
+        std::u16string           getRoomMessage     (std::string sRoomName);
         unsigned short           getRoomMaxUsers    (size_t iRoomIndex);
 
-        void                     addRoom            (std::string sRoomName, std::u16string sPassword, size_t iMaxUsers);
+        void                     addRoom            (std::string sRoomName, std::u16string sPassword, size_t iMaxUsers, std::u16string sRoomMessage = u"");
 
         void                     clearAllRooms      ();
         void                     moveUserToRoom     (SListItemUser* pUser, std::string sRoomName);
@@ -163,7 +165,7 @@ private slots:
         void createRoom();
         void deleteRoom();
 
-        void slotChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers);
+        void slotChangeRoomSettings(SListItemRoom* pRoom, QString sName, QString sPassword, size_t iMaxUsers, QString sRoomMessage = "");
         void slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers);
 
         void slotMenuClose();

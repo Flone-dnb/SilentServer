@@ -1008,9 +1008,17 @@ void ServerService::listenForNewConnections()
         // (2) Packet size minus "free name" byte
         // (4) Amount of users in main lobby (online)
         // [
-        //      (1) Size in bytes of user name online
-        //      (usernamesize) user name
+        //      (1) Size in bytes of room name
+        //      room name string,
+        //      (2) max users in this room,
+        //      (2) number of users in room,
+        //      [
+        //          (1) user name size
+        //          user name
+        //      ]
         // ]
+        // (2) welcome room message size
+        // welcome room message
 
         int iBytesWillSend = 0;
         tempData[0] = CM_SERVER_INFO;
@@ -1065,6 +1073,14 @@ void ServerService::listenForNewConnections()
                 iBytesWillSend += nameSize;
             }
         }
+
+        unsigned short welcomeRoomMessageSize = pMainWindow->getRoomMessage(0).length() * 2;
+        memcpy(tempData + iBytesWillSend, &welcomeRoomMessageSize, sizeof(welcomeRoomMessageSize));
+        iBytesWillSend += sizeof(welcomeRoomMessageSize);
+
+        std::u16string sRoomMessage = pMainWindow->getRoomMessage(0);
+        memcpy(tempData + iBytesWillSend, sRoomMessage.c_str(), static_cast<size_t>(welcomeRoomMessageSize));
+        iBytesWillSend += welcomeRoomMessageSize;
 
         mtxRooms.unlock();
 
@@ -2137,15 +2153,30 @@ void ServerService::checkRoomSettings(UserStruct *userToListen)
 
 void ServerService::userEntersRoom(UserStruct *userToListen, std::string sRoomName)
 {
-    char vSendBuffer[MAX_NAME_LENGTH + 3];
-    memset(vSendBuffer, 0, MAX_NAME_LENGTH + 3);
+    char vSendBuffer[MAX_TCP_BUFFER_SIZE];
+    memset(vSendBuffer, 0, MAX_TCP_BUFFER_SIZE);
 
     vSendBuffer[0] = RC_CAN_ENTER_ROOM;
     vSendBuffer[1] = static_cast<char>(sRoomName.size());
 
     memcpy(vSendBuffer + 2, sRoomName.c_str(), sRoomName.size());
 
-    send(userToListen->userTCPSocket, vSendBuffer, 2 + static_cast<int>(sRoomName.size()), 0);
+    int iCurrentWriteIndex = 2 + static_cast<int>(sRoomName.size());
+
+
+    // Copy room message.
+
+    std::u16string sRoomMessage = pMainWindow->getRoomMessage(sRoomName);
+
+    unsigned short iRoomMessageSize = sRoomMessage.length() * 2;
+    memcpy(vSendBuffer + iCurrentWriteIndex, &iRoomMessageSize, sizeof(iRoomMessageSize));
+    iCurrentWriteIndex += sizeof(iRoomMessageSize);
+
+    memcpy(vSendBuffer + iCurrentWriteIndex, sRoomMessage.c_str(), iRoomMessageSize);
+    iCurrentWriteIndex += iRoomMessageSize;
+
+
+    send(userToListen->userTCPSocket, vSendBuffer, iCurrentWriteIndex, 0);
 
     pMainWindow->moveUserToRoom(userToListen->pUserInList, sRoomName);
 
