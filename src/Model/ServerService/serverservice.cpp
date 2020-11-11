@@ -216,7 +216,7 @@ void ServerService::sendMessageToAll(const std::string &sMessage)
     }
 }
 
-bool ServerService::establishSecureConnection(SOCKET userSocket,  std::string* pSecretKeyString, std::string userNameStr)
+bool ServerService::establishSecureConnection(SSocket userSocket,  std::string* pSecretKeyString, std::string userNameStr)
 {
     std::uniform_int_distribution<> uid_pg(0, static_cast<int>(vKeyPG.size() - 1));
 
