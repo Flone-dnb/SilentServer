@@ -32,6 +32,7 @@ using std::memcpy;
 #include "View/ChangeRoomNameWindow/changeroomnamewindow.h"
 #include "View/CreateRoomWindow/createroomwindow.h"
 #include "View/GlobalMessageWindow/globalmessagewindow.h"
+#include "View/AboutQtWindow/aboutqtwindow.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -753,6 +754,14 @@ void MainWindow::on_actionSend_Server_Message_to_All_triggered()
     connect(pWindow, &GlobalMessageWindow::signalServerMessage, this, &MainWindow::slotSendServerMessage);
 
     pWindow->show();
+}
+
+void MainWindow::on_actionAbout_Qt_triggered()
+{
+    AboutQtWindow* pAboutQtWindow = new AboutQtWindow(this);
+    pAboutQtWindow->setWindowModality(Qt::WindowModality::WindowModal);
+
+    pAboutQtWindow->show();
 }
 
 MainWindow::~MainWindow()

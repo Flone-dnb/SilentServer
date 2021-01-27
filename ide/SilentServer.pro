@@ -23,6 +23,7 @@ SOURCES += \
     ../ext/integer/integer.cpp \
     ../src/Model/LogManager/logmanager.cpp \
     ../src/Model/SettingsManager/settingsmanager.cpp \
+    ../src/View/AboutQtWindow/aboutqtwindow.cpp \
         ../src/View/AboutWindow/aboutwindow.cpp \
     ../src/View/ChangeRoomNameWindow/changeroomnamewindow.cpp \
     ../src/View/CreateRoomWindow/createroomwindow.cpp \
@@ -44,6 +45,7 @@ HEADERS += \
         ../src/Model/ServerService/UDPPacket.h \
         ../src/Model/SettingsManager/SettingsFile.h \
         ../src/Model/SettingsManager/settingsmanager.h \
+        ../src/View/AboutQtWindow/aboutqtwindow.h \
         ../src/View/ChangeRoomNameWindow/changeroomnamewindow.h \
         ../src/View/CreateRoomWindow/createroomwindow.h \
         ../src/View/CustomList/SListItem/slistitem.h \
@@ -61,6 +63,7 @@ HEADERS += \
         ../src/Model/net_params.h
 
 FORMS += \
+        ../src/View/AboutQtWindow/aboutqtwindow.ui \
         ../src/View/AboutWindow/aboutwindow.ui \
         ../src/View/ChangeRoomNameWindow/changeroomnamewindow.ui \
         ../src/View/CreateRoomWindow/createroomwindow.ui \

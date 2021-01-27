@@ -142,6 +142,7 @@ private slots:
         void             on_actionAbout_2_triggered  ();
         void             on_actionSettings_triggered ();
         void             on_actionSend_Server_Message_to_All_triggered();
+        void             on_actionAbout_Qt_triggered ();
 
 
     // Slider on output log
@@ -169,6 +170,7 @@ private slots:
         void slotCreateNewRoom(QString sName, QString sPassword, size_t iMaxUsers);
 
         void slotMenuClose();
+
 
 private:
 
