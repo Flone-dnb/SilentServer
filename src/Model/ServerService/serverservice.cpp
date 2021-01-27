@@ -1705,6 +1705,8 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                     // Should be: iUsersVoicePacketSampleCount * 2 bytes + 1 null-terminated char (added by DecryptECB function).
                     pDecryptedVoiceBytes = pAES->DecryptECB(reinterpret_cast<unsigned char*>(pEncryptedVoiceMessage), static_cast<unsigned int>(iEncryptedDataSize),
                                                                            reinterpret_cast<unsigned char*>(userToListen->vSecretAESKey));
+
+                    delete[] pEncryptedVoiceMessage;
                 }
 
 
