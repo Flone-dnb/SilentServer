@@ -19,7 +19,7 @@ AboutWindow::AboutWindow(QString sSilentVersion, QString sSilentLastClientVersio
     ui->label_appIcon      ->setPixmap ( QPixmap(":/appMainIcon.png").scaled (128, 128, Qt::KeepAspectRatio) );
     ui->label_silentVersion->setText   ( "Silent Server. Version: " + sSilentVersion + ".\n"
                                            "Supported client version: " + sSilentLastClientVersion + "." );
-    ui->label_copyright    ->setText   ( "Copyright (c) 2019-2020.\nAleksandr \"Flone\" Tretyakov." );
+    ui->label_copyright    ->setText   ( "Copyright (c) 2019-2021.\nAleksandr \"Flone\" Tretyakov." );
 }
 
 
