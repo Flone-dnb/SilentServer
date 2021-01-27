@@ -766,6 +766,13 @@ void MainWindow::on_actionAbout_Qt_triggered()
 
 MainWindow::~MainWindow()
 {
+    delete pActionKick;
+    delete pActionChangeSettings;
+    delete pActionMoveRoomUp;
+    delete pActionMoveRoomDown;
+    delete pActionDeleteRoom;
+    delete pActionCreateRoom;
+
     delete pMenuRoom;
     delete pMenuUser;
     delete pMenuEmpty;
