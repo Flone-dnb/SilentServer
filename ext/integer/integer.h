@@ -616,12 +616,12 @@ Z & operator>>=(Z & lhs, const integer & rhs){
 }
 
 // Comparison Operators
-template <typename Z>
-bool operator==(const Z & lhs, const integer & rhs){
-    static_assert(std::is_integral <Z>::value
-                  , "Input type must be integral");
-    return (integer(lhs) == rhs);
-}
+//template <typename Z>
+//bool operator==(const Z & lhs, const integer & rhs){
+//    static_assert(std::is_integral <Z>::value
+//                  , "Input type must be integral");
+//    return (integer(lhs) == rhs);
+//}
 
 //template <typename Z>
 //bool operator!=(const Z & lhs, const integer & rhs){
