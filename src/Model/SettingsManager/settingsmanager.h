@@ -32,6 +32,7 @@ class SettingsManager
 public:
 
     SettingsManager(MainWindow* pMainWindow);
+    ~SettingsManager();
 
 
     // SET functions

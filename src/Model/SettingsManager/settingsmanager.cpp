@@ -36,6 +36,14 @@ SettingsManager::SettingsManager(MainWindow* pMainWindow)
     pCurrentSettingsFile = readSettings();
 }
 
+SettingsManager::~SettingsManager()
+{
+    if (pCurrentSettingsFile)
+    {
+        delete pCurrentSettingsFile;
+    }
+}
+
 
 
 
