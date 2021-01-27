@@ -2651,7 +2651,7 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
     if (userToClose->bConnectedToVOIP)
     {
         // Wait for listenForVoiceMessage() to end.
-        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_UDP_MESSAGE_MS) );
+        std::this_thread::sleep_for( std::chrono::milliseconds(INTERVAL_TCP_ACCEPT_MS) );
 
         mtxUDPPackets.lock();
 
@@ -3210,6 +3210,9 @@ void ServerService::shutdownAllUsers()
         closeSocket(listenTCPSocket);
         closeSocket(UDPsocket);
     }
+
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
 
     mtxUDPPackets.lock();
