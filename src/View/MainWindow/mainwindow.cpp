@@ -772,5 +772,7 @@ MainWindow::~MainWindow()
 
     delete pController;
 
+    delete pTrayIcon;
+
     delete ui;
 }
