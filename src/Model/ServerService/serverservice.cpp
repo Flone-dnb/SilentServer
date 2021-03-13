@@ -492,7 +492,7 @@ void ServerService::catchUDPPackets()
 
                 mtxUDPPackets.lock();
 
-                vUDPPackets.push_back(pPacket);
+                qUDPPackets.push_back(pPacket);
 
                 mtxUDPPackets.unlock();
             }
@@ -508,11 +508,11 @@ void ServerService::eraseUDPPacket()
 {
     // This function should be called when mtxUDPPackets is locked.
 
-    if ( vUDPPackets[0]->vThreadsRejectedPacket.size() >= users.size() )
+    if ( qUDPPackets.front()->vThreadsRejectedPacket.size() >= users.size() )
     {
-        delete vUDPPackets[0];
+        delete qUDPPackets.front();
 
-        vUDPPackets.erase( vUDPPackets.begin() );
+        qUDPPackets.pop_front();
 
 
         mtxRefreshWrongPacketCount.lock();
@@ -1442,7 +1442,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
     {
         mtxUDPPackets.lock();
 
-        if (vUDPPackets.size() == 0)
+        if (qUDPPackets.size() == 0)
         {
             mtxUDPPackets.unlock();
 
@@ -1465,7 +1465,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
 
 
-        UDPPacket* pPacket = vUDPPackets[0];
+        UDPPacket* pPacket = qUDPPackets.front();
 
         // If it's data not from 'userToListen' user then we should not touch it.
 
@@ -1488,7 +1488,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
             if ( std::string(userNameBuffer) == userToListen->userName )
             {
-                vUDPPackets.erase( vUDPPackets.begin() );
+                qUDPPackets.pop_front();
 
                 mtxUDPPackets.unlock();
 
@@ -1587,7 +1587,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
     {
         mtxUDPPackets.lock();
 
-        if ( (vUDPPackets.size() == 0) || (userToListen->bConnectedToVOIP == false))
+        if ( (qUDPPackets.size() == 0) || (userToListen->bConnectedToVOIP == false))
         {
             mtxUDPPackets.unlock();
 
@@ -1612,7 +1612,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
         }
 
 
-        UDPPacket* pPacket = vUDPPackets[0];
+        UDPPacket* pPacket = qUDPPackets.front();
 
         // If it's data not from 'userToListen' user then we should not touch it.
 
@@ -1628,7 +1628,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
              && (userToListen->userUDPAddr.sin_port == pPacket->senderInfo.sin_port) )
         {
 #endif
-            vUDPPackets.erase( vUDPPackets.begin() );
+            qUDPPackets.pop_front();
 
             mtxUDPPackets.unlock();
 
@@ -1794,7 +1794,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
             mtxUDPPackets.lock();
 
-            if (vUDPPackets.size() == 0)
+            if (qUDPPackets.size() == 0)
             {
                 pPacket = nullptr;
 
@@ -1804,7 +1804,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
             }
             else
             {
-                pPacket = vUDPPackets[0];
+                pPacket = qUDPPackets.front();
             }
         }
 
@@ -2655,23 +2655,26 @@ void ServerService::responseToFIN(UserStruct* userToClose, bool bUserLost)
 
         mtxUDPPackets.lock();
 
-        for (int i = 0; i < static_cast <int>(vUDPPackets.size()); i++)
+        std::deque<UDPPacket*>::iterator it;
+        for ( it = qUDPPackets.begin(); it != qUDPPackets.end(); it++ )
         {
 #if _WIN32
-            if (    (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
-                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
+            if (    ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+                 && ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+                 && ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+                 && ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+                 && (userToClose->userUDPAddr.sin_port == (*it)->senderInfo.sin_port) )
             {
 #elif __linux__
-            if (    (vUDPPackets[i]->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
-                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
+            if (    ((*it)->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
+                 && (userToClose->userUDPAddr.sin_port == (*it)->senderInfo.sin_port) )
             {
 #endif
-                delete vUDPPackets[i];
-                vUDPPackets.erase( vUDPPackets.begin() + i );
-                i--;
+                delete (*it);
+
+                qUDPPackets.erase(qUDPPackets.begin() + std::distance(qUDPPackets.begin(), it) );
+
+                break;
             }
         }
 
@@ -2871,23 +2874,26 @@ void ServerService::sendFINtoUser(UserStruct *userToClose)
 
         // This never happened (I think) but let's check if there are some packets from this user. Just in case.
 
-        for (int i = 0; i < vUDPPackets.size(); i++)
+        std::deque<UDPPacket*>::iterator it;
+        for ( it = qUDPPackets.begin(); it != qUDPPackets.end(); it++ )
         {
 #if _WIN32
-            if (    (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
-                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
-                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
-                 && (vUDPPackets[i]->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
-                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
+            if (    ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b1 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b1)
+                 && ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b2 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b2)
+                 && ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b3 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b3)
+                 && ((*it)->senderInfo.sin_addr.S_un.S_un_b.s_b4 == userToClose->userUDPAddr.sin_addr.S_un.S_un_b.s_b4)
+                 && (userToClose->userUDPAddr.sin_port == (*it)->senderInfo.sin_port) )
             {
 #elif __linux__
-            if (    (vUDPPackets[i]->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
-                 && (userToClose->userUDPAddr.sin_port == vUDPPackets[i]->senderInfo.sin_port) )
+            if (    ((*it)->senderInfo.sin_addr.s_addr == userToClose->userUDPAddr.sin_addr.s_addr)
+                 && (userToClose->userUDPAddr.sin_port == (*it)->senderInfo.sin_port) )
             {
 #endif
-                delete vUDPPackets[i];
-                vUDPPackets.erase( vUDPPackets.begin() + i );
-                i--;
+                delete (*it);
+
+                qUDPPackets.erase(qUDPPackets.begin() + std::distance(qUDPPackets.begin(), it) );
+
+                break;
             }
         }
 
@@ -3218,12 +3224,13 @@ void ServerService::shutdownAllUsers()
     mtxUDPPackets.lock();
     mtxUDPPackets.unlock();
 
-    for (size_t i = 0; i < vUDPPackets.size(); i++)
+    std::deque<UDPPacket*>::iterator it;
+    for ( it = qUDPPackets.begin(); it != qUDPPackets.end(); it++ )
     {
-        delete vUDPPackets[i];
+        delete (*it);
     }
 
-    vUDPPackets.clear();
+    qUDPPackets.clear();
 
 
     pLogManager->printAndLog( "Server stopped.\n" );

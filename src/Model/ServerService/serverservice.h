@@ -14,6 +14,15 @@
 #include <mutex>
 #include <random>
 
+#if defined(DEBUG) || defined(_DEBUG)
+// uncomment for compilation error
+#define _ITERATOR_DEBUG_LEVEL 1 // probably a terrible way of resolving similar conversions error (in deque operator <=)
+#endif
+#include <deque>
+#if defined(DEBUG) || defined(_DEBUG)
+#define _ITERATOR_DEBUG_LEVEL 2
+#endif
+
 // ============== Network ==============
 // Sockets and stuff
 #ifdef _WIN32
@@ -167,7 +176,7 @@ private:
     SSocket                  listenTCPSocket;
     SSocket                  UDPsocket;
     std::vector<UserStruct*> users;
-    std::vector<UDPPacket*>  vUDPPackets;
+    std::deque<UDPPacket*>   qUDPPackets;
     std::vector<std::vector<int>> vKeyPG; // some 'p' and 'g' values for key generation.
 
 
