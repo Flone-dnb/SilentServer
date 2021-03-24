@@ -7,6 +7,7 @@
 
 //STL
 #include <thread>
+#include <string_view>
 
 #if _WIN32
 using std::memcpy;
@@ -127,7 +128,11 @@ ServerService::ServerService(MainWindow* pMainWindow, SettingsManager* pSettings
     vKeyPG[4].push_back(11);
 
 
-    // should be shorter than MAX_VERSION_STRING_LENGTH
+    static_assert(std::string_view(SERVER_VERSION).size() < MAX_VERSION_STRING_LENGTH,
+                "The server version defined in SERVER_VERSION macro is too long, see MAX_VERSION_STRING_LENGTH macro.");
+    static_assert(std::string_view(CLIENT_SUPPORTED_VERSION).size() < MAX_VERSION_STRING_LENGTH,
+                "The supported client version defined in CLIENT_SUPPORTED_VERSION macro is too long, see MAX_VERSION_STRING_LENGTH macro.");
+
     serverVersion              = SERVER_VERSION;
     clientLastSupportedVersion = CLIENT_SUPPORTED_VERSION;
 
