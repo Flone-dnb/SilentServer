@@ -235,7 +235,7 @@ void SettingsManager::saveSettings(SettingsFile *pSettingsFile)
 
         // Write room message size.
 
-        unsigned short int iRoomMessageSize = pMainWindow->getRoomMessage(i).length() * 2;
+        unsigned short int iRoomMessageSize = static_cast<unsigned short>(pMainWindow->getRoomMessage(i).length() * sizeof(char16_t));
         newSettingsFile.write( reinterpret_cast<char*>(&iRoomMessageSize), sizeof(iRoomMessageSize) );
 
 
@@ -362,11 +362,6 @@ SettingsFile *SettingsManager::readSettings()
 #elif __linux__
     std::ifstream settingsFile (adressToSettings, std::ios::binary);
 #endif
-
-    // Get file size.
-    settingsFile.seekg(0, std::ios::end);
-    long long iFileSize = settingsFile.tellg();
-    settingsFile.seekg(0, std::ios::beg);
 
     long long iPos = 0;
 

@@ -192,7 +192,7 @@ void ServerService::sendMessageToAll(const std::string &sMessage)
         int iIndex = 1 + sizeof(unsigned short);
 
         memcpy(vBuffer + iIndex, sMessage.c_str(), sMessage.size());
-        iIndex += sMessage.size();
+        iIndex += static_cast<int>(sMessage.size());
 
         int iSentSize = 0;
 
@@ -294,7 +294,7 @@ bool ServerService::establishSecureConnection(SSocket userSocket,  std::string* 
 
     // Send open key 'A'.
 
-    if (send(userSocket, pOpenKeyString, sizeof(iStringSize) + A.str().size(), 0) != sizeof(iStringSize) + A.str().size())
+    if (send(userSocket, pOpenKeyString, static_cast<int>(sizeof(iStringSize) + A.str().size()), 0) != static_cast<int>(sizeof(iStringSize) + A.str().size()))
     {
         pLogManager->printAndLog("ServerService::listenForNewConnections()::send() (sending open key) failed and returned: "
                                   + std::to_string(getLastError()) + ".\nSending FIN to this new user.\n",true);
@@ -1079,7 +1079,7 @@ void ServerService::listenForNewConnections()
             }
         }
 
-        unsigned short welcomeRoomMessageSize = pMainWindow->getRoomMessage(0).length() * 2;
+        unsigned short welcomeRoomMessageSize = static_cast<unsigned short>(pMainWindow->getRoomMessage(0).length() * sizeof(char16_t));
         memcpy(tempData + iBytesWillSend, &welcomeRoomMessageSize, sizeof(welcomeRoomMessageSize));
         iBytesWillSend += sizeof(welcomeRoomMessageSize);
 
@@ -1683,15 +1683,15 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
 
                 // Copy user name size.
                 vBuffer[0] = static_cast<char>(userToListen->userName.size());
-                iResendPacketSize += sizeof(char);
+                iResendPacketSize += static_cast<int>(sizeof(char));
 
                 // Copy user name.
                 memcpy(vBuffer + iResendPacketSize, userToListen->userName.c_str(), userToListen->userName.size());
-                iResendPacketSize += userToListen->userName.size();
+                iResendPacketSize += static_cast<int>(userToListen->userName.size());
 
                 // Copy packet command char.
                 memcpy( vBuffer + iResendPacketSize, pPacket->vPacketData, sizeof(char));
-                iResendPacketSize += sizeof(char);
+                iResendPacketSize += static_cast<int>(sizeof(char));
 
                 unsigned char* pDecryptedVoiceBytes = nullptr;
 
@@ -1746,7 +1746,7 @@ void ServerService::listenForVoiceMessage(UserStruct *userToListen)
                             // Add encrypted message.
                             memcpy(vBuffer + iResendPacketSize + sizeof(iEncryptedVoiceMessageSize), pEncryptedMessageBytes, iEncryptedVoiceMessageSize);
 
-                            iUserResendPacketSize = static_cast<int>(iResendPacketSize + sizeof(iEncryptedVoiceMessageSize) + iEncryptedVoiceMessageSize);
+                            iUserResendPacketSize = iResendPacketSize + static_cast<int>(sizeof(iEncryptedVoiceMessageSize)) + iEncryptedVoiceMessageSize;
 
                             delete[] pEncryptedMessageBytes;
                         }
@@ -2175,7 +2175,7 @@ void ServerService::userEntersRoom(UserStruct *userToListen, std::string sRoomNa
 
     std::u16string sRoomMessage = pMainWindow->getRoomMessage(sRoomName);
 
-    unsigned short iRoomMessageSize = sRoomMessage.length() * 2;
+    unsigned short iRoomMessageSize = static_cast<unsigned short>(sRoomMessage.length() * sizeof(char16_t));
     memcpy(vSendBuffer + iCurrentWriteIndex, &iRoomMessageSize, sizeof(iRoomMessageSize));
     iCurrentWriteIndex += sizeof(iRoomMessageSize);
 
@@ -2297,9 +2297,9 @@ void ServerService::deleteRoom(const std::string &sRoomName)
 
             if (pMainWindow->getUsersOfRoomIndex(i).size() == 0)
             {
-                for (size_t i = 0; i < users.size(); i++)
+                for (size_t j = 0; j < users.size(); j++)
                 {
-                    iSentSize = send(users[i]->userTCPSocket, vBuffer, iSizeToSend, 0);
+                    iSentSize = send(users[j]->userTCPSocket, vBuffer, iSizeToSend, 0);
 
                     if (iSentSize != iSizeToSend)
                     {
@@ -2310,7 +2310,7 @@ void ServerService::deleteRoom(const std::string &sRoomName)
                         }
                         else
                         {
-                            pLogManager->printAndLog( "ServerService::deleteRoom::send(): not full sent size on user " + users[i]->userName + ". send() returned: "
+                            pLogManager->printAndLog( "ServerService::deleteRoom::send(): not full sent size on user " + users[j]->userName + ". send() returned: "
                                                        + std::to_string(iSentSize), true );
                         }
                     }
@@ -2389,17 +2389,17 @@ void ServerService::changeRoomSettings(const std::string &sOldName, const std::s
     int iIndex = 2;
 
     memcpy(vBuffer + iIndex, sOldName.c_str(), sOldName.size());
-    iIndex += sOldName.size();
+    iIndex += static_cast<int>(sOldName.size());
 
     vBuffer[iIndex] = static_cast<char>(sNewName.size());
     iIndex++;
 
     memcpy(vBuffer + iIndex, sNewName.c_str(), sNewName.size());
-    iIndex += sNewName.size();
+    iIndex += static_cast<int>(sNewName.size());
 
     unsigned int iMax = static_cast<unsigned int>(iMaxUsers);
     memcpy(vBuffer + iIndex, &iMax, sizeof(unsigned int));
-    iIndex += sizeof(unsigned int);
+    iIndex += static_cast<int>(sizeof(unsigned int));
 
 
     int iSentSize   = 0;

@@ -105,6 +105,8 @@ void SettingsWindow::on_pushButton_log_file_select_path_clicked()
 
 void SettingsWindow::on_checkBox_log_stateChanged(int arg1)
 {
+    Q_UNUSED(arg1)
+
     if ( ui->checkBox_log->isChecked() )
     {
         ui->lineEdit_log_file_path->setEnabled(true);
