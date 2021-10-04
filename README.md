@@ -1,6 +1,6 @@
 ﻿# Silent Server
 Silent is an extremely lightweight, high quality - low latency voice chat made for gaming. Runs on Windows and Linux.<br>
-Must be used with the Silent (client) application.<br> 
+Must be used with the [Silent (client)](https://github.com/Flone-dnb/Silent) application.<br> 
 <br>
 Made with Qt Framework, Winsock2 and Windows Multimedia System.
 
